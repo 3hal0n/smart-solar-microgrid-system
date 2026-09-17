@@ -47,6 +47,10 @@
             "Microsoft.AspNetCore.OpenApi": {
               "target": "Package",
               "version": "[9.0.14, )"
+            },
+            "MongoDB.Driver": {
+              "target": "Package",
+              "version": "[3.11.2, )"
             }
           },
           "imports": [
