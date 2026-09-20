@@ -96,32 +96,50 @@ export default function StationForm({ open, station, submitting, serverError, on
       onClose={onClose}
       title={isEdit ? 'Edit station' : 'New station'}
       description="GPS position, capacity specs and operating hours for this grid node."
+      suppressClose={isMapPickerOpen}
     >
       <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
         <Input label="Station name" required value={values.name} onChange={handleChange('name')} />
 
-        {/* Paired inputs sit in a balanced 2-column grid, stacking on narrow screens. */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Input
-            label="Latitude"
-            type="number"
-            step="any"
-            required
-            placeholder="6.9271"
-            className="font-mono"
-            value={values.lat}
-            onChange={handleChange('lat')}
-          />
-          <Input
-            label="Longitude"
-            type="number"
-            step="any"
-            required
-            placeholder="79.8612"
-            className="font-mono"
-            value={values.lng}
-            onChange={handleChange('lng')}
-          />
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="text-[13px] font-medium text-ink">Location</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-primary"
+              onClick={() => setIsMapPickerOpen(true)}
+            >
+              <PinIcon />
+              Pick on map
+            </Button>
+          </div>
+          {/* Paired inputs sit in a balanced 2-column grid, stacking on narrow screens. Values
+              typed here or written by the map picker are the exact same state — both stay
+              fully editable regardless of which one was used last. */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              label="Latitude"
+              type="number"
+              step="any"
+              required
+              placeholder="6.9271"
+              className="font-mono"
+              value={values.lat}
+              onChange={handleChange('lat')}
+            />
+            <Input
+              label="Longitude"
+              type="number"
+              step="any"
+              required
+              placeholder="79.8612"
+              className="font-mono"
+              value={values.lng}
+              onChange={handleChange('lng')}
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -165,6 +183,14 @@ export default function StationForm({ open, station, submitting, serverError, on
           </Button>
         </div>
       </form>
+
+      <MapPicker
+        open={isMapPickerOpen}
+        initialLat={values.lat === '' ? NaN : Number(values.lat)}
+        initialLng={values.lng === '' ? NaN : Number(values.lng)}
+        onClose={() => setIsMapPickerOpen(false)}
+        onConfirm={handleMapConfirm}
+      />
     </Modal>
   );
 }
