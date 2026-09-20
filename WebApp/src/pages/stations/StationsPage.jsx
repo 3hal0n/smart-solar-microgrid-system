@@ -73,6 +73,7 @@ export default function StationsPage() {
       const { data } = await api.get(`/stations/${stationId}`);
       setEditingStation(data);
       setFormError('');
+      setFormKey((key) => key + 1);
       setIsFormOpen(true);
     } catch (err) {
       setLoadError(err.response?.data?.message || 'Failed to load station details.');
@@ -170,6 +171,7 @@ export default function StationsPage() {
       </Table>
 
       <StationForm
+        key={formKey}
         open={isFormOpen}
         station={editingStation}
         submitting={submitting}
