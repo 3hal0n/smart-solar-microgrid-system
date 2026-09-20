@@ -60,28 +60,23 @@ function roundCoordinate(value) {
   return Math.round(value * 1e6) / 1e6;
 }
 
+// Derives the marker's starting position from the form's current lat/lng, falling back to the
+// default Sri Lanka center when they're empty/invalid.
+function toStartPosition(initialLat, initialLng) {
+  const hasValidStart = Number.isFinite(initialLat) && Number.isFinite(initialLng);
+  return hasValidStart ? { lat: initialLat, lng: initialLng } : DEFAULT_CENTER;
+}
+
 // Modal for visually picking a station's GPS position; confirms back a { lat, lng } number pair.
+// The parent (StationForm) remounts this component via a changing `key` each time it opens, so
+// state below is simply derived once from props at mount — no effect-based reset needed.
 export default function MapPicker({ open, initialLat, initialLng, onClose, onConfirm }) {
-  const [position, setPosition] = useState(DEFAULT_CENTER);
-  const [recenterTarget, setRecenterTarget] = useState(null);
+  const [position, setPosition] = useState(() => toStartPosition(initialLat, initialLng));
+  const [recenterTarget, setRecenterTarget] = useState(() => toStartPosition(initialLat, initialLng));
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
-
-  // Seeds the marker from the form's current values (if valid) each time the modal opens.
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-    const hasValidStart = Number.isFinite(initialLat) && Number.isFinite(initialLng);
-    const start = hasValidStart ? { lat: initialLat, lng: initialLng } : DEFAULT_CENTER;
-    setPosition(start);
-    setRecenterTarget(start);
-    setSearchQuery('');
-    setSearchResults([]);
-    setSearchError('');
-  }, [open, initialLat, initialLng]);
 
   // Looks up a place name via OpenStreetMap's free Nominatim search (no API key required).
   // Runs only on explicit submit, not per keystroke, per Nominatim's fair-use policy.

@@ -61,6 +61,8 @@ function toFormValues(station) {
 export default function StationForm({ open, station, submitting, serverError, onClose, onSubmit }) {
   const [values, setValues] = useState(() => toFormValues(station));
   const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
+  // Bumped every time the map picker opens so it remounts fresh (see MapPicker.jsx).
+  const [mapPickerKey, setMapPickerKey] = useState(0);
   const isEdit = Boolean(station);
 
   // Updates a single field's value as the user types.
@@ -108,11 +110,15 @@ export default function StationForm({ open, station, submitting, serverError, on
               type="button"
               variant="ghost"
               size="sm"
-              className="text-primary"
-              onClick={() => setIsMapPickerOpen(true)}
+              onClick={() => {
+                setMapPickerKey((key) => key + 1);
+                setIsMapPickerOpen(true);
+              }}
             >
-              <PinIcon />
-              Pick on map
+              <span className="flex items-center gap-1.5 text-primary">
+                <PinIcon />
+                Pick on map
+              </span>
             </Button>
           </div>
           {/* Paired inputs sit in a balanced 2-column grid, stacking on narrow screens. Values
@@ -185,6 +191,7 @@ export default function StationForm({ open, station, submitting, serverError, on
       </form>
 
       <MapPicker
+        key={mapPickerKey}
         open={isMapPickerOpen}
         initialLat={values.lat === '' ? NaN : Number(values.lat)}
         initialLng={values.lng === '' ? NaN : Number(values.lng)}
