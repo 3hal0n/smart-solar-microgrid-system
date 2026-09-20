@@ -227,13 +227,13 @@ export default function StationDetailPage() {
   const slotNumberFor = (slotId) => station?.slots?.find((slot) => slot.id === slotId)?.slotNumber ?? slotId;
 
   if (loading) {
-    return <div className="mx-auto max-w-5xl px-4 py-10 text-muted">Loading station…</div>;
+    return <div className="mx-auto max-w-6xl px-6 py-8 text-[13px] text-muted">Loading station…</div>;
   }
 
   if (loadError || !station) {
     return (
-      <div className="mx-auto max-w-5xl px-4 py-10">
-        <p className="rounded-sm bg-error/10 px-3 py-2 text-sm font-medium text-error">
+      <div className="mx-auto max-w-6xl px-6 py-8">
+        <p className="rounded-md border border-error/30 bg-error-soft px-3 py-2 text-[13px] font-medium text-error">
           {loadError || 'Station not found.'}
         </p>
       </div>
@@ -241,49 +241,74 @@ export default function StationDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
-      <Link to="/stations" className="mb-4 inline-block text-sm font-semibold text-primary hover:underline">
+    <div className="mx-auto max-w-6xl px-6 py-8">
+      <Link to="/stations" className="mb-4 inline-block text-[13px] font-medium text-muted hover:text-ink">
         ← Back to stations
       </Link>
 
-      <div className="mb-8 flex flex-col gap-4 rounded-md border border-line bg-canvas p-6 sm:flex-row sm:items-start sm:justify-between">
+      <div className="mb-8 flex flex-col gap-4 rounded-lg border border-line bg-surface p-6 shadow-card sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div className="flex items-center gap-3">
-            <h1 className="font-display text-2xl font-bold tracking-tight text-ink">{station.name}</h1>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl font-semibold tracking-tight text-ink">{station.name}</h1>
             <Badge tone={station.status === 'Active' ? 'success' : 'neutral'}>{station.status}</Badge>
           </div>
-          <p className="mt-1 text-sm text-muted">{formatCoordinates(station.location)}</p>
-          <p className="mt-1 text-sm text-muted">
-            {station.capacityKWh} kWh · {station.totalBatterySlots} declared slots
-          </p>
+          <p className="mt-1.5 font-mono text-[12px] text-muted">{formatCoordinates(station.location)}</p>
+          <div className="mt-4 flex gap-8">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Capacity</p>
+              <p className="tnum mt-0.5 text-lg text-ink">
+                {station.capacityKWh}
+                <span className="ml-1 text-[13px] text-muted">kWh</span>
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Declared slots</p>
+              <p className="tnum mt-0.5 text-lg text-ink">{station.totalBatterySlots}</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Defined slots</p>
+              <p className="tnum mt-0.5 text-lg text-ink">{station.slots.length}</p>
+            </div>
+          </div>
         </div>
         {station.status === 'Active' ? (
           <Button variant="secondary" onClick={handleDeactivate} disabled={deactivating}>
             {deactivating ? 'Deactivating…' : 'Deactivate station'}
           </Button>
         ) : (
-          <span className="text-sm font-medium text-muted">Station is inactive.</span>
+          <span className="text-[13px] text-muted">Station is inactive.</span>
         )}
       </div>
 
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-bold text-ink">Operating schedule</h2>
-        <ScheduleEditor key={station.updatedAt} station={station} submitting={scheduleSubmitting} onSave={handleSaveSchedule} />
+        <h2 className="mb-1 text-base font-semibold tracking-tight text-ink">Operating schedule</h2>
+        <p className="mb-3 text-[13px] text-muted">Opening hours applied to this node.</p>
+        <div className="rounded-lg border border-line bg-surface p-5 shadow-card">
+          <ScheduleEditor
+            key={station.updatedAt}
+            station={station}
+            submitting={scheduleSubmitting}
+            onSave={handleSaveSchedule}
+          />
+        </div>
       </section>
 
       <section className="mb-8">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-ink">Slots</h2>
-          <Button variant="accent" onClick={handleOpenCreateSlot}>
-            + New slot
+        <div className="mb-3 flex items-end justify-between">
+          <div>
+            <h2 className="text-base font-semibold tracking-tight text-ink">Battery slots</h2>
+            <p className="mt-1 text-[13px] text-muted">Availability is updated inline and saved immediately.</p>
+          </div>
+          <Button variant="primary" onClick={handleOpenCreateSlot}>
+            New slot
           </Button>
         </div>
         <Table>
           <thead>
             <tr>
-              <Th>Slot #</Th>
+              <Th className="text-right">Slot</Th>
               <Th>Type</Th>
-              <Th>Capacity</Th>
+              <Th className="text-right">Capacity</Th>
               <Th>Status</Th>
               <Th className="text-right">Actions</Th>
             </tr>
@@ -291,22 +316,25 @@ export default function StationDetailPage() {
           <tbody>
             {station.slots.length === 0 && (
               <tr>
-                <Td colSpan={5} className="text-center text-muted">
+                <Td colSpan={5} className="py-8 text-center text-[13px] text-muted">
                   No slots yet.
                 </Td>
               </tr>
             )}
             {station.slots.map((slot) => (
-              <tr key={slot.id}>
-                <Td className="font-semibold">{slot.slotNumber}</Td>
-                <Td>{slot.type}</Td>
-                <Td>{slot.capacityKWh} kWh</Td>
+              <tr key={slot.id} className="transition-colors hover:bg-surface-alt/60">
+                <Td className="tnum text-right font-medium">{slot.slotNumber}</Td>
+                <Td className="text-body">{slot.type}</Td>
+                <Td className="tnum text-right">
+                  {slot.capacityKWh}
+                  <span className="ml-1 text-[12px] text-muted">kWh</span>
+                </Td>
                 <Td>
                   <select
                     value={slot.status}
                     disabled={slotStatusUpdatingId === slot.id}
                     onChange={(event) => handleSlotStatusChange(slot.id, event.target.value)}
-                    className="rounded-pill border border-line bg-canvas px-3 py-1.5 text-xs font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-50"
+                    className="h-8 rounded-md border border-line bg-surface px-2 text-[13px] text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
                   >
                     <option value="Available">Available</option>
                     <option value="Reserved">Reserved</option>
@@ -314,7 +342,7 @@ export default function StationDetailPage() {
                   </select>
                 </Td>
                 <Td className="text-right">
-                  <Button variant="ghost" onClick={() => handleOpenEditSlot(slot)}>
+                  <Button variant="secondary" size="sm" onClick={() => handleOpenEditSlot(slot)}>
                     Edit
                   </Button>
                 </Td>
@@ -325,8 +353,8 @@ export default function StationDetailPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-bold text-ink">Reservations overview</h2>
-        <p className="mb-3 text-sm text-muted">Read-only — who's currently booked at this station.</p>
+        <h2 className="mb-1 text-base font-semibold tracking-tight text-ink">Reservations overview</h2>
+        <p className="mb-3 text-[13px] text-muted">Read-only — who's currently booked at this station.</p>
         <Table>
           <thead>
             <tr>
