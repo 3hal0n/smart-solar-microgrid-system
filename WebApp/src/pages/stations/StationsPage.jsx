@@ -8,6 +8,7 @@
 // Author: Shalon
 // ============================================================
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../../services/api.js';
 import { Table, Th, Td } from '../../components/common/Table.jsx';
 import Button from '../../components/common/Button.jsx';
@@ -153,7 +154,11 @@ export default function StationsPage() {
           {!loading &&
             stations.map((station) => (
               <tr key={station.id}>
-                <Td className="font-semibold">{station.name}</Td>
+                <Td className="font-semibold">
+                  <Link to={`/stations/${station.id}`} className="text-primary hover:underline">
+                    {station.name}
+                  </Link>
+                </Td>
                 <Td>{formatCoordinates(station.location)}</Td>
                 <Td>{station.capacityKWh} kWh</Td>
                 <Td>{station.totalBatterySlots ?? '—'}</Td>
