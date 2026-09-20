@@ -8,7 +8,7 @@
 //          here, per the FAT service pattern.
 // Author: Shalon
 // ============================================================
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import api from '../../services/api.js';
 import { Table, Th, Td } from '../../components/common/Table.jsx';
