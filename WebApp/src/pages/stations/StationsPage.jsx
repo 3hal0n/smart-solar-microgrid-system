@@ -34,6 +34,9 @@ export default function StationsPage() {
   const [editingStation, setEditingStation] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+  // Bumped every time the modal opens so StationForm remounts fresh instead of needing an
+  // effect to reset its fields (see StationForm.jsx).
+  const [formKey, setFormKey] = useState(0);
 
   // Loads the station list from the real API, optionally filtered by the current search term.
   const loadStations = useCallback(async (term) => {
@@ -59,6 +62,7 @@ export default function StationsPage() {
   const handleOpenCreate = () => {
     setEditingStation(null);
     setFormError('');
+    setFormKey((key) => key + 1);
     setIsFormOpen(true);
   };
 

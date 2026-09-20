@@ -41,16 +41,11 @@ function toFormValues(station) {
 }
 
 // Create/edit modal for a station; renders the shared Modal shell with a form inside.
+// The parent remounts this component (via a changing `key`) each time it opens, so field
+// values are simply derived once from `station` at mount — no effect-based reset needed.
 export default function StationForm({ open, station, submitting, serverError, onClose, onSubmit }) {
-  const [values, setValues] = useState(EMPTY_VALUES);
+  const [values, setValues] = useState(() => toFormValues(station));
   const isEdit = Boolean(station);
-
-  // Resets the form's fields whenever the modal opens (for a new or a different station).
-  useEffect(() => {
-    if (open) {
-      setValues(toFormValues(station));
-    }
-  }, [open, station]);
 
   // Updates a single field's value as the user types.
   const handleChange = (field) => (event) => {
