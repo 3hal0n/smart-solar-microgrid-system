@@ -88,4 +88,24 @@ public class StationsController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    // PUT /api/stations/{id}/deactivate - blocks with 409 if the station has active slots/reservations.
+    // TODO(Rukshan): restore [Authorize(Roles = "Backoffice")] once JwtService/auth scheme is wired up.
+    [HttpPut("{id}/deactivate")]
+    public async Task<IActionResult> Deactivate(string id)
+    {
+        try
+        {
+            await _stationService.DeactivateAsync(id);
+            return NoContent();
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ConflictException ex)
+        {
+            return Conflict(new { message = ex.Message });
+        }
+    }
 }
