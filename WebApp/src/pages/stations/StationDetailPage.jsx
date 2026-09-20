@@ -73,23 +73,38 @@ export default function StationDetailPage() {
 
   const [toast, setToast] = useState({ message: '', tone: 'error' });
 
-  // Loads the full station (info + slots) from the real API.
-  const loadStation = useCallback(async () => {
-    setLoading(true);
-    setLoadError('');
-    try {
-      const { data } = await api.get(`/stations/${id}`);
-      setStation(data);
-    } catch (err) {
-      setLoadError(err.response?.data?.message || 'Failed to load station.');
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
+  // Bumped by mutation handlers (schedule save, deactivate, slot add/edit/status change) to
+  // trigger a re-fetch below, instead of calling a state-setting function directly from an effect.
+  const [refreshToken, setRefreshToken] = useState(0);
 
+  // Loads the full station (info + slots) from the real API; re-runs whenever refreshToken changes.
   useEffect(() => {
+    let cancelled = false;
+
+    async function loadStation() {
+      setLoading(true);
+      setLoadError('');
+      try {
+        const { data } = await api.get(`/stations/${id}`);
+        if (!cancelled) {
+          setStation(data);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setLoadError(err.response?.data?.message || 'Failed to load station.');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
     loadStation();
-  }, [loadStation]);
+    return () => {
+      cancelled = true;
+    };
+  }, [id, refreshToken]);
 
   // Loads the read-only reservations overview.
   //
@@ -133,7 +148,7 @@ export default function StationDetailPage() {
     setScheduleSubmitting(true);
     try {
       await api.put(`/stations/${id}`, { operatingSchedule: { opensAt, closesAt } });
-      await loadStation();
+      setRefreshToken((token) => token + 1);
       setToast({ message: 'Schedule updated.', tone: 'success' });
     } catch (err) {
       setToast({ message: err.response?.data?.message || 'Failed to update schedule.', tone: 'error' });
