@@ -108,4 +108,20 @@ public class StationsController : ControllerBase
             return Conflict(new { message = ex.Message });
         }
     }
+
+    // GET /api/stations/{id}/reservations-overview - read-only "who's booked what" panel.
+    // Currently always returns [] — see StationService.GetReservationsOverviewAsync's TODO(Dinil).
+    [HttpGet("{id}/reservations-overview")]
+    public async Task<IActionResult> GetReservationsOverview(string id)
+    {
+        try
+        {
+            var overview = await _stationService.GetReservationsOverviewAsync(id);
+            return Ok(overview);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
 }

@@ -80,3 +80,14 @@ public class CreatedIdResponse
 {
     public string Id { get; set; } = string.Empty;
 }
+
+// Response row for GET /stations/{id}/reservations-overview, per architecture.md §3's declared
+// shape: [{ slotId, status, prosumerNic?, scheduledAt? }]. See StationService.GetReservationsOverviewAsync
+// for why this is currently always an empty list (Dinil's Reservations collection doesn't exist yet).
+public class ReservationOverviewResponse
+{
+    public string SlotId { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public string? ProsumerNic { get; set; }
+    public DateTime? ScheduledAt { get; set; }
+}

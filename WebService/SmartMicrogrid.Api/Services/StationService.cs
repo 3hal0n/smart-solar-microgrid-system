@@ -231,6 +231,34 @@ public class StationService
         await _context.SolarStations.UpdateOneAsync(s => s.Id == id, update);
     }
 
+    // Returns the read-only "who's booked what" overview for a station, per architecture.md §3
+    // GET /stations/{id}/reservations-overview.
+    // TODO(Dinil): Reservations collection/ReservationsController doesn't exist in this repo yet
+    // (architecture.md §2.4 defines it, but no Model/Controller/Service file for it has been added
+    // — same gap as the deactivate-check TODO above). Once it exists, replace the stub below with a
+    // real query:
+    //   - Collection name: "Reservations"
+    //   - Filter field (exactly as in §2.4): stationId == this station's id (ObjectId)
+    //   - Project fields (exactly as in §2.4): slotId, status, prosumerNic, scheduledAt
+    // Until then this always returns an empty list — the endpoint still validates the station
+    // exists and responds 200, so the web reservations-overview panel gets a clean empty state
+    // instead of an error. Re-test the panel against real rows once this stub is replaced.
+    public async Task<List<ReservationOverviewResponse>> GetReservationsOverviewAsync(string stationId)
+    {
+        if (!ObjectId.TryParse(stationId, out _))
+        {
+            throw new NotFoundException($"Station '{stationId}' not found.");
+        }
+
+        var stationExists = await _context.SolarStations.Find(s => s.Id == stationId).AnyAsync();
+        if (!stationExists)
+        {
+            throw new NotFoundException($"Station '{stationId}' not found.");
+        }
+
+        return new List<ReservationOverviewResponse>();
+    }
+
     // Checks EnergyBookingSlots (Shalon's own collection) for any Reserved slot at this station.
     private async Task<bool> HasReservedSlotsAsync(string stationId)
     {
