@@ -54,7 +54,7 @@ public class StationsController : ControllerBase
 
     // POST /api/stations - creates a new station.
     // TODO(Rukshan): restore [Authorize(Roles = "Backoffice")] and read the caller's id from the JWT
-    // once JwtService/auth scheme is wired up (see CLAUDE.md cross-module dependencies).
+    // once JwtService/auth scheme is wired up 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateStationRequest request)
     {
