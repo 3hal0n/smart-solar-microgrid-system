@@ -1,21 +1,25 @@
 // ============================================================
 // File: Badge.jsx
-// Purpose: Small rounded status pill (station/slot status, etc.),
-//          shared so every page renders status the same way.
+// Purpose: Compact status badge (station/slot status, etc.). Stripe
+//          dashboard treatment: tinted fill, 1px tone border, small
+//          medium-weight label — data-like, not celebratory.
 // Author: Shalon
 // ============================================================
 const TONE_CLASSES = {
-  success: 'bg-surface-tint text-success',
-  neutral: 'bg-surface-alt text-muted',
-  warning: 'bg-warning/25 text-ink',
-  error: 'bg-error/10 text-error',
+  success: 'bg-success-soft text-success border-success/20',
+  neutral: 'bg-surface-alt text-body border-line',
+  warning: 'bg-warning-soft text-warning border-warning/20',
+  error: 'bg-error-soft text-error border-error/20',
+  info: 'bg-primary-soft text-primary border-primary/20',
 };
 
-// Renders a small pill-shaped status label in the given semantic tone.
+// Renders a compact status label in the given semantic tone.
 export default function Badge({ tone = 'neutral', children }) {
   const toneClasses = TONE_CLASSES[tone] ?? TONE_CLASSES.neutral;
   return (
-    <span className={`inline-flex items-center rounded-pill px-3 py-1 text-xs font-semibold ${toneClasses}`}>
+    <span
+      className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium ${toneClasses}`}
+    >
       {children}
     </span>
   );

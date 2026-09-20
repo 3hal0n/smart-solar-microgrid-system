@@ -8,20 +8,20 @@
 // ============================================================
 import { NavLink } from 'react-router-dom';
 
-// Renders one nav section (a heading plus its links).
+// Renders one nav section (a micro-label heading plus its links).
 function NavSection({ section, onNavigate }) {
   return (
     <div className="mb-6">
-      <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-wide text-muted/80">{section.title}</p>
-      <div className="flex flex-col gap-1">
+      <p className="mb-1.5 px-2 text-[11px] font-semibold uppercase tracking-wider text-muted">{section.title}</p>
+      <div className="flex flex-col gap-0.5">
         {section.items.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
             onClick={onNavigate}
             className={({ isActive }) =>
-              `rounded-pill px-3 py-2 text-sm font-semibold transition-colors ${
-                isActive ? 'bg-accent text-on-accent' : 'text-primary hover:bg-surface-tint'
+              `rounded-md px-2 py-1.5 text-[13px] font-medium transition-colors ${
+                isActive ? 'bg-primary-soft text-primary' : 'text-body hover:bg-surface-alt hover:text-ink'
               }`
             }
           >
@@ -38,16 +38,17 @@ function NavSection({ section, onNavigate }) {
 export default function Sidebar({ sections, open, onClose }) {
   return (
     <>
-      {open && (
-        <div className="fixed inset-0 z-30 bg-ink/40 lg:hidden" onClick={onClose} aria-hidden="true" />
-      )}
+      {open && <div className="fixed inset-0 z-30 bg-ink/50 lg:hidden" onClick={onClose} aria-hidden="true" />}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-line bg-canvas p-4 transition-transform duration-200 lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-line bg-surface px-3 py-4 transition-transform duration-200 lg:static lg:translate-x-0 ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="mb-6 px-2">
-          <span className="font-display text-lg font-bold tracking-tight text-ink">Smart Microgrid</span>
+        <div className="mb-6 flex items-center gap-2 px-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-ink text-[11px] font-bold text-on-dark">
+            SM
+          </span>
+          <span className="text-sm font-semibold tracking-tight text-ink">Smart Microgrid</span>
         </div>
         <nav className="flex-1 overflow-y-auto">
           {sections.map((section) => (
