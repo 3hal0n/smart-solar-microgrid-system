@@ -26,9 +26,9 @@ This version splits work by **vertical slice**: every member owns one functional
                  C# ASP.NET Core Web API (IIS)
                  ── FAT Service: ALL business rules live here ──
                  Controllers: Auth, Users, AdminProsumers (Rukshan)
-                              Stations, Slots (Shalon)
+                              Stations, Slots, Nearby, Dashboard (Shalon)
                               ProsumerAuth, Reservations (Dinil)
-                              Verification, Nearby, Dashboard (Migara)
+                              Verification (Migara)
                                │
                                ▼
                          MongoDB (single database: SmartMicrogridDB)
@@ -162,6 +162,9 @@ Also owned by Rukshan (shared infrastructure, used by all controllers): `Service
 | `POST /stations/{id}/slots` | `{ slotNumber, type, capacityKWh }` | `{ id }` | Backoffice only |
 | `PUT /slots/{id}` | partial fields | `204` | Backoffice only |
 | `GET /stations/{id}/reservations-overview` | — | `[{ slotId, status, prosumerNic?, scheduledAt? }]` | **Read-only**, for the web Station Detail "who's booked what" panel — reads Dinil's `Reservations` collection, see §6 |
+| `GET /stations/nearby` | query: `lat, lng, radiusKm` | `[{ id, name, location, distanceKm }]` | **Moved from Migara 2026-09-21** (see §4/§7). `$geoNear` aggregation on Shalon's own `SolarStations` collection, restricted to `Active` stations, closest first |
+| `GET /reservations` | query: `nic?, stationId?, status?, from?, to?` | `[{ ...reservation }]` | **Moved from Migara 2026-09-21** (see §4/§7). Read-only over Dinil's `Reservations` collection. Prosumer restricted to own `nic` (JWT-enforced); GridOperator unrestricted — powers both dashboards' history/search. **Not yet enforced**: Rukshan's JWT auth isn't wired up, so the Prosumer-nic restriction is a documented `TODO(Rukshan)` in the code, not live yet |
+| `GET /dashboard/prosumer/{nic}/summary` | — | `{ activeCount, pendingCount, approvedFutureCount, recentHistory: [...] }` | **Moved from Migara 2026-09-21** (see §4/§7). Self or Backoffice. Read-only over Dinil's `Reservations` collection. Field semantics (undefined until this implementation): `activeCount` = all `Confirmed`; `pendingCount` = `Confirmed` with `scheduledAt <= now` (awaiting operator check-in); `approvedFutureCount` = `Confirmed` with `scheduledAt > now` — `pendingCount + approvedFutureCount == activeCount` |
 
 ### Owned by Dinil — Prosumer Mobile Auth & Reservation Lifecycle
 
@@ -179,12 +182,11 @@ Also owned by Rukshan (shared infrastructure, used by all controllers): `Service
 
 ### Owned by Migara — Grid Operator Verification, Maps, Dashboards
 
+**2026-09-21 update:** `GET /stations/nearby`, `GET /reservations`, and `GET /dashboard/prosumer/{nic}/summary` moved to Shalon's table above as a vertical-slice exception (see §4 for the dependency this creates, §7 for how the rubric marks split). Migara still owns and builds the mobile client screens that call them (`ui/operator/MapActivity`, both dashboard screens in `ui/dashboard/*` per §6) — this only moved backend authorship of these three endpoints.
+
 | Verb & Path | Request Body | Response | Notes |
 |---|---|---|---|
 | `POST /reservations/verify-qr` | `{ qrToken }` | `{ reservationId, prosumerName, stationName, slotNumber, status }` / `4xx` | GridOperator only; validates signature + expiry + `status == Confirmed`; flips to `Completed` |
-| `GET /stations/nearby` | query: `lat, lng, radiusKm` | `[{ id, name, location, distanceKm }]` | `$geoNear` aggregation on Shalon's `SolarStations` collection |
-| `GET /reservations` | query: `nic?, stationId?, status?, from?, to?` | `[{ ...reservation }]` | Prosumer restricted to own `nic` (JWT-enforced); GridOperator unrestricted — powers both dashboards' history/search |
-| `GET /dashboard/prosumer/{nic}/summary` | — | `{ activeCount, pendingCount, approvedFutureCount, recentHistory: [...] }` | Self or Backoffice |
 | `GET /dashboard/operator/summary` | — | `{ confirmedTodayCount, completedTodayCount, pendingByStation: [...] }` | GridOperator |
 
 This table is the shared contract. If any owner needs to change their own route's shape, they update this file the same day and post it in the group chat — everyone else's client code depends on these exact shapes.
@@ -202,6 +204,9 @@ This table is the shared contract. If any owner needs to change their own route'
 | Nearby stations query | Migara → Shalon | 2dsphere index must exist on `SolarStations.location` before Migara can query it — Shalon creates this index Day 1–2 |
 | Dashboard aggregations | Migara → Dinil | Reads `Reservations`; needs Dinil's status enum (`Confirmed/Completed/Cancelled`) finalized Day 1 |
 | Web Station Detail "who's booked" panel | Shalon → Dinil | Read-only query into `Reservations` filtered by `stationId` |
+| Reservations search + prosumer dashboard summary | Shalon → Dinil | **Added 2026-09-21.** `GET /reservations` and `GET /dashboard/prosumer/{nic}/summary` (moved from Migara, see §3) read-only query `Reservations` — same dependency shape as the row above, needs Dinil's status enum/field names finalized (already true per §2.4) |
+| Nearby stations map screen | Migara → Shalon | **Added 2026-09-21.** `GET /stations/nearby` moved from Migara to Shalon (see §3); Migara's `MapActivity` now calls Shalon's endpoint instead of building her own — no change to the 2dsphere index dependency above |
+| Operator/prosumer dashboard screens | Migara → Shalon | **Added 2026-09-21.** `GET /reservations` and `GET /dashboard/prosumer/{nic}/summary` moved from Migara to Shalon (see §3); Migara's `ui/dashboard/*` screens call Shalon's endpoints for these two, and her own `DashboardController`/`DashboardAggregationService` now only need to cover `GET /dashboard/operator/summary` |
 
 **Practical takeaway:** lock §2 and §3 of this document in the Day 1 meeting, before anyone writes a model class. Every cross-module dependency above is a *read* of an already-agreed shape, or a *call* into a small shared service — nobody needs to wait for someone else's controller to be fully built, only for the shape to be agreed.
 
@@ -244,16 +249,22 @@ Neither client computes a business rule anywhere in this table — every screen 
 | Slot Booking Management (slot/station administration) | 5 | Shalon |
 | Mobile Authentication and Account Management | 9 | Dinil |
 | Reservation Workflow and Booking Management | 9 | Dinil |
-| Booking Views and Operational Dashboards | 10 | Migara |
-| Grid Operator Verification and Map Features | 7 | Migara |
+| Booking Views and Operational Dashboards (10) | split | Migara (7) + Shalon (3) |
+| Grid Operator Verification and Map Features (7) | split | Migara (5) + Shalon (2) |
 | Service Integration — Web app→API (2) | split | Shalon (1) + Rukshan (1) |
 | Service Integration — Mobile app→API (2) | split | Dinil (1) + Migara (1) |
 | Service Integration — SQLite persistence (3) | 3 | Dinil (primary; session/token + reservation cache) |
 | Service Integration — Google Maps (3) | 3 | Migara |
 | Service Integration — QR scanning (2) | 2 | Migara |
-| **Running totals (approx.)** | 65 | **Shalon ≈ 11, Rukshan ≈ 9, Dinil ≈ 22, Migara ≈ 23** |
+| **Running totals (approx.)** | 65 | **Shalon ≈ 16, Rukshan ≈ 9, Dinil ≈ 22, Migara ≈ 19** |
 
 This confirms the caveat in §0 numerically: Dinil and Migara's individual-criterion totals are roughly double Shalon and Rukshan's, purely because the rubric weights mobile criteria more heavily. All four still write one complete, defensible full-stack module each, and all four earn the same Table 1 group marks (35) regardless.
+
+**2026-09-21 update — why the two dashboard/verification rows are now split:** per §3/§4, `GET /stations/nearby`, `GET /reservations`, and `GET /dashboard/prosumer/{nic}/summary` moved from Migara's backend to Shalon's. Migara still builds and owns every mobile screen these criteria actually grade (`ui/dashboard/*`, `ui/operator/MapActivity`, QR scanning) — the rubric wording for both rows describes *mobile app behavior* ("Show nearby stations on the map", "Booking history", "Filter criteria" as seen by the user), which is still entirely her work. The split below reflects only that some of the backend query logic behind that behavior was written by Shalon instead of her — a smaller share than the mobile UI/UX itself:
+- **Booking Views and Operational Dashboards (10):** Migara (7) — both dashboard screens' UI/UX, `GET /dashboard/operator/summary` backend, and wiring the prosumer dashboard screen to Shalon's endpoint; Shalon (3) — `GET /reservations` search/filter backend and `GET /dashboard/prosumer/{nic}/summary` backend.
+- **Grid Operator Verification and Map Features (7):** Migara (5) — QR scan/verify UI + backend (2, unchanged) and the map screen's UI/marker rendering (3 of the map sub-criterion's 5); Shalon (2) — the `$geoNear` backend query behind "Show nearby stations on the map".
+
+This is an approximate split for individual-contribution bookkeeping, not a precise formula — worth both Shalon and Migara confirming it reads fairly before it's used as viva/report evidence. It doesn't touch Table 1's group marks (35, unaffected, awarded identically to all four).
 
 ---
 
@@ -274,21 +285,23 @@ smart-microgrid/
 │       │   ├── AuthController.cs            # Rukshan
 │       │   ├── UsersController.cs           # Rukshan
 │       │   ├── AdminProsumersController.cs  # Rukshan
-│       │   ├── StationsController.cs        # Shalon
+│       │   ├── StationsController.cs        # Shalon (nearby folded in as an action, not a separate file — see below)
 │       │   ├── SlotsController.cs           # Shalon
+│       │   ├── DashboardController.cs       # Shalon — GET /dashboard/prosumer/{nic}/summary (moved from Migara 2026-09-21, see §3/§4)
+│       │   ├── ReservationsSearchController.cs # Shalon — GET /reservations search/filter (moved from Migara 2026-09-21, see §3/§4; named distinctly from Dinil's ReservationsController.cs below, which owns the write side)
 │       │   ├── ProsumerAuthController.cs    # Dinil
 │       │   ├── ReservationsController.cs    # Dinil
 │       │   ├── VerificationController.cs    # Migara
-│       │   ├── NearbyController.cs          # Migara
-│       │   └── DashboardController.cs       # Migara
+│       │   └── OperatorDashboardController.cs # Migara — GET /dashboard/operator/summary only (this file split off the original single DashboardController.cs plan once its other endpoint moved to Shalon)
 │       ├── Services/
 │       │   ├── JwtService.cs                # Rukshan (shared — everyone consumes, only Rukshan edits)
-│       │   ├── StationService.cs            # Shalon
+│       │   ├── StationService.cs            # Shalon (also GetNearbyAsync — the $geoNear query, moved from Migara 2026-09-21)
 │       │   ├── SlotService.cs               # Shalon (exposes MarkReserved/MarkAvailable for Dinil)
+│       │   ├── DashboardService.cs          # Shalon — prosumer summary + reservations search, both read-only over Dinil's Reservations (moved from Migara 2026-09-21, see §3/§4)
 │       │   ├── ReservationService.cs        # Dinil
 │       │   ├── QrTokenService.cs            # Dinil + Migara (pair-built Day 2, see §4)
-│       │   └── DashboardAggregationService.cs # Migara
-│       ├── Models/ (one file per entity — whoever owns the collection owns the model file)
+│       │   └── DashboardAggregationService.cs # Migara — GET /dashboard/operator/summary only, since her other two endpoints moved to DashboardService.cs above
+│       ├── Models/ (one file per entity — whoever owns the collection owns the model file; exception: Shalon added `Reservation.cs` 2026-09-21 to read Dinil's collection type-safely for the endpoints above — Dinil still owns its write-side business rules and should be consulted before changing the schema)
 │       ├── Data/MongoDbContext.cs           # built jointly Day 1, then frozen
 │       ├── Middleware/ExceptionHandlingMiddleware.cs  # built jointly Day 1
 │       ├── Program.cs                       # built jointly Day 1, then only touched together

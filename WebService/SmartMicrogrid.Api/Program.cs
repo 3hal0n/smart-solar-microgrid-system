@@ -22,10 +22,11 @@ builder.Services.AddOpenApi();
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
-// Shared MongoDB connection and Shalon's Stations/Slots services.
+// Shared MongoDB connection and Shalon's Stations/Slots/Dashboard services.
 builder.Services.AddSingleton<MongoDbContext>();
 builder.Services.AddScoped<StationService>();
 builder.Services.AddScoped<SlotService>();
+builder.Services.AddScoped<DashboardService>();
 
 // CORS for the browser-based WebApp — without this, every fetch/axios call from the React dev
 // server is blocked by the browser (curl/Postman never hit this, since only browsers enforce

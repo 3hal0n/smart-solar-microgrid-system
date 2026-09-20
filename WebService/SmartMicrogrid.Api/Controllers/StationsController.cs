@@ -1,10 +1,12 @@
 // ============================================================
 // File: StationsController.cs
 // Purpose: HTTP endpoints for microgrid hub (station) management —
-//          list/search, detail-with-slots, create, and partial
-//          update. Thin controller: all business rules and
-//          validation live in StationService per the FAT service
-//          pattern; this file only maps requests/exceptions to HTTP.
+//          list/search, detail-with-slots, create, partial update,
+//          and the nearby-stations query (moved from Migara
+//          2026-09-21, see architecture.md §3/§4). Thin controller:
+//          all business rules and validation live in StationService
+//          per the FAT service pattern; this file only maps
+//          requests/exceptions to HTTP.
 // Author: Shalon
 // ============================================================
 using Microsoft.AspNetCore.Mvc;
@@ -31,6 +33,24 @@ public class StationsController : ControllerBase
         try
         {
             var stations = await _stationService.GetAllAsync(search, status);
+            return Ok(stations);
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    // GET /api/stations/nearby?lat=&lng=&radiusKm= - active stations within radiusKm, closest
+    // first. Moved from Migara to Shalon 2026-09-21 — see architecture.md §3/§4. Registered before
+    // "{id}" in this file only for readability; ASP.NET Core's routing always matches the literal
+    // "nearby" segment ahead of the "{id}" parameter regardless of declaration order.
+    [HttpGet("nearby")]
+    public async Task<IActionResult> GetNearby([FromQuery] double lat, [FromQuery] double lng, [FromQuery] double radiusKm)
+    {
+        try
+        {
+            var stations = await _stationService.GetNearbyAsync(lat, lng, radiusKm);
             return Ok(stations);
         }
         catch (ValidationException ex)

@@ -2,13 +2,16 @@
 // File: StationService.cs
 // Purpose: Business rules for SolarStations (microgrid hub)
 //          administration — list/search, detail-with-slots, create,
-//          and partial update, per architecture.md §2.2 and §3
-//          "Owned by Shalon". All validation and Mongo access for
-//          stations lives here; StationsController stays thin.
+//          partial update, and the nearby-stations $geoNear query
+//          (moved from Migara 2026-09-21, see architecture.md §3/§4)
+//          — per architecture.md §2.2 and §3 "Owned by Shalon". All
+//          validation and Mongo access lives here; StationsController
+//          stays thin.
 // Author: Shalon
 // ============================================================
 using System.Text.RegularExpressions;
 using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver;
 using MongoDB.Driver.GeoJsonObjectModel;
 using SmartMicrogrid.Api.Data;
@@ -232,17 +235,8 @@ public class StationService
     }
 
     // Returns the read-only "who's booked what" overview for a station, per architecture.md §3
-    // GET /stations/{id}/reservations-overview.
-    // TODO(Dinil): Reservations collection/ReservationsController doesn't exist in this repo yet
-    // (architecture.md §2.4 defines it, but no Model/Controller/Service file for it has been added
-    // — same gap as the deactivate-check TODO above). Once it exists, replace the stub below with a
-    // real query:
-    //   - Collection name: "Reservations"
-    //   - Filter field (exactly as in §2.4): stationId == this station's id (ObjectId)
-    //   - Project fields (exactly as in §2.4): slotId, status, prosumerNic, scheduledAt
-    // Until then this always returns an empty list — the endpoint still validates the station
-    // exists and responds 200, so the web reservations-overview panel gets a clean empty state
-    // instead of an error. Re-test the panel against real rows once this stub is replaced.
+    // GET /stations/{id}/reservations-overview. Reads Dinil's Reservations collection (write-side
+    // owner: Dinil; Shalon reads it — see §4).
     public async Task<List<ReservationOverviewResponse>> GetReservationsOverviewAsync(string stationId)
     {
         if (!ObjectId.TryParse(stationId, out _))
@@ -256,7 +250,58 @@ public class StationService
             throw new NotFoundException($"Station '{stationId}' not found.");
         }
 
-        return new List<ReservationOverviewResponse>();
+        var reservations = await _context.Reservations
+            .Find(r => r.StationId == stationId)
+            .SortByDescending(r => r.ScheduledAt)
+            .ToListAsync();
+
+        return reservations.Select(r => new ReservationOverviewResponse
+        {
+            SlotId = r.SlotId,
+            Status = r.Status.ToString(),
+            ProsumerNic = r.ProsumerNic,
+            ScheduledAt = r.ScheduledAt
+        }).ToList();
+    }
+
+    // Finds active stations within radiusKm of (lat, lng), closest first, via a $geoNear
+    // aggregation against the 2dsphere index on SolarStations.location. Moved from Migara to
+    // Shalon 2026-09-21 — see architecture.md §3/§4.
+    public async Task<List<NearbyStationResponse>> GetNearbyAsync(double lat, double lng, double radiusKm)
+    {
+        ValidateCoordinates(lat, lng);
+        if (radiusKm <= 0)
+        {
+            throw new ValidationException("radiusKm must be greater than 0.");
+        }
+
+        var geoNearStage = new BsonDocument("$geoNear", new BsonDocument
+        {
+            { "near", new BsonDocument { { "type", "Point" }, { "coordinates", new BsonArray { lng, lat } } } },
+            { "distanceField", "distanceMeters" },
+            { "maxDistance", radiusKm * 1000 },
+            { "spherical", true },
+            { "query", new BsonDocument("status", StationStatus.Active.ToString()) }
+        });
+        var projectStage = new BsonDocument("$project", new BsonDocument
+        {
+            { "_id", 1 },
+            { "name", 1 },
+            { "location", 1 },
+            { "distanceMeters", 1 }
+        });
+
+        var pipeline = PipelineDefinition<Station, NearbyAggregationResult>.Create(
+            new[] { geoNearStage, projectStage });
+        var results = await _context.SolarStations.Aggregate(pipeline).ToListAsync();
+
+        return results.Select(r => new NearbyStationResponse
+        {
+            Id = r.Id,
+            Name = r.Name,
+            Location = MapLocation(r.Location),
+            DistanceKm = Math.Round(r.DistanceMeters / 1000, 3)
+        }).ToList();
     }
 
     // Checks EnergyBookingSlots (Shalon's own collection) for any Reserved slot at this station.
@@ -267,19 +312,13 @@ public class StationService
             .AnyAsync();
     }
 
-    // TODO(Dinil): Reservations collection/ReservationsController doesn't exist in this repo yet
-    // (architecture.md §2.4 defines it, but no Model/Controller/Service file for it has been added).
-    // Once it exists, replace this stub with a real query against it:
-    //   - Collection name: "Reservations"
-    //   - Filter fields (exactly as in architecture.md §2.4): stationId == this station's id (ObjectId),
-    //     status == "Confirmed"
-    //   - e.g. via a shared context accessor: _context.Database.GetCollection<Reservation>("Reservations")
-    //         .Find(r => r.StationId == stationId && r.Status == ReservationStatus.Confirmed).AnyAsync()
-    // Until then this always reports "no confirmed reservations", so deactivation is only blocked by
-    // the EnergyBookingSlots check above — don't remove this TODO once Dinil's model lands, replace it.
-    private Task<bool> HasConfirmedReservationsAsync(string stationId)
+    // Checks Dinil's Reservations collection (write-side owner: Dinil; Shalon reads it — see §4)
+    // for any Confirmed reservation at this station.
+    private async Task<bool> HasConfirmedReservationsAsync(string stationId)
     {
-        return Task.FromResult(false);
+        return await _context.Reservations
+            .Find(r => r.StationId == stationId && r.Status == ReservationStatus.Confirmed)
+            .AnyAsync();
     }
 
     // Maps a stored Station document to the GET /stations list-row shape.
@@ -359,5 +398,24 @@ public class StationService
         {
             throw new ValidationException("operatingSchedule.opensAt and closesAt are required.");
         }
+    }
+
+    // Shape the $geoNear + $project pipeline in GetNearbyAsync projects into — kept to exactly
+    // these fields so deserialization doesn't collide with Station's own class map (which has no
+    // "distanceMeters" field and would otherwise reject it as an unmapped element).
+    private class NearbyAggregationResult
+    {
+        [BsonId]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string Id { get; set; } = string.Empty;
+
+        [BsonElement("name")]
+        public string Name { get; set; } = string.Empty;
+
+        [BsonElement("location")]
+        public GeoJsonPoint<GeoJson2DGeographicCoordinates> Location { get; set; } = null!;
+
+        [BsonElement("distanceMeters")]
+        public double DistanceMeters { get; set; }
     }
 }
