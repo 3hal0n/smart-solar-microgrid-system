@@ -8,7 +8,7 @@
 //          FAT service pattern; that all lives in StationService.
 // Author: Shalon
 // ============================================================
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Modal from '../../components/common/Modal.jsx';
 import Input from '../../components/common/Input.jsx';
 import Button from '../../components/common/Button.jsx';

@@ -53,6 +53,7 @@ export function AuthProvider({ children }) {
 }
 
 // Reads the current auth state; must be called from inside an AuthProvider.
+// eslint-disable-next-line react-refresh/only-export-components -- colocated hook, not a component
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
