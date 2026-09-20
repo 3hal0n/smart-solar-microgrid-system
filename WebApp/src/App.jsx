@@ -8,9 +8,10 @@
 //          routes here per architecture.md §6.
 // Author: Shalon
 // ============================================================
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
 import AppShell from './components/layout/AppShell.jsx';
+import LandingPage from './pages/home/LandingPage.jsx';
 import StationsPage from './pages/stations/StationsPage.jsx';
 import StationDetailPage from './pages/stations/StationDetailPage.jsx';
 
