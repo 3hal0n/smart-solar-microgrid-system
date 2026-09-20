@@ -8,6 +8,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.jsx';
 import StationsPage from './pages/stations/StationsPage.jsx';
+import StationDetailPage from './pages/stations/StationDetailPage.jsx';
 
 // Renders the app's routing shell wrapped in the shared auth provider.
 export default function App() {
@@ -16,6 +17,7 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/stations" element={<StationsPage />} />
+          <Route path="/stations/:id" element={<StationDetailPage />} />
           {/* TODO: point this at the real login/home screen once it exists. */}
           <Route path="/" element={<Navigate to="/stations" replace />} />
         </Routes>
