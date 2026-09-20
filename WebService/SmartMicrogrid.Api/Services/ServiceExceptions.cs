@@ -25,3 +25,12 @@ public class ValidationException : Exception
     {
     }
 }
+
+// Thrown when an otherwise-valid request conflicts with current state (e.g. deactivating a
+// station that still has active slots/reservations).
+public class ConflictException : Exception
+{
+    public ConflictException(string message) : base(message)
+    {
+    }
+}
