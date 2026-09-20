@@ -261,6 +261,7 @@ public class StationService
         Name = station.Name,
         Location = MapLocation(station.Location),
         CapacityKWh = station.CapacityKWh,
+        TotalBatterySlots = station.TotalBatterySlots,
         Status = station.Status.ToString()
     };
 

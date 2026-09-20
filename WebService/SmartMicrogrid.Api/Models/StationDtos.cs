@@ -46,12 +46,16 @@ public class LocationResponse
 }
 
 // Response row for GET /stations.
+// NOTE: totalBatterySlots was added here beyond architecture.md §3's original shape
+// (id, name, location, capacityKWh, status) to support the web Stations table's "slot count"
+// column — see architecture.md §3 for the corresponding note. Backward-compatible field addition.
 public class StationSummaryResponse
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public LocationResponse Location { get; set; } = new();
     public double CapacityKWh { get; set; }
+    public int TotalBatterySlots { get; set; }
     public string Status { get; set; } = string.Empty;
 }
 
