@@ -1,13 +1,15 @@
 // ============================================================
 // File: Modal.jsx
-// Purpose: Shared overlay modal shell (backdrop + rounded panel)
-//          used for every create/edit dialog across pages.
+// Purpose: Shared overlay dialog shell (backdrop + bordered panel)
+//          used for every create/edit dialog. Stripe treatment:
+//          white surface, 1px keyline, blue-tinted elevation, and a
+//          ruled header rather than a floating title.
 // Author: Shalon
 // ============================================================
 import { useEffect } from 'react';
 
 // Renders a centered modal panel over a dimmed backdrop; closes on backdrop click or Escape.
-export default function Modal({ open, onClose, title, children }) {
+export default function Modal({ open, onClose, title, description, children }) {
   useEffect(() => {
     if (!open) {
       return undefined;
@@ -35,26 +37,29 @@ export default function Modal({ open, onClose, title, children }) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 px-4 py-6"
       onClick={handleBackdropClick}
     >
       <div
-        className="w-full max-w-lg rounded-lg border border-line bg-canvas p-6 shadow-[0_20px_66px_0_rgba(34,48,73,0.20)]"
+        className="max-h-full w-full max-w-xl overflow-y-auto rounded-lg border border-line bg-surface shadow-panel"
         role="dialog"
         aria-modal="true"
       >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-ink">{title}</h2>
+        <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-4">
+          <div>
+            <h2 className="text-base font-semibold tracking-tight text-ink">{title}</h2>
+            {description && <p className="mt-0.5 text-[13px] text-muted">{description}</p>}
+          </div>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-pill text-muted hover:bg-surface-alt hover:text-ink"
+            className="-mr-1.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-alt hover:text-ink"
             aria-label="Close"
           >
             &#10005;
           </button>
         </div>
-        {children}
+        <div className="px-6 py-5">{children}</div>
       </div>
     </div>
   );

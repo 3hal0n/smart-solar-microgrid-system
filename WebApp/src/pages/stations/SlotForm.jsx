@@ -15,6 +15,10 @@ import Button from '../../components/common/Button.jsx';
 
 const EMPTY_VALUES = { slotNumber: '', type: 'Charging', capacityKWh: '', status: 'Available' };
 
+// Matches Input.jsx's field treatment so native selects sit flush with the rest of the form.
+const SELECT_CLASSES =
+  'h-9 rounded-md border border-line bg-surface px-2.5 text-sm text-ink shadow-card focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20';
+
 // Converts a loaded slot into the form's flat field values.
 function toFormValues(slot) {
   if (!slot) {
@@ -56,21 +60,27 @@ export default function SlotForm({ open, slot, submitting, serverError, onClose,
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit slot' : 'New slot'}>
-      <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-        <div className="grid grid-cols-2 gap-4">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={isEdit ? 'Edit slot' : 'New slot'}
+      description="Battery slot definition for this station."
+    >
+      <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input
             label="Slot number"
             type="number"
             step="1"
             required
+            className="tnum"
             value={values.slotNumber}
             onChange={handleChange('slotNumber')}
           />
           <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-semibold text-ink">Type</span>
+            <span className="text-[13px] font-medium text-ink">Type</span>
             <select
-              className="rounded-md border border-line bg-canvas px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-accent/40"
+              className={SELECT_CLASSES}
               value={values.type}
               onChange={handleChange('type')}
             >
@@ -80,39 +90,43 @@ export default function SlotForm({ open, slot, submitting, serverError, onClose,
           </label>
         </div>
 
-        <Input
-          label="Capacity (kWh)"
-          type="number"
-          step="any"
-          required
-          value={values.capacityKWh}
-          onChange={handleChange('capacityKWh')}
-        />
-
-        {isEdit && (
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-semibold text-ink">Status</span>
-            <select
-              className="rounded-md border border-line bg-canvas px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-2 focus:ring-accent/40"
-              value={values.status}
-              onChange={handleChange('status')}
-            >
-              <option value="Available">Available</option>
-              <option value="Reserved">Reserved</option>
-              <option value="Maintenance">Maintenance</option>
-            </select>
-          </label>
-        )}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Input
+            label="Capacity (kWh)"
+            type="number"
+            step="any"
+            required
+            className="tnum"
+            value={values.capacityKWh}
+            onChange={handleChange('capacityKWh')}
+          />
+          {isEdit && (
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[13px] font-medium text-ink">Status</span>
+              <select
+                className={SELECT_CLASSES}
+                value={values.status}
+                onChange={handleChange('status')}
+              >
+                <option value="Available">Available</option>
+                <option value="Reserved">Reserved</option>
+                <option value="Maintenance">Maintenance</option>
+              </select>
+            </label>
+          )}
+        </div>
 
         {serverError && (
-          <p className="rounded-sm bg-error/10 px-3 py-2 text-sm font-medium text-error">{serverError}</p>
+          <p className="rounded-md border border-error/30 bg-error-soft px-3 py-2 text-[13px] font-medium text-error">
+            {serverError}
+          </p>
         )}
 
-        <div className="mt-2 flex justify-end gap-3">
-          <Button type="button" variant="ghost" onClick={onClose} disabled={submitting}>
+        <div className="-mx-6 -mb-5 mt-1 flex justify-end gap-2 border-t border-line bg-surface-alt px-6 py-4">
+          <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button type="submit" variant="accent" disabled={submitting}>
+          <Button type="submit" variant="primary" disabled={submitting}>
             {submitting ? 'Saving…' : isEdit ? 'Save changes' : 'Add slot'}
           </Button>
         </div>

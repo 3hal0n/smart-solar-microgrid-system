@@ -16,7 +16,7 @@ import Input from '../../components/common/Input.jsx';
 import Badge from '../../components/common/Badge.jsx';
 import StationForm from './StationForm.jsx';
 
-// Formats a GeoJSON [lng, lat] coordinate pair as a readable "lat, lng" string.
+// Formats a GeoJSON [lng, lat] coordinate pair as a fixed-width "lat, lng" string.
 function formatCoordinates(location) {
   const [lng, lat] = location?.coordinates ?? [];
   if (lat === undefined || lng === undefined) {
@@ -101,37 +101,41 @@ export default function StationsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10">
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mx-auto max-w-6xl px-6 py-8">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-ink">Microgrid hubs</h1>
-          <p className="mt-1 text-sm text-muted">Manage solar stations and their battery capacity.</p>
+          <h1 className="text-xl font-semibold tracking-tight text-ink">Microgrid hubs</h1>
+          <p className="mt-1 text-[13px] text-muted">
+            Solar grid nodes, their capacity specs and battery slot availability.
+          </p>
         </div>
-        <Button variant="accent" onClick={handleOpenCreate}>
-          + New station
+        <Button variant="primary" onClick={handleOpenCreate}>
+          New station
         </Button>
       </div>
 
-      <div className="mb-4 max-w-sm">
+      <div className="mb-4 max-w-xs">
         <Input
-          label="Search"
           placeholder="Search by station name"
+          aria-label="Search stations"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
       </div>
 
       {loadError && (
-        <p className="mb-4 rounded-sm bg-error/10 px-3 py-2 text-sm font-medium text-error">{loadError}</p>
+        <p className="mb-4 rounded-md border border-error/30 bg-error-soft px-3 py-2 text-[13px] font-medium text-error">
+          {loadError}
+        </p>
       )}
 
       <Table>
         <thead>
           <tr>
             <Th>Name</Th>
-            <Th>GPS</Th>
-            <Th>Capacity</Th>
-            <Th>Slot count</Th>
+            <Th>Coordinates</Th>
+            <Th className="text-right">Capacity</Th>
+            <Th className="text-right">Slots</Th>
             <Th>Status</Th>
             <Th className="text-right">Actions</Th>
           </tr>
@@ -139,34 +143,37 @@ export default function StationsPage() {
         <tbody>
           {loading && (
             <tr>
-              <Td colSpan={6} className="text-center text-muted">
+              <Td colSpan={6} className="py-8 text-center text-[13px] text-muted">
                 Loading stations…
               </Td>
             </tr>
           )}
           {!loading && stations.length === 0 && (
             <tr>
-              <Td colSpan={6} className="text-center text-muted">
+              <Td colSpan={6} className="py-8 text-center text-[13px] text-muted">
                 No stations found.
               </Td>
             </tr>
           )}
           {!loading &&
             stations.map((station) => (
-              <tr key={station.id}>
-                <Td className="font-semibold">
-                  <Link to={`/stations/${station.id}`} className="text-primary hover:underline">
+              <tr key={station.id} className="transition-colors hover:bg-surface-alt/60">
+                <Td className="font-medium">
+                  <Link to={`/stations/${station.id}`} className="text-ink hover:text-primary">
                     {station.name}
                   </Link>
                 </Td>
-                <Td>{formatCoordinates(station.location)}</Td>
-                <Td>{station.capacityKWh} kWh</Td>
-                <Td>{station.totalBatterySlots ?? '—'}</Td>
+                <Td className="font-mono text-[12px] text-muted">{formatCoordinates(station.location)}</Td>
+                <Td className="tnum text-right">
+                  {station.capacityKWh}
+                  <span className="ml-1 text-[12px] text-muted">kWh</span>
+                </Td>
+                <Td className="tnum text-right">{station.totalBatterySlots ?? '—'}</Td>
                 <Td>
                   <Badge tone={station.status === 'Active' ? 'success' : 'neutral'}>{station.status}</Badge>
                 </Td>
                 <Td className="text-right">
-                  <Button variant="ghost" onClick={() => handleOpenEdit(station.id)}>
+                  <Button variant="secondary" size="sm" onClick={() => handleOpenEdit(station.id)}>
                     Edit
                   </Button>
                 </Td>

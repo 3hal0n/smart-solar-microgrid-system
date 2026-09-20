@@ -1,39 +1,64 @@
 @import "tailwindcss";
 
-/* Design tokens sourced from docs/wise.design.md — built jointly Day 1, then shared by every page. */
+/* Design tokens from docs/stripe.design.md — Stripe's enterprise structure (navy ink, pale
+   technical canvas, 1px keylines, compact geometric radii) with the slate/zinc neutral ramp.
+   Shared by every page; change tokens here rather than hardcoding colors in components. */
 @theme {
-  --color-primary: #163300;
-  --color-primary-hover: #0D1F00;
-  --color-primary-pressed: #0E0F0C;
-  --color-accent: #9FE870;
-  --color-accent-hover: #80E142;
-  --color-accent-pressed: #65CF21;
-  --color-ink: #0E0F0C;
-  --color-body: #454745;
-  --color-muted: #6A6C6A;
-  --color-canvas: #FFFFFF;
-  --color-surface: #FFFFFF;
-  --color-surface-alt: #F1F1ED;
-  --color-surface-tint: #E2F6D5;
-  --color-line: rgba(14, 15, 12, 0.12157);
-  --color-line-strong: #CACFC7;
-  --color-success: #054D28;
-  --color-warning: #FFD11A;
-  --color-error: #CB272F;
-  --color-on-primary: #FFFFFF;
-  --color-on-accent: #163300;
+  /* Action — Stripe violet */
+  --color-primary: #635bff;
+  --color-primary-hover: #4f46e5;
+  --color-primary-pressed: #4032c8;
+  --color-primary-soft: #eef2ff;
 
-  --font-sans: "Inter", Helvetica, Arial, sans-serif;
-  --font-display: "Wise Sans", "Inter", sans-serif;
+  /* Ink & text — slate ramp */
+  --color-ink: #0f172a;
+  --color-ink-soft: #1e293b;
+  --color-body: #475569;
+  --color-muted: #64748b;
 
-  --radius-sm: 10px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
-  --radius-xl: 32px;
-  --radius-pill: 9999px;
+  /* Surfaces */
+  --color-canvas: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f1f5f9;
+
+  /* Keylines */
+  --color-line: #e2e8f0;
+  --color-line-strong: #cbd5e1;
+
+  /* Semantic */
+  --color-success: #09825d;
+  --color-success-soft: #ecfdf5;
+  --color-warning: #bb5504;
+  --color-warning-soft: #fff7ed;
+  --color-error: #cd3d64;
+  --color-error-soft: #fef2f2;
+
+  --color-on-primary: #ffffff;
+  --color-on-dark: #ffffff;
+
+  /* sohne-var isn't publicly licensed, so this falls back to the closest system grotesk stack. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+
+  /* Geometric radii — no pill shapes on actions or badges (enterprise, not consumer) */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 16px;
+
+  /* Stripe's blue-tinted, restrained elevation */
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-panel: 0 15px 35px rgba(49, 49, 93, 0.1), 0 5px 15px rgba(0, 0, 0, 0.08);
+  --shadow-hero: 0 20px 80px -16px rgba(0, 55, 112, 0.14), 0 10px 60px -16px rgba(0, 59, 137, 0.06);
 }
 
 body {
-  background-color: var(--color-surface-alt);
+  background-color: var(--color-canvas);
   color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular numerals for metrics/coordinates so columns align down the page (Stripe typography rule). */
+.tnum {
+  font-variant-numeric: tabular-nums;
 }

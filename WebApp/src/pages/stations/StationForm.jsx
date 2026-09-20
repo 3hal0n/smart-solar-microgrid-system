@@ -66,21 +66,46 @@ export default function StationForm({ open, station, submitting, serverError, on
   };
 
   return (
-    <Modal open={open} onClose={onClose} title={isEdit ? 'Edit station' : 'New station'}>
-      <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-        <Input label="Name" required value={values.name} onChange={handleChange('name')} />
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={isEdit ? 'Edit station' : 'New station'}
+      description="GPS position, capacity specs and operating hours for this grid node."
+    >
+      <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
+        <Input label="Station name" required value={values.name} onChange={handleChange('name')} />
 
-        <div className="grid grid-cols-2 gap-4">
-          <Input label="Latitude" type="number" step="any" required value={values.lat} onChange={handleChange('lat')} />
-          <Input label="Longitude" type="number" step="any" required value={values.lng} onChange={handleChange('lng')} />
+        {/* Paired inputs sit in a balanced 2-column grid, stacking on narrow screens. */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Input
+            label="Latitude"
+            type="number"
+            step="any"
+            required
+            placeholder="6.9271"
+            className="font-mono"
+            value={values.lat}
+            onChange={handleChange('lat')}
+          />
+          <Input
+            label="Longitude"
+            type="number"
+            step="any"
+            required
+            placeholder="79.8612"
+            className="font-mono"
+            value={values.lng}
+            onChange={handleChange('lng')}
+          />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input
             label="Capacity (kWh)"
             type="number"
             step="any"
             required
+            className="tnum"
             value={values.capacityKWh}
             onChange={handleChange('capacityKWh')}
           />
@@ -89,25 +114,28 @@ export default function StationForm({ open, station, submitting, serverError, on
             type="number"
             step="1"
             required
+            className="tnum"
             value={values.totalBatterySlots}
             onChange={handleChange('totalBatterySlots')}
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input label="Opens at" type="time" required value={values.opensAt} onChange={handleChange('opensAt')} />
           <Input label="Closes at" type="time" required value={values.closesAt} onChange={handleChange('closesAt')} />
         </div>
 
         {serverError && (
-          <p className="rounded-sm bg-error/10 px-3 py-2 text-sm font-medium text-error">{serverError}</p>
+          <p className="rounded-md border border-error/30 bg-error-soft px-3 py-2 text-[13px] font-medium text-error">
+            {serverError}
+          </p>
         )}
 
-        <div className="mt-2 flex justify-end gap-3">
-          <Button type="button" variant="ghost" onClick={onClose} disabled={submitting}>
+        <div className="-mx-6 -mb-5 mt-1 flex justify-end gap-2 border-t border-line bg-surface-alt px-6 py-4">
+          <Button type="button" variant="secondary" onClick={onClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button type="submit" variant="accent" disabled={submitting}>
+          <Button type="submit" variant="primary" disabled={submitting}>
             {submitting ? 'Saving…' : isEdit ? 'Save changes' : 'Create station'}
           </Button>
         </div>
