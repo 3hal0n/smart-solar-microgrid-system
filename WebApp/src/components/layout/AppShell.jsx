@@ -40,7 +40,7 @@ export default function AppShell() {
   };
 
   return (
-    <div className="flex min-h-screen bg-surface-alt">
+    <div className="flex h-screen overflow-hidden bg-canvas">
       <Sidebar sections={NAV_SECTIONS} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar

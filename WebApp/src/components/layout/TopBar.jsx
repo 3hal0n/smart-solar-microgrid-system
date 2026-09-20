@@ -11,11 +11,11 @@ import Button from '../common/Button.jsx';
 // Renders the hamburger (mobile only), signed-in user info, and a logout button.
 export default function TopBar({ onToggleSidebar, fullName, role, onLogout }) {
   return (
-    <header className="flex h-16 items-center justify-between border-b border-line bg-canvas px-4 sm:px-6">
+    <header className="flex h-14 shrink-0 items-center justify-between border-b border-line bg-surface px-4 sm:px-6">
       <button
         type="button"
         onClick={onToggleSidebar}
-        className="flex h-10 w-10 items-center justify-center rounded-pill text-ink hover:bg-surface-alt lg:hidden"
+        className="-ml-1 flex h-8 w-8 items-center justify-center rounded-md text-body transition-colors hover:bg-surface-alt hover:text-ink lg:hidden"
         aria-label="Toggle navigation"
       >
         &#9776;
@@ -23,15 +23,19 @@ export default function TopBar({ onToggleSidebar, fullName, role, onLogout }) {
 
       <div className="flex-1" />
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {fullName && (
-          <div className="hidden text-right sm:block">
-            <p className="text-sm font-semibold text-ink">{fullName}</p>
-            {role && <p className="text-xs text-muted">{role}</p>}
+          <div className="hidden items-center gap-2 sm:flex">
+            <span className="text-[13px] font-medium text-ink">{fullName}</span>
+            {role && (
+              <span className="rounded-md border border-line bg-surface-alt px-1.5 py-0.5 text-[11px] font-medium text-muted">
+                {role}
+              </span>
+            )}
           </div>
         )}
-        <Button variant="ghost" onClick={onLogout}>
-          Log out
+        <Button variant="secondary" size="sm" onClick={onLogout}>
+          Sign out
         </Button>
       </div>
     </header>
