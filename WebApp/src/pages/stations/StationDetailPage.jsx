@@ -44,7 +44,7 @@ function ScheduleEditor({ station, submitting, onSave }) {
     <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-4">
       <Input label="Opens at" type="time" required value={opensAt} onChange={(event) => setOpensAt(event.target.value)} />
       <Input label="Closes at" type="time" required value={closesAt} onChange={(event) => setClosesAt(event.target.value)} />
-      <Button type="submit" variant="secondary" disabled={submitting}>
+      <Button type="submit" variant="primary" disabled={submitting}>
         {submitting ? 'Saving…' : 'Save schedule'}
       </Button>
     </form>
