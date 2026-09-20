@@ -200,7 +200,7 @@ export default function StationDetailPage() {
         await api.post(`/stations/${id}/slots`, values);
       }
       setIsSlotFormOpen(false);
-      await loadStation();
+      setRefreshToken((token) => token + 1);
       setToast({ message: editingSlot ? 'Slot updated.' : 'Slot created.', tone: 'success' });
     } catch (err) {
       setSlotFormError(err.response?.data?.message || 'Something went wrong. Please try again.');
