@@ -1,1 +1,39 @@
 @import "tailwindcss";
+
+/* Design tokens sourced from docs/wise.design.md — built jointly Day 1, then shared by every page. */
+@theme {
+  --color-primary: #163300;
+  --color-primary-hover: #0D1F00;
+  --color-primary-pressed: #0E0F0C;
+  --color-accent: #9FE870;
+  --color-accent-hover: #80E142;
+  --color-accent-pressed: #65CF21;
+  --color-ink: #0E0F0C;
+  --color-body: #454745;
+  --color-muted: #6A6C6A;
+  --color-canvas: #FFFFFF;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F1F1ED;
+  --color-surface-tint: #E2F6D5;
+  --color-line: rgba(14, 15, 12, 0.12157);
+  --color-line-strong: #CACFC7;
+  --color-success: #054D28;
+  --color-warning: #FFD11A;
+  --color-error: #CB272F;
+  --color-on-primary: #FFFFFF;
+  --color-on-accent: #163300;
+
+  --font-sans: "Inter", Helvetica, Arial, sans-serif;
+  --font-display: "Wise Sans", "Inter", sans-serif;
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-pill: 9999px;
+}
+
+body {
+  background-color: var(--color-surface-alt);
+  color: var(--color-ink);
+}
