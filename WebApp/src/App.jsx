@@ -21,6 +21,9 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          {/* Public marketing page — deliberately outside AppShell (no sidebar/top bar). */}
+          <Route path="/" element={<LandingPage />} />
+
           <Route element={<AppShell />}>
             <Route path="/stations" element={<StationsPage />} />
             <Route path="/stations/:id" element={<StationDetailPage />} />
@@ -29,8 +32,8 @@ export default function App() {
                 <Route path="/admin/prosumers" element={<ProsumersPage />} />
                 <Route path="/admin/prosumers/pending" element={<PendingProsumersPage />} /> */}
           </Route>
-          {/* TODO: point this at the real login screen once it exists (outside AppShell — no sidebar on login). */}
-          <Route path="/" element={<Navigate to="/stations" replace />} />
+          {/* TODO(Rukshan): /login has no route yet — the landing page's sign-in CTA points here and
+              will render blank until LoginPage.jsx exists. It belongs outside AppShell. */}
         </Routes>
       </BrowserRouter>
     </AuthProvider>
