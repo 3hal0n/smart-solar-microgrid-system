@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "f:\\Smart-Solar-Grid\\WebService\\SmartMicrogrid.Api\\SmartMicrogrid.Api.csproj": {}
+    "F:\\Smart-Solar-Grid\\WebService\\SmartMicrogrid.Api\\SmartMicrogrid.Api.csproj": {}
   },
   "projects": {
-    "f:\\Smart-Solar-Grid\\WebService\\SmartMicrogrid.Api\\SmartMicrogrid.Api.csproj": {
+    "F:\\Smart-Solar-Grid\\WebService\\SmartMicrogrid.Api\\SmartMicrogrid.Api.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "f:\\Smart-Solar-Grid\\WebService\\SmartMicrogrid.Api\\SmartMicrogrid.Api.csproj",
+        "projectUniqueName": "F:\\Smart-Solar-Grid\\WebService\\SmartMicrogrid.Api\\SmartMicrogrid.Api.csproj",
         "projectName": "SmartMicrogrid.Api",
-        "projectPath": "f:\\Smart-Solar-Grid\\WebService\\SmartMicrogrid.Api\\SmartMicrogrid.Api.csproj",
+        "projectPath": "F:\\Smart-Solar-Grid\\WebService\\SmartMicrogrid.Api\\SmartMicrogrid.Api.csproj",
         "packagesPath": "C:\\Users\\ADMIN\\.nuget\\packages\\",
-        "outputPath": "f:\\Smart-Solar-Grid\\WebService\\SmartMicrogrid.Api\\obj\\",
+        "outputPath": "F:\\Smart-Solar-Grid\\WebService\\SmartMicrogrid.Api\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\ADMIN\\AppData\\Roaming\\NuGet\\NuGet.Config"

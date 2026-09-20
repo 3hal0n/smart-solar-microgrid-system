@@ -1,8 +1,22 @@
+using System.Text.Json.Serialization;
+using SmartMicrogrid.Api.Data;
+using SmartMicrogrid.Api.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+// Controllers, with enums serialized as strings so the JSON contract matches architecture.md
+// (e.g. Station/Slot "status" as "Active"/"Available" rather than raw integers).
+builder.Services.AddControllers()
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+// Shared MongoDB connection and Shalon's Stations/Slots services.
+builder.Services.AddSingleton<MongoDbContext>();
+builder.Services.AddScoped<StationService>();
+builder.Services.AddScoped<SlotService>();
 
 var app = builder.Build();
 
@@ -13,6 +27,14 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.MapControllers();
+
+// Ensures the 2dsphere index on SolarStations.location exists before the API serves traffic.
+using (var startupScope = app.Services.CreateScope())
+{
+    var stationService = startupScope.ServiceProvider.GetRequiredService<StationService>();
+    await stationService.EnsureIndexesAsync();
+}
 
 var summaries = new[]
 {
