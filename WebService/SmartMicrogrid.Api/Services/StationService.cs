@@ -192,6 +192,68 @@ public class StationService
         }
     }
 
+    // Flips a station to Inactive, but only once it's confirmed there are no active slots or
+    // reservations tying it up (architecture.md §3: PUT /stations/{id}/deactivate, 409 if any Slot
+    // is Reserved or any Reservation is Confirmed at this station).
+    public async Task DeactivateAsync(string id)
+    {
+        if (!ObjectId.TryParse(id, out _))
+        {
+            throw new NotFoundException($"Station '{id}' not found.");
+        }
+
+        var station = await _context.SolarStations.Find(s => s.Id == id).FirstOrDefaultAsync();
+        if (station is null)
+        {
+            throw new NotFoundException($"Station '{id}' not found.");
+        }
+
+        var hasReservedSlots = await HasReservedSlotsAsync(id);
+        var hasConfirmedReservations = await HasConfirmedReservationsAsync(id);
+
+        if (hasReservedSlots || hasConfirmedReservations)
+        {
+            var blockers = new List<string>();
+            if (hasReservedSlots)
+            {
+                blockers.Add("one or more of its slots are currently Reserved");
+            }
+            if (hasConfirmedReservations)
+            {
+                blockers.Add("one or more of its reservations are currently Confirmed");
+            }
+            throw new ConflictException($"Cannot deactivate station '{id}': {string.Join(", and ", blockers)}.");
+        }
+
+        var update = Builders<Station>.Update
+            .Set(s => s.Status, StationStatus.Inactive)
+            .Set(s => s.UpdatedAt, DateTime.UtcNow);
+        await _context.SolarStations.UpdateOneAsync(s => s.Id == id, update);
+    }
+
+    // Checks EnergyBookingSlots (Shalon's own collection) for any Reserved slot at this station.
+    private async Task<bool> HasReservedSlotsAsync(string stationId)
+    {
+        return await _context.EnergyBookingSlots
+            .Find(sl => sl.StationId == stationId && sl.Status == SlotStatus.Reserved)
+            .AnyAsync();
+    }
+
+    // TODO(Dinil): Reservations collection/ReservationsController doesn't exist in this repo yet
+    // (architecture.md §2.4 defines it, but no Model/Controller/Service file for it has been added).
+    // Once it exists, replace this stub with a real query against it:
+    //   - Collection name: "Reservations"
+    //   - Filter fields (exactly as in architecture.md §2.4): stationId == this station's id (ObjectId),
+    //     status == "Confirmed"
+    //   - e.g. via a shared context accessor: _context.Database.GetCollection<Reservation>("Reservations")
+    //         .Find(r => r.StationId == stationId && r.Status == ReservationStatus.Confirmed).AnyAsync()
+    // Until then this always reports "no confirmed reservations", so deactivation is only blocked by
+    // the EnergyBookingSlots check above — don't remove this TODO once Dinil's model lands, replace it.
+    private Task<bool> HasConfirmedReservationsAsync(string stationId)
+    {
+        return Task.FromResult(false);
+    }
+
     // Maps a stored Station document to the GET /stations list-row shape.
     private static StationSummaryResponse MapToSummary(Station station) => new()
     {
