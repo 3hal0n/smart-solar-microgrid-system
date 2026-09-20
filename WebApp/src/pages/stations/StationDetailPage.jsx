@@ -214,7 +214,7 @@ export default function StationDetailPage() {
     setSlotStatusUpdatingId(slotId);
     try {
       await api.put(`/slots/${slotId}`, { status });
-      await loadStation();
+      setRefreshToken((token) => token + 1);
       setToast({ message: 'Slot status updated.', tone: 'success' });
     } catch (err) {
       setToast({ message: err.response?.data?.message || 'Failed to update slot status.', tone: 'error' });
