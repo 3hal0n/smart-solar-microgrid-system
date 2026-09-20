@@ -358,7 +358,7 @@ export default function StationDetailPage() {
         <Table>
           <thead>
             <tr>
-              <Th>Slot</Th>
+              <Th className="text-right">Slot</Th>
               <Th>Prosumer NIC</Th>
               <Th>Scheduled time</Th>
               <Th>Status</Th>
@@ -367,21 +367,21 @@ export default function StationDetailPage() {
           <tbody>
             {reservationsLoading && (
               <tr>
-                <Td colSpan={4} className="text-center text-muted">
+                <Td colSpan={4} className="py-8 text-center text-[13px] text-muted">
                   Loading reservations…
                 </Td>
               </tr>
             )}
             {!reservationsLoading && reservationsError && (
               <tr>
-                <Td colSpan={4} className="text-center text-error">
+                <Td colSpan={4} className="py-8 text-center text-[13px] text-error">
                   {reservationsError}
                 </Td>
               </tr>
             )}
             {!reservationsLoading && !reservationsError && reservations.length === 0 && (
               <tr>
-                <Td colSpan={4} className="text-center text-muted">
+                <Td colSpan={4} className="py-8 text-center text-[13px] text-muted">
                   No active reservations for this station.
                 </Td>
               </tr>
@@ -390,10 +390,14 @@ export default function StationDetailPage() {
               !reservationsError &&
               reservations.map((reservation) => (
                 <tr key={`${reservation.slotId}-${reservation.scheduledAt}`}>
-                  <Td>{slotNumberFor(reservation.slotId)}</Td>
-                  <Td>{reservation.prosumerNic ?? '—'}</Td>
-                  <Td>{reservation.scheduledAt ? new Date(reservation.scheduledAt).toLocaleString() : '—'}</Td>
-                  <Td>{reservation.status}</Td>
+                  <Td className="tnum text-right font-medium">{slotNumberFor(reservation.slotId)}</Td>
+                  <Td className="font-mono text-[12px] text-body">{reservation.prosumerNic ?? '—'}</Td>
+                  <Td className="tnum text-body">
+                    {reservation.scheduledAt ? new Date(reservation.scheduledAt).toLocaleString() : '—'}
+                  </Td>
+                  <Td>
+                    <Badge tone={reservation.status === 'Confirmed' ? 'info' : 'neutral'}>{reservation.status}</Badge>
+                  </Td>
                 </tr>
               ))}
           </tbody>
