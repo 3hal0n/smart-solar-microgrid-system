@@ -35,6 +35,12 @@
             android:label="@string/app_name"
             android:theme="@style/Theme.SmartMicrogrid"
             android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name=".ui.home.HomeActivity"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.SmartMicrogrid" />
     </application>
 
 </manifest>
