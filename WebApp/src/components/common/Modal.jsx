@@ -9,9 +9,12 @@
 import { useEffect } from 'react';
 
 // Renders a centered modal panel over a dimmed backdrop; closes on backdrop click or Escape.
-export default function Modal({ open, onClose, title, description, children }) {
+// `suppressClose` is for a modal that renders a second modal on top of itself (e.g. a map picker
+// opened from a form modal) — the parent passes true while the child is open, so Escape/backdrop
+// only closes the topmost one instead of both at once.
+export default function Modal({ open, onClose, title, description, children, suppressClose = false }) {
   useEffect(() => {
-    if (!open) {
+    if (!open || suppressClose) {
       return undefined;
     }
     // Closes the modal when the user presses Escape while it's open.
@@ -22,15 +25,16 @@ export default function Modal({ open, onClose, title, description, children }) {
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open, onClose]);
+  }, [open, suppressClose, onClose]);
 
   if (!open) {
     return null;
   }
 
-  // Closes the modal only when the backdrop itself (not the panel) is clicked.
+  // Closes the modal only when the backdrop itself (not the panel) is clicked, and only when
+  // this modal isn't currently suppressed by a child modal on top of it.
   const handleBackdropClick = (event) => {
-    if (event.target === event.currentTarget) {
+    if (!suppressClose && event.target === event.currentTarget) {
       onClose();
     }
   };

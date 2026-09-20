@@ -12,6 +12,21 @@ import { useState } from 'react';
 import Modal from '../../components/common/Modal.jsx';
 import Input from '../../components/common/Input.jsx';
 import Button from '../../components/common/Button.jsx';
+import MapPicker from '../../components/common/MapPicker.jsx';
+
+// Small inline pin glyph for the "Pick on map" trigger — avoids pulling in an icon library
+// for a single icon.
+function PinIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path
+        d="M7 0C3.7 0 1 2.7 1 6c0 4.5 6 8 6 8s6-3.5 6-8c0-3.3-2.7-6-6-6z"
+        fill="currentColor"
+      />
+      <circle cx="7" cy="6" r="2.2" fill="white" />
+    </svg>
+  );
+}
 
 const EMPTY_VALUES = {
   name: '',
@@ -45,11 +60,23 @@ function toFormValues(station) {
 // values are simply derived once from `station` at mount — no effect-based reset needed.
 export default function StationForm({ open, station, submitting, serverError, onClose, onSubmit }) {
   const [values, setValues] = useState(() => toFormValues(station));
+  const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
+  // Bumped every time the map picker opens so it remounts fresh (see MapPicker.jsx).
+  const [mapPickerKey, setMapPickerKey] = useState(0);
   const isEdit = Boolean(station);
 
   // Updates a single field's value as the user types.
   const handleChange = (field) => (event) => {
     setValues((prev) => ({ ...prev, [field]: event.target.value }));
+  };
+
+  // Writes the map picker's confirmed coordinates into the same lat/lng fields manual entry
+  // uses — both paths converge on the same string-valued form state, so nothing downstream
+  // needs to know which one was used. Values arrive as plain decimal numbers (see MapPicker's
+  // roundCoordinate), matching the backend's lat/lng number contract.
+  const handleMapConfirm = ({ lat, lng }) => {
+    setValues((prev) => ({ ...prev, lat: String(lat), lng: String(lng) }));
+    setIsMapPickerOpen(false);
   };
 
   // Builds the request payload from form state and hands it to the parent's submit handler.
@@ -71,32 +98,54 @@ export default function StationForm({ open, station, submitting, serverError, on
       onClose={onClose}
       title={isEdit ? 'Edit station' : 'New station'}
       description="GPS position, capacity specs and operating hours for this grid node."
+      suppressClose={isMapPickerOpen}
     >
       <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
         <Input label="Station name" required value={values.name} onChange={handleChange('name')} />
 
-        {/* Paired inputs sit in a balanced 2-column grid, stacking on narrow screens. */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Input
-            label="Latitude"
-            type="number"
-            step="any"
-            required
-            placeholder="6.9271"
-            className="font-mono"
-            value={values.lat}
-            onChange={handleChange('lat')}
-          />
-          <Input
-            label="Longitude"
-            type="number"
-            step="any"
-            required
-            placeholder="79.8612"
-            className="font-mono"
-            value={values.lng}
-            onChange={handleChange('lng')}
-          />
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <span className="text-[13px] font-medium text-ink">Location</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setMapPickerKey((key) => key + 1);
+                setIsMapPickerOpen(true);
+              }}
+            >
+              <span className="flex items-center gap-1.5 text-primary">
+                <PinIcon />
+                Pick on map
+              </span>
+            </Button>
+          </div>
+          {/* Paired inputs sit in a balanced 2-column grid, stacking on narrow screens. Values
+              typed here or written by the map picker are the exact same state — both stay
+              fully editable regardless of which one was used last. */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              label="Latitude"
+              type="number"
+              step="any"
+              required
+              placeholder="6.9271"
+              className="font-mono"
+              value={values.lat}
+              onChange={handleChange('lat')}
+            />
+            <Input
+              label="Longitude"
+              type="number"
+              step="any"
+              required
+              placeholder="79.8612"
+              className="font-mono"
+              value={values.lng}
+              onChange={handleChange('lng')}
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -140,6 +189,15 @@ export default function StationForm({ open, station, submitting, serverError, on
           </Button>
         </div>
       </form>
+
+      <MapPicker
+        key={mapPickerKey}
+        open={isMapPickerOpen}
+        initialLat={values.lat === '' ? NaN : Number(values.lat)}
+        initialLng={values.lng === '' ? NaN : Number(values.lng)}
+        onClose={() => setIsMapPickerOpen(false)}
+        onConfirm={handleMapConfirm}
+      />
     </Modal>
   );
 }
