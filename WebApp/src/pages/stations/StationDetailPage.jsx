@@ -164,7 +164,7 @@ export default function StationDetailPage() {
     setDeactivating(true);
     try {
       await api.put(`/stations/${id}/deactivate`);
-      await loadStation();
+      setRefreshToken((token) => token + 1);
       setToast({ message: 'Station deactivated.', tone: 'success' });
     } catch (err) {
       setToast({ message: err.response?.data?.message || 'Failed to deactivate station.', tone: 'error' });
