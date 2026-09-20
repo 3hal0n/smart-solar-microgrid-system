@@ -12,6 +12,21 @@ import { useState } from 'react';
 import Modal from '../../components/common/Modal.jsx';
 import Input from '../../components/common/Input.jsx';
 import Button from '../../components/common/Button.jsx';
+import MapPicker from '../../components/common/MapPicker.jsx';
+
+// Small inline pin glyph for the "Pick on map" trigger — avoids pulling in an icon library
+// for a single icon.
+function PinIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+      <path
+        d="M7 0C3.7 0 1 2.7 1 6c0 4.5 6 8 6 8s6-3.5 6-8c0-3.3-2.7-6-6-6z"
+        fill="currentColor"
+      />
+      <circle cx="7" cy="6" r="2.2" fill="white" />
+    </svg>
+  );
+}
 
 const EMPTY_VALUES = {
   name: '',
@@ -45,11 +60,21 @@ function toFormValues(station) {
 // values are simply derived once from `station` at mount — no effect-based reset needed.
 export default function StationForm({ open, station, submitting, serverError, onClose, onSubmit }) {
   const [values, setValues] = useState(() => toFormValues(station));
+  const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
   const isEdit = Boolean(station);
 
   // Updates a single field's value as the user types.
   const handleChange = (field) => (event) => {
     setValues((prev) => ({ ...prev, [field]: event.target.value }));
+  };
+
+  // Writes the map picker's confirmed coordinates into the same lat/lng fields manual entry
+  // uses — both paths converge on the same string-valued form state, so nothing downstream
+  // needs to know which one was used. Values arrive as plain decimal numbers (see MapPicker's
+  // roundCoordinate), matching the backend's lat/lng number contract.
+  const handleMapConfirm = ({ lat, lng }) => {
+    setValues((prev) => ({ ...prev, lat: String(lat), lng: String(lng) }));
+    setIsMapPickerOpen(false);
   };
 
   // Builds the request payload from form state and hands it to the parent's submit handler.
