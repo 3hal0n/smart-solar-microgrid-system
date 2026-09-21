@@ -152,7 +152,7 @@ Also owned by Rukshan (shared infrastructure, used by all controllers): `Service
 
 | Verb & Path | Request Body | Response | Notes |
 |---|---|---|---|
-| `GET /stations` | query: `search?, status?` | `[{ id, name, location, capacityKWh, status }]` | All authenticated roles |
+| `GET /stations` | query: `search?, status?` | `[{ id, name, location, capacityKWh, totalBatterySlots, status }]` | All authenticated roles. `totalBatterySlots` added 2026-09-20 for the web Stations table's "slot count" column (backward-compatible addition, not in the original spec) |
 | `GET /stations/{id}` | — | full station + its slots | All authenticated roles |
 | `POST /stations` | `{ name, lat, lng, capacityKWh, totalBatterySlots, operatingSchedule }` | `{ id }` | Backoffice only |
 | `PUT /stations/{id}` | partial fields | `204` | Backoffice only |
