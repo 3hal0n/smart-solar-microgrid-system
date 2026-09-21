@@ -27,6 +27,10 @@ builder.Services.AddSingleton<MongoDbContext>();
 builder.Services.AddScoped<StationService>();
 builder.Services.AddScoped<SlotService>();
 
+// Add Dinil's services:
+builder.Services.AddSingleton<QrTokenService>();
+builder.Services.AddScoped<ReservationService>();
+
 // CORS for the browser-based WebApp — without this, every fetch/axios call from the React dev
 // server is blocked by the browser (curl/Postman never hit this, since only browsers enforce
 // CORS, which is why it wasn't caught until testing against the real WebApp in-browser).
