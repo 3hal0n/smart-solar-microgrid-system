@@ -53,4 +53,24 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
+
+    // ---- Dinil: networking (verify-qr call) ----
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    // ---- Dinil: coroutines (network calls off the main thread) ----
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+
+    // ---- Dinil: CameraX (camera preview + frame analysis) ----
+    implementation("androidx.camera:camera-core:1.4.0")
+    implementation("androidx.camera:camera-camera2:1.4.0")
+    implementation("androidx.camera:camera-lifecycle:1.4.0")
+    implementation("androidx.camera:camera-view:1.4.0")
+
+    // ---- Dinil: ML Kit barcode scanning (QR decode) ----
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+
+    // ---- Dinil: runtime permissions (camera) ----
+    implementation("com.google.accompanist:accompanist-permissions:0.36.0")
 }
