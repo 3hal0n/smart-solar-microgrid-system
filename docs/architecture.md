@@ -206,7 +206,8 @@ This table is the shared contract. If any owner needs to change their own route'
 | Web Station Detail "who's booked" panel | Shalon → Dinil | Read-only query into `Reservations` filtered by `stationId` |
 | Reservations search + prosumer dashboard summary | Shalon → Dinil | **Added 2026-09-21.** `GET /reservations` and `GET /dashboard/prosumer/{nic}/summary` (moved from Migara, see §3) read-only query `Reservations` — same dependency shape as the row above, needs Dinil's status enum/field names finalized (already true per §2.4) |
 | Nearby stations map screen | Migara → Shalon | **Added 2026-09-21.** `GET /stations/nearby` moved from Migara to Shalon (see §3); Migara's `MapActivity` now calls Shalon's endpoint instead of building her own — no change to the 2dsphere index dependency above |
-| Operator/prosumer dashboard screens | Migara → Shalon | **Added 2026-09-21.** `GET /reservations` and `GET /dashboard/prosumer/{nic}/summary` moved from Migara to Shalon (see §3); Migara's `ui/dashboard/*` screens call Shalon's endpoints for these two, and her own `DashboardController`/`DashboardAggregationService` now only need to cover `GET /dashboard/operator/summary` |
+| Operator dashboard screen | *(none — fully vertical)* | **Updated 2026-09-24.** Superseded by the row below: the Prosumer Dashboard screen itself (not just its backend) moved to Shalon, so there's no longer a Migara↔Shalon dependency for dashboards at all. Migara's Operator Dashboard screen calls her own `GET /dashboard/operator/summary` — a self-contained vertical slice, same as before |
+| Prosumer Dashboard screen | *(none — fully vertical)* | **Added 2026-09-24.** `ui/dashboard/ProsumerDashboardScreen.kt` moved from Migara to Shalon (see §6/§7) — Shalon now owns this screen and both endpoints it calls (`GET /reservations`, `GET /dashboard/prosumer/{nic}/summary`) end to end, no cross-module call needed |
 
 **Practical takeaway:** lock §2 and §3 of this document in the Day 1 meeting, before anyone writes a model class. Every cross-module dependency above is a *read* of an already-agreed shape, or a *call* into a small shared service — nobody needs to wait for someone else's controller to be fully built, only for the shape to be agreed.
 
@@ -233,7 +234,8 @@ This table is the shared contract. If any owner needs to change their own route'
 | Android — Booking workflow (create/modify/cancel, summary, QR display) | `ui/prosumer/*` | Dinil |
 | Android — Operator mode, QR Scanner | `ui/operator/ScanQrActivity` | Migara |
 | Android — Nearby Stations Map | `ui/operator/MapActivity` | Migara |
-| Android — Prosumer & Operator Dashboards | `ui/dashboard/*` | Migara |
+| Android — Prosumer Dashboard (stat tiles, booking history, pending list, search/filter) | `ui/dashboard/ProsumerDashboardScreen.kt` | Shalon (moved from Migara 2026-09-24, see §4/§7) |
+| Android — Operator Dashboard | `ui/dashboard/OperatorDashboardScreen.kt` | Migara |
 
 Neither client computes a business rule anywhere in this table — every screen above calls one of the endpoints in §3 and renders the result, including error/rejection messages verbatim from the API.
 
@@ -249,20 +251,23 @@ Neither client computes a business rule anywhere in this table — every screen 
 | Slot Booking Management (slot/station administration) | 5 | Shalon |
 | Mobile Authentication and Account Management | 9 | Dinil |
 | Reservation Workflow and Booking Management | 9 | Dinil |
-| Booking Views and Operational Dashboards (10) | split | Migara (7) + Shalon (3) |
+| Booking Views and Operational Dashboards (10) | split | Shalon (7) + Migara (3) |
 | Grid Operator Verification and Map Features (7) | split | Migara (5) + Shalon (2) |
 | Service Integration — Web app→API (2) | split | Shalon (1) + Rukshan (1) |
 | Service Integration — Mobile app→API (2) | split | Dinil (1) + Migara (1) |
 | Service Integration — SQLite persistence (3) | 3 | Dinil (primary; session/token + reservation cache) |
 | Service Integration — Google Maps (3) | 3 | Migara |
 | Service Integration — QR scanning (2) | 2 | Migara |
-| **Running totals (approx.)** | 65 | **Shalon ≈ 16, Rukshan ≈ 9, Dinil ≈ 22, Migara ≈ 19** |
+| **Running totals (approx.)** | 65 | **Shalon ≈ 20, Rukshan ≈ 9, Dinil ≈ 22, Migara ≈ 15** |
 
 This confirms the caveat in §0 numerically: Dinil and Migara's individual-criterion totals are roughly double Shalon and Rukshan's, purely because the rubric weights mobile criteria more heavily. All four still write one complete, defensible full-stack module each, and all four earn the same Table 1 group marks (35) regardless.
 
-**2026-09-21 update — why the two dashboard/verification rows are now split:** per §3/§4, `GET /stations/nearby`, `GET /reservations`, and `GET /dashboard/prosumer/{nic}/summary` moved from Migara's backend to Shalon's. Migara still builds and owns every mobile screen these criteria actually grade (`ui/dashboard/*`, `ui/operator/MapActivity`, QR scanning) — the rubric wording for both rows describes *mobile app behavior* ("Show nearby stations on the map", "Booking history", "Filter criteria" as seen by the user), which is still entirely her work. The split below reflects only that some of the backend query logic behind that behavior was written by Shalon instead of her — a smaller share than the mobile UI/UX itself:
-- **Booking Views and Operational Dashboards (10):** Migara (7) — both dashboard screens' UI/UX, `GET /dashboard/operator/summary` backend, and wiring the prosumer dashboard screen to Shalon's endpoint; Shalon (3) — `GET /reservations` search/filter backend and `GET /dashboard/prosumer/{nic}/summary` backend.
+**2026-09-21 update — why the verification/map row is split:** per §3/§4, `GET /stations/nearby` moved from Migara's backend to Shalon's. Migara still builds and owns the map screen's UI/marker rendering — the split reflects only that the `$geoNear` backend query behind it was written by Shalon:
 - **Grid Operator Verification and Map Features (7):** Migara (5) — QR scan/verify UI + backend (2, unchanged) and the map screen's UI/marker rendering (3 of the map sub-criterion's 5); Shalon (2) — the `$geoNear` backend query behind "Show nearby stations on the map".
+
+**2026-09-24 update — Booking Views and Operational Dashboards is now Shalon-majority:** originally this row was Migara (7) + Shalon (3), reflecting Migara building both dashboard screens while Shalon only owned backend for two of the endpoints. That changed when the **Prosumer Dashboard screen itself** (not just its backend) moved to Shalon (see §4/§6) — Shalon now owns all five of the rubric's named sub-items for this row end to end (current/pending bookings, booking history, filter criteria, pending reservations, count of approved future reservations — all live on the Prosumer Dashboard screen). Migara's remaining share is the separate Operator Dashboard screen and its `GET /dashboard/operator/summary` backend, which the "Operational Dashboards" half of the title still covers but isn't one of the five named sub-items. Split: **Shalon (7)** — Prosumer Dashboard screen (all five sub-items) + both its backend endpoints; **Migara (3)** — Operator Dashboard screen + its backend.
+
+As with the earlier splits, these are approximate bookkeeping for individual-contribution evidence, not a precise formula — worth Shalon and Migara both confirming it reads fairly before it's used in viva or the report. Table 1's group marks (35) are unaffected.
 
 This is an approximate split for individual-contribution bookkeeping, not a precise formula — worth both Shalon and Migara confirming it reads fairly before it's used as viva/report evidence. It doesn't touch Table 1's group marks (35, unaffected, awarded identically to all four).
 
@@ -327,7 +332,9 @@ smart-microgrid/
         ├── data/remote/ApiClient.kt          # built jointly Day 1, then frozen
         ├── ui/prosumer/ (Register/Login/Profile/Booking/QR display) # Dinil
         ├── ui/operator/ (ScanQr/Map)          # Migara
-        ├── ui/dashboard/ (Prosumer & Operator dashboards) # Migara
+        ├── ui/dashboard/
+        │   ├── ProsumerDashboardScreen.kt     # Shalon (moved from Migara 2026-09-24, see §4/§6/§7)
+        │   └── OperatorDashboardScreen.kt     # Migara
         └── util/ (QR rendering helper, Maps helper)
 ```
 
