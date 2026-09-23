@@ -139,4 +139,39 @@ public class SlotService
             throw new ValidationException("slotNumber must be greater than 0.");
         }
     }
+
+
+    // ============================================================
+    // Dinil additions to SlotService 
+    // ============================================================
+
+    // Returns a slot by id, or null if not found or id is not a valid ObjectId.
+    public async Task<Slot?> GetByIdAsync(string id)
+    {
+        if (!ObjectId.TryParse(id, out _))
+        {
+            return null;
+        }
+        return await _context.EnergyBookingSlots.Find(s => s.Id == id).FirstOrDefaultAsync();
+    }
+
+    // Flips a slot's status to Reserved. Called from ReservationService
+    // when a reservation is created (and when a reservation's slot changes).
+    public async Task MarkReserved(string id)
+    {
+        var update = Builders<Slot>.Update
+            .Set(s => s.Status, SlotStatus.Reserved)
+            .Set(s => s.UpdatedAt, DateTime.UtcNow);
+        await _context.EnergyBookingSlots.UpdateOneAsync(s => s.Id == id, update);
+    }
+
+    // Flips a slot's status to Available. Called from ReservationService
+    // on cancellation and after operator QR verification.
+    public async Task MarkAvailable(string id)
+    {
+        var update = Builders<Slot>.Update
+            .Set(s => s.Status, SlotStatus.Available)
+            .Set(s => s.UpdatedAt, DateTime.UtcNow);
+        await _context.EnergyBookingSlots.UpdateOneAsync(s => s.Id == id, update);
+    }
 }
