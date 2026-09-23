@@ -35,4 +35,7 @@ public class MongoDbContext
 
     // Typed accessor for the EnergyBookingSlots collection (owner: Shalon).
     public IMongoCollection<Slot> EnergyBookingSlots => _database.GetCollection<Slot>("EnergyBookingSlots");
+
+    // ▼ Dinil — typed accessor for the Reservations collection (owner: Dinil, architecture.md §2.4).
+    public IMongoCollection<Reservation> Reservations => _database.GetCollection<Reservation>("Reservations");
 }
