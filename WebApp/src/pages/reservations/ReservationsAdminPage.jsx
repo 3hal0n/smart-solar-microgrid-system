@@ -14,9 +14,9 @@ import api from "../../services/api.js";
 import Button from "../../components/common/Button.jsx";
 import Badge from "../../components/common/Badge.jsx";
 import Input from "../../components/common/Input.jsx";
-import Table from "../../components/common/Table.jsx";
+import { Table, Th, Td } from "../../components/common/Table.jsx";
 import Modal from "../../components/common/Modal.jsx";
-import { useToast } from "../../components/common/Toast.jsx";
+import Toast from "../../components/common/Toast.jsx";
 
 // Formats an ISO timestamp for display (local time, minute precision).
 function formatDateTime(iso) {
@@ -47,11 +47,13 @@ function statusTone(status) {
 
 export default function ReservationsAdminPage() {
   const navigate = useNavigate();
-  const { show } = useToast();
 
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Toast state — parent-owned per Shalon's Toast.jsx pattern.
+  const [toast, setToast] = useState({ message: "", tone: "error" });
 
   // Filters mirror the query params GET /api/reservations accepts.
   const [filterStatus, setFilterStatus] = useState("");
@@ -62,6 +64,11 @@ export default function ReservationsAdminPage() {
   const [cancelTarget, setCancelTarget] = useState(null);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelBusy, setCancelBusy] = useState(false);
+
+  // Tiny helper to fire a toast without prop-drilling.
+  function show(message, tone = "error") {
+    setToast({ message, tone });
+  }
 
   // Loads the reservation list using the current filters.
   async function load() {
@@ -131,63 +138,63 @@ export default function ReservationsAdminPage() {
   );
 
   // Column definitions for the shared Table component.
-  const columns = useMemo(
-    () => [
-      {
-        key: "id",
-        header: "ID",
-        render: (r) => (
-          <Link
-            to={`/reservations/${r.id}`}
-            className="font-mono text-xs text-primary hover:underline"
-          >
-            {r.id.slice(-8)}
-          </Link>
-        )
-      },
-      { key: "prosumerNic", header: "Prosumer NIC" },
-      {
-        key: "scheduledAt",
-        header: "Scheduled",
-        render: (r) => (
-          <span className="tnum">{formatDateTime(r.scheduledAt)}</span>
-        )
-      },
-      {
-        key: "status",
-        header: "Status",
-        render: (r) => <Badge tone={statusTone(r.status)}>{r.status}</Badge>
-      },
-      {
-        key: "actions",
-        header: "",
-        render: (r) => (
-          <div className="flex items-center gap-2 justify-end">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate(`/reservations/${r.id}`)}
-            >
-              View
-            </Button>
-            {r.status === "Confirmed" && (
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => {
-                  setCancelTarget(r);
-                  setCancelReason("");
-                }}
-              >
-                Cancel
-              </Button>
-            )}
-          </div>
-        )
-      }
-    ],
-    [navigate]
-  );
+  // const columns = useMemo(
+  //   () => [
+  //     {
+  //       key: "id",
+  //       header: "ID",
+  //       render: (r) => (
+  //         <Link
+  //           to={`/reservations/${r.id}`}
+  //           className="font-mono text-xs text-primary hover:underline"
+  //         >
+  //           {r.id.slice(-8)}
+  //         </Link>
+  //       )
+  //     },
+  //     { key: "prosumerNic", header: "Prosumer NIC" },
+  //     {
+  //       key: "scheduledAt",
+  //       header: "Scheduled",
+  //       render: (r) => (
+  //         <span className="tnum">{formatDateTime(r.scheduledAt)}</span>
+  //       )
+  //     },
+  //     {
+  //       key: "status",
+  //       header: "Status",
+  //       render: (r) => <Badge tone={statusTone(r.status)}>{r.status}</Badge>
+  //     },
+  //     {
+  //       key: "actions",
+  //       header: "",
+  //       render: (r) => (
+  //         <div className="flex items-center gap-2 justify-end">
+  //           <Button
+  //             variant="ghost"
+  //             size="sm"
+  //             onClick={() => navigate(`/reservations/${r.id}`)}
+  //           >
+  //             View
+  //           </Button>
+  //           {r.status === "Confirmed" && (
+  //             <Button
+  //               variant="danger"
+  //               size="sm"
+  //               onClick={() => {
+  //                 setCancelTarget(r);
+  //                 setCancelReason("");
+  //               }}
+  //             >
+  //               Cancel
+  //             </Button>
+  //           )}
+  //         </div>
+  //       )
+  //     }
+  //   ],
+  //   [navigate]
+  // );
 
   return (
     <div className="p-6 md:p-8">
@@ -259,14 +266,75 @@ export default function ReservationsAdminPage() {
         </div>
       )}
 
-      {/* Table */}
-      <Table
-        columns={columns}
-        data={reservations}
-        loading={loading}
-        emptyMessage="No reservations match the current filters."
-        rowKey={(r) => r.id}
-      />
+      {/* Table — Shalon's shared shell, rendered with named exports */}
+      <Table>
+        <thead>
+          <tr>
+            <Th>ID</Th>
+            <Th>Prosumer NIC</Th>
+            <Th>Scheduled</Th>
+            <Th>Status</Th>
+            <Th className="text-right">Actions</Th>
+          </tr>
+        </thead>
+        <tbody>
+          {loading && (
+            <tr>
+              <Td colSpan={5} className="text-center text-muted">
+                Loading…
+              </Td>
+            </tr>
+          )}
+          {!loading && reservations.length === 0 && (
+            <tr>
+              <Td colSpan={5} className="text-center text-muted">
+                No reservations match the current filters.
+              </Td>
+            </tr>
+          )}
+          {!loading &&
+            reservations.map((r) => (
+              <tr key={r.id}>
+                <Td>
+                  <Link
+                    to={`/reservations/${r.id}`}
+                    className="font-mono text-xs text-primary hover:underline"
+                  >
+                    {r.id.slice(-8)}
+                  </Link>
+                </Td>
+                <Td>{r.prosumerNic}</Td>
+                <Td className="tnum">{formatDateTime(r.scheduledAt)}</Td>
+                <Td>
+                  <Badge tone={statusTone(r.status)}>{r.status}</Badge>
+                </Td>
+                <Td className="text-right">
+                  <div className="flex items-center gap-2 justify-end">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => navigate(`/reservations/${r.id}`)}
+                    >
+                      View
+                    </Button>
+                    {r.status === "Confirmed" && (
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => {
+                          setCancelTarget(r);
+                          setCancelReason("");
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    )}
+                  </div>
+                </Td>
+              </tr>
+            ))}
+        </tbody>
+      </Table>
 
       {/* Cancel confirmation modal */}
       <Modal
@@ -313,6 +381,12 @@ export default function ReservationsAdminPage() {
           </div>
         )}
       </Modal>
+      {/* Toast — Shalon's component, parent-owned state */}
+      <Toast
+        message={toast.message}
+        tone={toast.tone}
+        onDismiss={() => setToast({ message: "", tone: "error" })}
+      />
     </div>
   );
 }
