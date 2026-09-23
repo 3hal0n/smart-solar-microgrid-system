@@ -10,11 +10,11 @@
 //          decisions, it only reads auth state to display/clear it.
 // Author: Shalon
 // ============================================================
-import { useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext.jsx';
-import Sidebar from './Sidebar.jsx';
-import TopBar from './TopBar.jsx';
+import { useState } from "react";
+import { Outlet, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext.jsx";
+import Sidebar from "./Sidebar.jsx";
+import TopBar from "./TopBar.jsx";
 
 // Nav sections shown in the sidebar. Grouped by owner's module so it's obvious where to add more:
 // Rukshan's admin section/items go here once LoginPage/UsersPage/ProsumersPage exist
@@ -22,9 +22,15 @@ import TopBar from './TopBar.jsx';
 // links to routes that don't exist yet, since that ships dead nav entries.
 const NAV_SECTIONS = [
   {
-    title: 'Node management',
-    items: [{ label: 'Microgrid hubs', to: '/stations' }],
+    title: "Node management",
+    items: [{ label: "Microgrid hubs", to: "/stations" }]
   },
+
+  // Dinil — reservation oversight (web admin view of the reservations collection).
+  {
+    title: "Reservations",
+    items: [{ label: "Reservations", to: "/reservations" }]
+  }
 ];
 
 // Renders the shared shell (sidebar/top bar/content area) around whichever page route is active.
@@ -36,12 +42,16 @@ export default function AppShell() {
   // Clears the session and returns to the (currently stations-redirecting) home route.
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate("/");
   };
 
   return (
     <div className="flex h-screen overflow-hidden bg-canvas">
-      <Sidebar sections={NAV_SECTIONS} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar
+        sections={NAV_SECTIONS}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
           onToggleSidebar={() => setSidebarOpen((open) => !open)}
