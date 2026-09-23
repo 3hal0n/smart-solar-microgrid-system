@@ -28,7 +28,7 @@ builder.Services.AddScoped<StationService>();
 builder.Services.AddScoped<SlotService>();
 
 // Add Dinil's services:
-builder.Services.AddSingleton<QrTokenService>();
+builder.Services.AddSingleton<QrTokenService>(); // singleton: holds HMAC secret
 builder.Services.AddScoped<ReservationService>();
 
 // CORS for the browser-based WebApp — without this, every fetch/axios call from the React dev
