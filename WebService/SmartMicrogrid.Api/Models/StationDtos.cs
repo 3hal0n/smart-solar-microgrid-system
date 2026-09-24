@@ -92,10 +92,15 @@ public class ReservationOverviewResponse
 }
 
 // Response row for GET /stations/nearby (moved from Migara to Shalon 2026-09-21 — see §3/§4).
+// NOTE: capacityKWh and availableSlots were added 2026-09-24 beyond architecture.md §3's original
+// shape (id, name, location, distanceKm), for the mobile map's info window — backward-compatible
+// addition, same pattern as GET /stations' totalBatterySlots.
 public class NearbyStationResponse
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public LocationResponse Location { get; set; } = new();
     public double DistanceKm { get; set; }
+    public double CapacityKWh { get; set; }
+    public int AvailableSlots { get; set; }
 }

@@ -283,16 +283,43 @@ public class StationService
             { "spherical", true },
             { "query", new BsonDocument("status", StationStatus.Active.ToString()) }
         });
+        // Joins EnergyBookingSlots to count each station's Available slots in the same pipeline,
+        // so the mobile map's info window (name/capacity/available slots) doesn't need a second
+        // round trip per marker tap. Added 2026-09-24 alongside capacityKWh below — both are
+        // backward-compatible additions beyond architecture.md §3's original
+        // { id, name, location, distanceKm } shape, documented there same as the earlier
+        // totalBatterySlots addition to GET /stations.
+        var lookupStage = new BsonDocument("$lookup", new BsonDocument
+        {
+            { "from", "EnergyBookingSlots" },
+            { "localField", "_id" },
+            { "foreignField", "stationId" },
+            { "as", "slots" }
+        });
+        var addFieldsStage = new BsonDocument("$addFields", new BsonDocument
+        {
+            {
+                "availableSlots",
+                new BsonDocument("$size", new BsonDocument("$filter", new BsonDocument
+                {
+                    { "input", "$slots" },
+                    { "as", "slot" },
+                    { "cond", new BsonDocument("$eq", new BsonArray { "$$slot.status", "Available" }) }
+                }))
+            }
+        });
         var projectStage = new BsonDocument("$project", new BsonDocument
         {
             { "_id", 1 },
             { "name", 1 },
             { "location", 1 },
-            { "distanceMeters", 1 }
+            { "distanceMeters", 1 },
+            { "capacityKWh", 1 },
+            { "availableSlots", 1 }
         });
 
         var pipeline = PipelineDefinition<Station, NearbyAggregationResult>.Create(
-            new[] { geoNearStage, projectStage });
+            new[] { geoNearStage, lookupStage, addFieldsStage, projectStage });
         var results = await _context.SolarStations.Aggregate(pipeline).ToListAsync();
 
         return results.Select(r => new NearbyStationResponse
@@ -300,6 +327,8 @@ public class StationService
             Id = r.Id,
             Name = r.Name,
             Location = MapLocation(r.Location),
+            CapacityKWh = r.CapacityKWh,
+            AvailableSlots = r.AvailableSlots,
             DistanceKm = Math.Round(r.DistanceMeters / 1000, 3)
         }).ToList();
     }
@@ -417,5 +446,11 @@ public class StationService
 
         [BsonElement("distanceMeters")]
         public double DistanceMeters { get; set; }
+
+        [BsonElement("capacityKWh")]
+        public double CapacityKWh { get; set; }
+
+        [BsonElement("availableSlots")]
+        public int AvailableSlots { get; set; }
     }
 }
