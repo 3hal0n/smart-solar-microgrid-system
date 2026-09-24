@@ -149,25 +149,27 @@ private fun OnboardingScreen(onFinished: () -> Unit) {
     }
 }
 
-// Renders a single slide's title and body copy, centered.
+// Renders a single slide's title and body copy, centered. Scrollable so long body copy on a
+// short/landscape screen clips into a scroll instead of overflowing off-screen.
 @Composable
 private fun OnboardingSlideContent(slide: OnboardingSlide) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = 32.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
             text = slide.title,
-            fontSize = 24.sp,
+            style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
         )
         Text(
             text = slide.body,
-            fontSize = 16.sp,
+            style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 12.dp),
         )
