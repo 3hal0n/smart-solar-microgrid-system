@@ -15,6 +15,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -23,7 +24,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 import com.smartmicrogrid.MainActivity
 import com.smartmicrogrid.ui.theme.SmartMicrogridTheme
 import kotlinx.coroutines.delay
@@ -64,11 +64,18 @@ private fun SplashScreenContent(onTimeout: () -> Unit) {
         onTimeout()
     }
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.primary) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        // enableEdgeToEdge() draws this Surface behind the system status/nav bars — safeDrawingPadding()
+        // keeps the wordmark clear of them instead of risking it sitting under a status bar cutout.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .safeDrawingPadding(),
+            contentAlignment = Alignment.Center,
+        ) {
             Text(
                 text = "Smart Microgrid",
                 color = MaterialTheme.colorScheme.onPrimary,
-                fontSize = 24.sp,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
             )
         }
