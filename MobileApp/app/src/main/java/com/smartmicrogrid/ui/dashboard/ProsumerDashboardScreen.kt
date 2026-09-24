@@ -14,7 +14,8 @@
 //          architecture.md §8 calls for — doesn't exist anywhere in
 //          this repo yet, and (b) the backend branch that built these
 //          two endpoints hasn't been merged to main. Once both are
-//          true, replace loadDashboardData() below with real calls:
+//          true, replace ProsumerDashboardFixtures.loadSummary() with
+//          a real call:
 //            GET /dashboard/prosumer/{nic}/summary -> ProsumerDashboardSummary
 //            GET /reservations?nic={nic}&status=&stationId=&from=&to= -> List<ReservationListItem>
 //          The response shapes in ProsumerDashboardModels.kt already
@@ -24,6 +25,14 @@
 //          server-side query params support — this screen never
 //          invents its own filtering rule, it only chooses which
 //          query params to send, per the FAT service pattern.
+//
+//          Cache-first, then refresh: on open, the last-cached
+//          summary (DashboardCacheDao, architecture.md §8) renders
+//          immediately if one exists, then the fixture/API call runs
+//          and both the screen and the cache are updated once it
+//          resolves — so returning to this screen never shows a
+//          blank loading state when there's already something to
+//          show.
 // Author: Shalon
 // ============================================================
 package com.smartmicrogrid.ui.dashboard
@@ -44,14 +53,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.smartmicrogrid.data.local.AppDbHelper
+import com.smartmicrogrid.data.local.DashboardCacheDao
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private val STATUS_FILTERS = listOf("All", "Confirmed", "Completed", "Cancelled")
 
@@ -59,11 +74,33 @@ private val STATUS_FILTERS = listOf("All", "Confirmed", "Completed", "Cancelled"
 // all derived from a single loaded data source (fixture today, the real API once it's wired).
 @Composable
 fun ProsumerDashboardScreen() {
-    val summary = remember { ProsumerDashboardFixtures.summary }
+    val context = LocalContext.current
     val allReservations = remember { ProsumerDashboardFixtures.reservations }
 
+    var summary by remember { mutableStateOf<ProsumerDashboardSummary?>(null) }
     var statusFilter by remember { mutableStateOf("All") }
     var stationFilter by remember { mutableStateOf("") }
+
+    // Cache-first, then refresh: show whatever was cached last (if anything) immediately, then
+    // replace it with the freshly loaded summary and write that back to cache for next time.
+    LaunchedEffect(Unit) {
+        val cached = withContext(Dispatchers.IO) {
+            AppDbHelper(context).readableDatabase.use { db ->
+                DashboardCacheDao.read(db, FIXTURE_PROSUMER_NIC)
+            }
+        }
+        if (cached != null) {
+            summary = cached
+        }
+
+        val fresh = ProsumerDashboardFixtures.loadSummary()
+        summary = fresh
+        withContext(Dispatchers.IO) {
+            AppDbHelper(context).writableDatabase.use { db ->
+                DashboardCacheDao.write(db, FIXTURE_PROSUMER_NIC, fresh)
+            }
+        }
+    }
 
     // Applies the currently-selected filters to the loaded list. This mirrors what
     // GET /reservations's status/stationId query params already do server-side — once the real
@@ -116,22 +153,25 @@ fun ProsumerDashboardScreen() {
     }
 }
 
-// Renders the three summary stat tiles (active/pending/approved-future) in a row.
+// Renders the three summary stat tiles (active/pending/approved-future) in a row. `summary` is
+// null only before either the cache read or the first refresh has resolved — tiles show an em
+// dash rather than a misleading "0" in that brief window.
 @Composable
-private fun StatTilesRow(summary: ProsumerDashboardSummary, modifier: Modifier = Modifier) {
+private fun StatTilesRow(summary: ProsumerDashboardSummary?, modifier: Modifier = Modifier) {
     Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        StatTile(label = "Active", value = summary.activeCount, modifier = Modifier.weight(1f))
-        StatTile(label = "Pending", value = summary.pendingCount, modifier = Modifier.weight(1f))
-        StatTile(label = "Approved future", value = summary.approvedFutureCount, modifier = Modifier.weight(1f))
+        StatTile(label = "Active", value = summary?.activeCount, modifier = Modifier.weight(1f))
+        StatTile(label = "Pending", value = summary?.pendingCount, modifier = Modifier.weight(1f))
+        StatTile(label = "Approved future", value = summary?.approvedFutureCount, modifier = Modifier.weight(1f))
     }
 }
 
-// Renders a single stat tile: a large number over a label, inside a card.
+// Renders a single stat tile: a large number (or an em dash while nothing's loaded yet) over a
+// label, inside a card.
 @Composable
-private fun StatTile(label: String, value: Int, modifier: Modifier = Modifier) {
+private fun StatTile(label: String, value: Int?, modifier: Modifier = Modifier) {
     Card(modifier = modifier, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text(text = value.toString(), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text(text = value?.toString() ?: "—", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
             Text(text = label, style = MaterialTheme.typography.bodySmall)
         }
     }

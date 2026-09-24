@@ -17,6 +17,8 @@
 // ============================================================
 package com.smartmicrogrid.ui.dashboard
 
+import kotlinx.coroutines.delay
+
 // The NIC this fixture data is for — stands in for "the logged-in prosumer's NIC" until a real
 // session/login exists to read it from.
 const val FIXTURE_PROSUMER_NIC = "200023456789"
@@ -135,6 +137,13 @@ private val FIXTURE_SUMMARY = ProsumerDashboardSummary(
 )
 
 object ProsumerDashboardFixtures {
-    val summary: ProsumerDashboardSummary = FIXTURE_SUMMARY
     val reservations: List<ReservationListItem> = FIXTURE_RESERVATIONS
+
+    // Simulates GET /dashboard/prosumer/{nic}/summary: a real network round trip, not an instant
+    // return — so ProsumerDashboardScreen's "cache first, then refresh" flow has an actual delay
+    // for the cached value to be visibly shown ahead of.
+    suspend fun loadSummary(): ProsumerDashboardSummary {
+        delay(600)
+        return FIXTURE_SUMMARY
+    }
 }
