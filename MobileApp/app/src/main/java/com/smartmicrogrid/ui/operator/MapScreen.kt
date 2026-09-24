@@ -56,6 +56,8 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MarkerInfoWindowContent
 import com.google.maps.android.compose.rememberCameraPositionState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 // Sri Lanka — same fallback center used by the web MapPicker, for consistency across clients.
 private val DEFAULT_CENTER = LatLng(6.9271, 79.8612)
@@ -144,16 +146,22 @@ fun MapScreen() {
 // Reads the device's last known location, or null if unavailable/denied — callers must already
 // hold ACCESS_FINE_LOCATION, which this function assumes (hence the suppression) since it's only
 // ever invoked from the branch in MapScreen that has already confirmed that.
+//
+// Tasks.await() blocks the calling thread until the task resolves. It's pushed onto
+// Dispatchers.IO here because the caller runs it from a LaunchedEffect, which defaults to the
+// Main dispatcher — blocking that thread would freeze the whole UI (and risk an ANR) until the
+// location lookup completes.
 @SuppressLint("MissingPermission")
-private suspend fun readLastKnownLocation(context: android.content.Context): LatLng? {
-    val client = LocationServices.getFusedLocationProviderClient(context)
-    return try {
-        val location = com.google.android.gms.tasks.Tasks.await(client.lastLocation)
-        location?.let { LatLng(it.latitude, it.longitude) }
-    } catch (_: Exception) {
-        null
+private suspend fun readLastKnownLocation(context: android.content.Context): LatLng? =
+    withContext(Dispatchers.IO) {
+        val client = LocationServices.getFusedLocationProviderClient(context)
+        try {
+            val location = com.google.android.gms.tasks.Tasks.await(client.lastLocation)
+            location?.let { LatLng(it.latitude, it.longitude) }
+        } catch (_: Exception) {
+            null
+        }
     }
-}
 
 // Explains why the app wants location access before the system permission prompt appears, per
 // "handle the location permission request properly with a runtime dialog".
