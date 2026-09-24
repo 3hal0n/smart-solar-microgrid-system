@@ -1,7 +1,8 @@
 // ============================================================
 // File: ProsumerDashboardScreen.kt
 // Purpose: Prosumer dashboard — stat tiles for active/pending/
-//          approved-future counts, a pending-bookings list, a
+//          approved-future counts, a current-bookings list, a
+//          pending-reservations (needs check-in) list, a
 //          booking-history list, and search/filter controls, per
 //          architecture.md §6 (moved from Migara to Shalon
 //          2026-09-24 — see §4/§6/§7) and the endpoints Shalon built
@@ -20,8 +21,8 @@
 //            GET /reservations?nic={nic}&status=&stationId=&from=&to= -> List<ReservationListItem>
 //          The response shapes in ProsumerDashboardModels.kt already
 //          match the JSON field-for-field, so this should be a
-//          data-source swap, not a model rewrite. All filtering
-//          shown here (status/station) already matches what the
+//          data-source swap, not a model rewrite. All filtering shown
+//          here (status/station/from/to) already matches what the
 //          server-side query params support — this screen never
 //          invents its own filtering rule, it only chooses which
 //          query params to send, per the FAT service pattern.
@@ -32,7 +33,29 @@
 //          and both the screen and the cache are updated once it
 //          resolves — so returning to this screen never shows a
 //          blank loading state when there's already something to
-//          show.
+//          show. A failed refresh leaves the last-known data on
+//          screen with an inline error banner rather than clearing it.
+//
+//          Reviewed 2026-09-25 against architecture.md §7's "Booking
+//          Views and Operational Dashboards" 5 sub-items and fixed:
+//          the "pending" list used to show every Confirmed booking
+//          (future and past-due alike) under the same label the
+//          "Pending" stat tile uses for a narrower, past-due-only
+//          definition (DashboardService.GetProsumerSummaryAsync:
+//          Confirmed AND scheduledAt <= now), so the two disagreed on
+//          screen. Each of the 5 sub-items now has its own,
+//          distinctly-labeled section computed with the exact same
+//          definition as its matching stat tile:
+//            - "Current bookings" = every filtered Confirmed booking
+//              (matches the Active tile 1:1).
+//            - "Pending reservations — needs check-in" = filtered
+//              Confirmed AND scheduledAt <= now (matches the Pending
+//              tile 1:1; this is the "pending reservations" sub-item).
+//            - "Booking history" = Completed/Cancelled, unchanged.
+//            - "Approved future" count = the existing stat tile.
+//          Filter criteria now also covers a scheduledAt date range
+//          (from/to), matching two more of GET /reservations's query
+//          params, not just status/stationId.
 // Author: Shalon
 // ============================================================
 package com.smartmicrogrid.ui.dashboard
@@ -45,6 +68,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
@@ -67,51 +91,81 @@ import com.smartmicrogrid.data.local.AppDbHelper
 import com.smartmicrogrid.data.local.DashboardCacheDao
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.time.Instant
 
 private val STATUS_FILTERS = listOf("All", "Confirmed", "Completed", "Cancelled")
+private val DATE_INPUT_PATTERN = Regex("""^\d{4}-\d{2}-\d{2}$""")
 
-// Renders the full dashboard: stat tiles, filter controls, then the pending and history lists —
-// all derived from a single loaded data source (fixture today, the real API once it's wired).
+// Renders the full dashboard: stat tiles, filter controls, then the current/pending/history
+// lists — all derived from a single loaded data source (fixture today, the real API once it's
+// wired).
 @Composable
 fun ProsumerDashboardScreen() {
     val context = LocalContext.current
     val allReservations = remember { ProsumerDashboardFixtures.reservations }
 
     var summary by remember { mutableStateOf<ProsumerDashboardSummary?>(null) }
+    var loadError by remember { mutableStateOf<String?>(null) }
+    var refreshToken by remember { mutableStateOf(0) }
+
     var statusFilter by remember { mutableStateOf("All") }
     var stationFilter by remember { mutableStateOf("") }
+    var fromFilter by remember { mutableStateOf("") }
+    var toFilter by remember { mutableStateOf("") }
 
-    // Cache-first, then refresh: show whatever was cached last (if anything) immediately, then
-    // replace it with the freshly loaded summary and write that back to cache for next time.
-    LaunchedEffect(Unit) {
-        val cached = withContext(Dispatchers.IO) {
-            AppDbHelper(context).readableDatabase.use { db ->
-                DashboardCacheDao.read(db, FIXTURE_PROSUMER_NIC)
+    // Cache-first, then refresh. On the very first load (refreshToken == 0) show whatever was
+    // cached last, if anything, before the fresh call resolves. A manual refresh (refreshToken >
+    // 0) skips re-reading the cache — it would just flash the old value in front of the new one.
+    // If the fresh call fails, the last-known summary stays on screen and an error banner shows
+    // instead of the screen going blank.
+    LaunchedEffect(refreshToken) {
+        loadError = null
+        if (refreshToken == 0) {
+            val cached = runCatching {
+                withContext(Dispatchers.IO) {
+                    AppDbHelper(context).readableDatabase.use { db ->
+                        DashboardCacheDao.read(db, FIXTURE_PROSUMER_NIC)
+                    }
+                }
+            }.getOrNull()
+            if (cached != null) {
+                summary = cached
             }
         }
-        if (cached != null) {
-            summary = cached
-        }
 
-        val fresh = ProsumerDashboardFixtures.loadSummary()
-        summary = fresh
-        withContext(Dispatchers.IO) {
-            AppDbHelper(context).writableDatabase.use { db ->
-                DashboardCacheDao.write(db, FIXTURE_PROSUMER_NIC, fresh)
+        runCatching { ProsumerDashboardFixtures.loadSummary() }
+            .onSuccess { fresh ->
+                summary = fresh
+                runCatching {
+                    withContext(Dispatchers.IO) {
+                        AppDbHelper(context).writableDatabase.use { db ->
+                            DashboardCacheDao.write(db, FIXTURE_PROSUMER_NIC, fresh)
+                        }
+                    }
+                }
             }
-        }
+            .onFailure {
+                loadError = "Couldn't refresh the dashboard. Showing the last saved data."
+            }
     }
+
+    val fromDateValid = fromFilter.isBlank() || DATE_INPUT_PATTERN.matches(fromFilter)
+    val toDateValid = toFilter.isBlank() || DATE_INPUT_PATTERN.matches(toFilter)
 
     // Applies the currently-selected filters to the loaded list. This mirrors what
-    // GET /reservations's status/stationId query params already do server-side — once the real
-    // API call lands, these same two values become query params instead of a local filter.
-    val filtered = remember(statusFilter, stationFilter, allReservations) {
+    // GET /reservations's status/stationId/from/to query params already do server-side — once the
+    // real API call lands, these same values become query params instead of a local filter.
+    val filtered = remember(statusFilter, stationFilter, fromFilter, toFilter, allReservations) {
         allReservations.filter { reservation ->
             (statusFilter == "All" || reservation.status == statusFilter) &&
-                (stationFilter.isBlank() || reservation.stationId.contains(stationFilter, ignoreCase = true))
+                (stationFilter.isBlank() || reservation.stationId.contains(stationFilter, ignoreCase = true)) &&
+                (!fromDateValid || fromFilter.isBlank() || reservation.scheduledAt >= "${fromFilter}T00:00:00Z") &&
+                (!toDateValid || toFilter.isBlank() || reservation.scheduledAt <= "${toFilter}T23:59:59Z")
         }
     }
-    val pending = filtered.filter { it.status == "Confirmed" }
+    val now = remember { Instant.now().toString() }
+    val current = filtered.filter { it.status == "Confirmed" }
+    val needsCheckIn = current.filter { it.scheduledAt <= now }
     val history = filtered.filter { it.status == "Completed" || it.status == "Cancelled" }
 
     Column(
@@ -120,12 +174,32 @@ fun ProsumerDashboardScreen() {
             .verticalScroll(rememberScrollState())
             .padding(16.dp),
     ) {
-        Text(text = "Dashboard", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text(
-            text = "NIC $FIXTURE_PROSUMER_NIC",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column {
+                Text(text = "Dashboard", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(
+                    text = "NIC $FIXTURE_PROSUMER_NIC",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Button(onClick = { refreshToken++ }) {
+                Text("Refresh")
+            }
+        }
+
+        if (loadError != null) {
+            Text(
+                text = loadError.orEmpty(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 12.dp),
+            )
+        }
 
         StatTilesRow(summary = summary, modifier = Modifier.padding(top = 16.dp))
 
@@ -134,13 +208,26 @@ fun ProsumerDashboardScreen() {
             onStatusFilterChange = { statusFilter = it },
             stationFilter = stationFilter,
             onStationFilterChange = { stationFilter = it },
+            fromFilter = fromFilter,
+            onFromFilterChange = { fromFilter = it },
+            fromDateValid = fromDateValid,
+            toFilter = toFilter,
+            onToFilterChange = { toFilter = it },
+            toDateValid = toDateValid,
             modifier = Modifier.padding(top = 20.dp),
         )
 
         ReservationSection(
-            title = "Pending bookings",
-            reservations = pending,
-            emptyMessage = "No pending bookings match this filter.",
+            title = "Current bookings",
+            reservations = current,
+            emptyMessage = "No current bookings match this filter.",
+            modifier = Modifier.padding(top = 20.dp),
+        )
+
+        ReservationSection(
+            title = "Pending reservations — needs check-in",
+            reservations = needsCheckIn,
+            emptyMessage = "No pending reservations match this filter.",
             modifier = Modifier.padding(top = 20.dp),
         )
 
@@ -177,13 +264,20 @@ private fun StatTile(label: String, value: Int?, modifier: Modifier = Modifier) 
     }
 }
 
-// Renders the status filter chips and the station-id search field.
+// Renders the status filter chips, the station-id search field, and a scheduledAt date-range
+// filter (from/to, "YYYY-MM-DD"), covering 4 of GET /reservations's query params.
 @Composable
 private fun FilterControls(
     statusFilter: String,
     onStatusFilterChange: (String) -> Unit,
     stationFilter: String,
     onStationFilterChange: (String) -> Unit,
+    fromFilter: String,
+    onFromFilterChange: (String) -> Unit,
+    fromDateValid: Boolean,
+    toFilter: String,
+    onToFilterChange: (String) -> Unit,
+    toDateValid: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier) {
@@ -209,6 +303,37 @@ private fun FilterControls(
                 .fillMaxWidth()
                 .padding(top = 12.dp),
         )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedTextField(
+                value = fromFilter,
+                onValueChange = onFromFilterChange,
+                label = { Text("From (YYYY-MM-DD)") },
+                singleLine = true,
+                isError = !fromDateValid,
+                modifier = Modifier.weight(1f),
+            )
+            OutlinedTextField(
+                value = toFilter,
+                onValueChange = onToFilterChange,
+                label = { Text("To (YYYY-MM-DD)") },
+                singleLine = true,
+                isError = !toDateValid,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        if (!fromDateValid || !toDateValid) {
+            Text(
+                text = "Dates must be in YYYY-MM-DD format — ignored until fixed.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
     }
 }
 
