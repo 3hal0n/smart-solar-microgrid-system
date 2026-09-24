@@ -9,6 +9,13 @@ activityCompose = "1.8.0"
 kotlin = "2.2.10"
 composeBom = "2026.02.01"
 navigationCompose = "2.10.1"
+playServicesMaps = "20.0.0"
+playServicesLocation = "21.4.0"
+# Pinned below the latest (8.6.0 as of 2026-09-24): 8.4.0+ pulls in kotlin-stdlib with 2.4.x
+# metadata, which this project's Kotlin 2.2.10 compiler can't read ("compiled with an incompatible
+# version of Kotlin" build failure). 8.3.1 is the newest release still on 2.3.x metadata. Bumping
+# this back up requires bumping `kotlin` above too — don't change one without the other.
+mapsCompose = "8.3.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -27,6 +34,9 @@ androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+play-services-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "playServicesMaps" }
+play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
+maps-compose = { group = "com.google.maps.android", name = "maps-compose", version.ref = "mapsCompose" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
