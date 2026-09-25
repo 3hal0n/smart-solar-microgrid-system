@@ -27,27 +27,33 @@ namespace SmartMicrogrid.Api.Controllers
         }
 
         // GET: api/users
-        // Retrieves all web application users
+        // Retrieves all web application users without exposing password hashes.
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<User>>> GetAllUsers()
+        public async Task<ActionResult<IEnumerable<UserResponseDto>>> GetAllUsers()
         {
             // Fetch all users from MongoDB
             var users = await _users.Find(u => true).ToListAsync();
 
-            // Remove password hashes from response
-            var usersWithoutPasswords = users.Select(u =>
+            // Map to response DTO (excludes password hash for security)
+            var usersWithoutPasswords = users.Select(u => new UserResponseDto
             {
-                u.PasswordHash = null;
-                return u;
+                Id = u.Id,
+                Username = u.Username,
+                Role = u.Role,
+                FullName = u.FullName,
+                Email = u.Email,
+                Status = u.Status,
+                CreatedAt = u.CreatedAt,
+                UpdatedAt = u.UpdatedAt
             });
 
             return Ok(usersWithoutPasswords);
         }
 
         // POST: api/users
-        // Creates a new user, hashes password, and saves to MongoDB
+        // Creates a new user, hashes password, and saves to MongoDB.
         [HttpPost]
-        public async Task<ActionResult<User>> CreateUser([FromBody] CreateUserDto dto)
+        public async Task<ActionResult<UserResponseDto>> CreateUser([FromBody] CreateUserDto dto)
         {
             // Validate if username already exists
             var existingUser = await _users.Find(u => u.Username == dto.Username).FirstOrDefaultAsync();
@@ -82,13 +88,24 @@ namespace SmartMicrogrid.Api.Controllers
             // Save to MongoDB
             await _users.InsertOneAsync(newUser);
 
-            // Return success (without the password hash)
-            newUser.PasswordHash = string.Empty;
-            return CreatedAtAction(nameof(GetAllUsers), new { id = newUser.Id }, newUser);
+            // Return success as DTO (without password hash)
+            var response = new UserResponseDto
+            {
+                Id = newUser.Id,
+                Username = newUser.Username,
+                Role = newUser.Role,
+                FullName = newUser.FullName,
+                Email = newUser.Email,
+                Status = newUser.Status,
+                CreatedAt = newUser.CreatedAt,
+                UpdatedAt = newUser.UpdatedAt
+            };
+
+            return CreatedAtAction(nameof(GetAllUsers), new { id = newUser.Id }, response);
         }
 
         // PUT: api/users/{id}
-        // Updates user details
+        // Updates user details.
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateUser(string id, [FromBody] UpdateUserDto dto)
         {
@@ -119,7 +136,7 @@ namespace SmartMicrogrid.Api.Controllers
         }
 
         // PUT: api/users/{id}/deactivate
-        // Soft deletes the user by changing status to Deactivated
+        // Soft deletes the user by changing status to Deactivated.
         [HttpPut("{id}/deactivate")]
         public async Task<IActionResult> DeactivateUser(string id)
         {

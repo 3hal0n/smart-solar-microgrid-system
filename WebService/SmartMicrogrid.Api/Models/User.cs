@@ -76,5 +76,16 @@ namespace SmartMicrogrid.Api.Models
         public string UserId { get; set; } = null!;
     }
 
-    
+    // DTO for returning user data (excludes password hash for security)
+public class UserResponseDto
+{
+    public string Id { get; set; } = null!;
+    public string Username { get; set; } = null!;
+    public string Role { get; set; } = null!;
+    public string FullName { get; set; } = null!;
+    public string Email { get; set; } = null!;
+    public string Status { get; set; } = null!;
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}
 }
