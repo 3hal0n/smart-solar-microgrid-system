@@ -61,6 +61,7 @@ export default function StationDetailPage() {
   const [scheduleSubmitting, setScheduleSubmitting] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
   const [confirmDeactivateOpen, setConfirmDeactivateOpen] = useState(false);
+  const [activating, setActivating] = useState(false);
 
   const [reservations, setReservations] = useState([]);
   const [reservationsLoading, setReservationsLoading] = useState(true);
@@ -176,6 +177,21 @@ export default function StationDetailPage() {
     }
   };
 
+  // Reactivates the station — no confirmation needed since, unlike deactivation, this never
+  // conflicts with anything (it only makes the station bookable again) and isn't destructive.
+  const handleActivate = async () => {
+    setActivating(true);
+    try {
+      await api.put(`/stations/${id}/activate`);
+      setRefreshToken((token) => token + 1);
+      setToast({ message: 'Station reactivated.', tone: 'success' });
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Failed to reactivate station.', tone: 'error' });
+    } finally {
+      setActivating(false);
+    }
+  };
+
   // Opens the slot modal in "create" mode.
   const handleOpenCreateSlot = () => {
     setEditingSlot(null);
@@ -275,7 +291,9 @@ export default function StationDetailPage() {
             {deactivating ? 'Deactivating…' : 'Deactivate station'}
           </Button>
         ) : (
-          <span className="text-[13px] text-muted">Station is inactive.</span>
+          <Button variant="secondary" onClick={handleActivate} disabled={activating}>
+            {activating ? 'Reactivating…' : 'Reactivate station'}
+          </Button>
         )}
       </div>
 

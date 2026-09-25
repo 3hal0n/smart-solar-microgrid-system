@@ -44,6 +44,7 @@ export default function StationsPage() {
 
   const [deactivatingId, setDeactivatingId] = useState(null);
   const [confirmingStation, setConfirmingStation] = useState(null);
+  const [activatingId, setActivatingId] = useState(null);
   const [toast, setToast] = useState({ message: '', tone: 'error' });
 
   // Quick-glance summary row, derived from the already-loaded list — no extra API calls.
@@ -148,6 +149,22 @@ export default function StationsPage() {
     }
   };
 
+  // Reactivates an Inactive station — PUT /stations/{id}/activate, no confirmation needed since,
+  // unlike deactivation, this never conflicts with anything (it only makes the station bookable
+  // again) and isn't destructive.
+  const handleActivate = async (station) => {
+    setActivatingId(station.id);
+    try {
+      await api.put(`/stations/${station.id}/activate`);
+      setToast({ message: 'Station reactivated.', tone: 'success' });
+      await loadStations(search);
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Failed to reactivate station.', tone: 'error' });
+    } finally {
+      setActivatingId(null);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -242,7 +259,7 @@ export default function StationsPage() {
                     <Button variant="secondary" size="sm" onClick={() => handleOpenEdit(station.id)}>
                       Edit
                     </Button>
-                    {station.status === 'Active' && (
+                    {station.status === 'Active' ? (
                       <Button
                         variant="danger-outline"
                         size="sm"
@@ -250,6 +267,15 @@ export default function StationsPage() {
                         onClick={() => handleRequestDeactivate(station)}
                       >
                         {deactivatingId === station.id ? 'Deactivating…' : 'Deactivate'}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={activatingId === station.id}
+                        onClick={() => handleActivate(station)}
+                      >
+                        {activatingId === station.id ? 'Reactivating…' : 'Reactivate'}
                       </Button>
                     )}
                   </div>
