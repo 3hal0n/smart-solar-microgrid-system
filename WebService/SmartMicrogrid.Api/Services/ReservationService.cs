@@ -54,7 +54,7 @@ public class ReservationService
         // Slot must exist and be Available.
         var slot = await _slotService.GetByIdAsync(req.SlotId)
             ?? throw new ServiceException(404, "SLOT_NOT_FOUND", "Slot does not exist.");
-        if (slot.Status != "Available")
+         if (slot.Status != SlotStatus.Available)
             throw new ServiceException(409, "SLOT_NOT_AVAILABLE", "Slot is not available.");
 
         // Station must exist and be Active.
@@ -127,7 +127,7 @@ public class ReservationService
         {
             var newSlot = await _slotService.GetByIdAsync(req.SlotId)
                 ?? throw new ServiceException(404, "SLOT_NOT_FOUND", "New slot does not exist.");
-            if (newSlot.Status != "Available")
+            if (newSlot.Status != SlotStatus.Available)
                 throw new ServiceException(409, "SLOT_NOT_AVAILABLE", "New slot is not available.");
 
             await _slotService.MarkAvailable(reservation.SlotId);
