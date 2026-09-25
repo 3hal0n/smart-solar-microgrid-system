@@ -8,8 +8,11 @@
 namespace SmartMicrogrid.Api.Models;
 
 // Response row for GET /reservations — the full reservation shape architecture.md §3 calls
-// "[{ ...reservation }]", matching every field in §2.4's Reservations schema.
-public class ReservationResponse
+// "[{ ...reservation }]", matching every field in §2.4's Reservations schema. Named
+// ReservationSearchResultResponse (not the more obvious ReservationResponse) since that name was
+// already taken by Dinil's ReservationDtos.cs for his own, differently-shaped single-reservation
+// response — this is purely a C# type name; it has no effect on this endpoint's JSON.
+public class ReservationSearchResultResponse
 {
     public string Id { get; set; } = string.Empty;
     public string ProsumerNic { get; set; } = string.Empty;

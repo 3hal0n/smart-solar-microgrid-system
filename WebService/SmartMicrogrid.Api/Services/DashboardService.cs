@@ -75,7 +75,7 @@ public class DashboardService
     // callerNic regardless of what was requested in nic — see the TODO(Rukshan) in
     // ReservationsSearchController for why callerRole/callerNic are hardcoded placeholders today
     // rather than real JWT claims.
-    public async Task<List<ReservationResponse>> SearchAsync(
+    public async Task<List<ReservationSearchResultResponse>> SearchAsync(
         string? nic,
         string? stationId,
         string? status,
@@ -153,7 +153,7 @@ public class DashboardService
     }
 
     // Maps a stored Reservation to its full client-facing response shape.
-    private static ReservationResponse MapToResponse(Reservation reservation) => new()
+    private static ReservationSearchResultResponse MapToResponse(Reservation reservation) => new()
     {
         Id = reservation.Id!,
         ProsumerNic = reservation.ProsumerNic,
