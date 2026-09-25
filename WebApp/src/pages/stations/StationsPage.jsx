@@ -118,22 +118,31 @@ export default function StationsPage() {
     }
   };
 
-  // Deactivates a station directly from the list — the same PUT /stations/{id}/deactivate call
+  // Opens the confirm dialog for a station's deactivation, in place of the native
+  // window.confirm() — keeps this destructive action inside the app's own dialog styling.
+  const handleRequestDeactivate = (station) => {
+    setConfirmingStation(station);
+  };
+
+  // Deactivates the confirmed station — the same PUT /stations/{id}/deactivate call
   // StationDetailPage uses, showing the API's exact response (including its 409 message naming
   // which reservations/slots blocked it) rather than pre-guessing client-side whether it's allowed.
   // There's no hard-delete endpoint by design: deactivation is the intended "remove" operation, so
   // history (past reservations, audit trail) stays intact instead of being destroyed.
-  const handleDeactivate = async (station) => {
-    if (!window.confirm(`Deactivate "${station.name}"? This can't be undone from here.`)) {
+  const handleConfirmDeactivate = async () => {
+    const station = confirmingStation;
+    if (!station) {
       return;
     }
     setDeactivatingId(station.id);
     try {
       await api.put(`/stations/${station.id}/deactivate`);
       setToast({ message: 'Station deactivated.', tone: 'success' });
+      setConfirmingStation(null);
       await loadStations(search);
     } catch (err) {
       setToast({ message: err.response?.data?.message || 'Failed to deactivate station.', tone: 'error' });
+      setConfirmingStation(null);
     } finally {
       setDeactivatingId(null);
     }
@@ -151,6 +160,13 @@ export default function StationsPage() {
         <Button variant="primary" onClick={handleOpenCreate}>
           New station
         </Button>
+      </div>
+
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard label="Total hubs" value={summary.total} />
+        <StatCard label="Active" value={summary.active} hint={`${summary.total - summary.active} inactive`} />
+        <StatCard label="Total capacity" value={`${summary.capacityKWh.toLocaleString()} kWh`} />
+        <StatCard label="Battery slots" value={summary.slots} />
       </div>
 
       <div className="mb-4 max-w-xs">
@@ -221,7 +237,7 @@ export default function StationsPage() {
                         variant="secondary"
                         size="sm"
                         disabled={deactivatingId === station.id}
-                        onClick={() => handleDeactivate(station)}
+                        onClick={() => handleRequestDeactivate(station)}
                       >
                         {deactivatingId === station.id ? 'Deactivating…' : 'Deactivate'}
                       </Button>
@@ -241,6 +257,21 @@ export default function StationsPage() {
         serverError={formError}
         onClose={() => setIsFormOpen(false)}
         onSubmit={handleSubmit}
+      />
+
+      <ConfirmDialog
+        open={Boolean(confirmingStation)}
+        title="Deactivate station?"
+        description={
+          confirmingStation
+            ? `"${confirmingStation.name}" will be marked inactive. This can't be undone from here.`
+            : ''
+        }
+        confirmLabel="Deactivate"
+        tone="danger"
+        confirming={deactivatingId === confirmingStation?.id}
+        onConfirm={handleConfirmDeactivate}
+        onClose={() => setConfirmingStation(null)}
       />
 
       <Toast message={toast.message} tone={toast.tone} onDismiss={() => setToast({ message: '', tone: 'error' })} />
