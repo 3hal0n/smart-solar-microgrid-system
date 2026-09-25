@@ -83,7 +83,7 @@ namespace SmartMicrogrid.Api.Controllers
             await _users.InsertOneAsync(newUser);
 
             // Return success (without the password hash)
-            newUser.PasswordHash = null;
+            newUser.PasswordHash = string.Empty;
             return CreatedAtAction(nameof(GetAllUsers), new { id = newUser.Id }, newUser);
         }
 

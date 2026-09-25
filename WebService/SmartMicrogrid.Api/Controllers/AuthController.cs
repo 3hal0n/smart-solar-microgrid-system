@@ -59,8 +59,9 @@ namespace SmartMicrogrid.Api.Controllers
         // Generates a JWT token for the authenticated user
         private string GenerateJwtToken(User user)
         {
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
-            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+             var jwtKey = _config["Jwt:Key"] ?? "DefaultSecretKeyAtLeast32CharactersLong!";
+             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
             var claims = new[]
             {

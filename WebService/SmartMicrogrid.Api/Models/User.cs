@@ -15,25 +15,25 @@ namespace SmartMicrogrid.Api.Models
     {
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
-        public string Id { get; set; }
+        public string Id { get; set; } = null!;
 
         [BsonElement("role")]
-        public string Role { get; set; } // "Backoffice" or "GridOperator"
+        public string Role { get; set; } = null!;
 
         [BsonElement("username")]
-        public string Username { get; set; }
+        public string Username { get; set; } = null!;
 
         [BsonElement("passwordHash")]
-        public string PasswordHash { get; set; }
+        public string PasswordHash { get; set; } = null!;
 
         [BsonElement("fullName")]
-        public string FullName { get; set; }
+        public string FullName { get; set; } = null!;
 
         [BsonElement("email")]
-        public string Email { get; set; }
+        public string Email { get; set; } = null!;
 
         [BsonElement("status")]
-        public string Status { get; set; } // "Active" or "Deactivated"
+        public string Status { get; set; } = null!;
 
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -42,37 +42,39 @@ namespace SmartMicrogrid.Api.Models
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
 
-    // DTO for creating a user (hides password hash from requests)
+    // DTO for creating a user
     public class CreateUserDto
     {
-        public string Username { get; set; }
-        public string Password { get; set; }
-        public string Role { get; set; }
-        public string FullName { get; set; }
-        public string Email { get; set; }
+        public string Username { get; set; } = null!;
+        public string Password { get; set; } = null!;
+        public string Role { get; set; } = null!;
+        public string FullName { get; set; } = null!;
+        public string Email { get; set; } = null!;
     }
 
     // DTO for updating a user
     public class UpdateUserDto
     {
-        public string FullName { get; set; }
-        public string Email { get; set; }
-        public string Role { get; set; }
+        public string FullName { get; set; } = null!;
+        public string Email { get; set; } = null!;
+        public string Role { get; set; } = null!;
     }
 
     // DTO for login request
     public class LoginDto
     {
-        public string Username { get; set; }
-        public string Password { get; set; }
+        public string Username { get; set; } = null!;
+        public string Password { get; set; } = null!;
     }
 
     // DTO for login response
     public class LoginResponseDto
     {
-        public string Token { get; set; }
-        public string Role { get; set; }
-        public string FullName { get; set; }
-        public string UserId { get; set; }
+        public string Token { get; set; } = null!;
+        public string Role { get; set; } = null!;
+        public string FullName { get; set; } = null!;
+        public string UserId { get; set; } = null!;
     }
+
+    
 }
