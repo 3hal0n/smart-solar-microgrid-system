@@ -2,7 +2,7 @@
 // File: Program.cs
 // Purpose: Application entry point. Configures services, middleware, 
 //          JWT authentication, and CORS for the Smart Microgrid API.
-//  
+// Author: Shalon
 // ============================================================
 
 using System.Text;
@@ -23,8 +23,36 @@ if (File.Exists(".env"))
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
+
+// Configure Swagger with JWT Bearer Authentication
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Enter 'Bearer' [space] and then your JWT token. Example: Bearer eyJhbGci..."
+    });
+
+    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 // Controllers, with enums serialized as strings so the JSON contract matches architecture.md
 // (e.g. Station/Slot "status" as "Active"/"Available" rather than raw integers).
@@ -79,10 +107,13 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    // Enable Swagger UI for interactive API testing (Replaces MapOpenApi)
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Optional: Commented out to prevent HTTPS redirect warnings during local HTTP testing
+// app.UseHttpsRedirection();
 
 // ⚠️ ORDER MATTERS: CORS must come before Auth, and Auth must come before Controllers
 app.UseCors("WebApp");
