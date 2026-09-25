@@ -40,6 +40,9 @@ export default function StationsPage() {
   // effect to reset its fields (see StationForm.jsx).
   const [formKey, setFormKey] = useState(0);
 
+  const [deactivatingId, setDeactivatingId] = useState(null);
+  const [toast, setToast] = useState({ message: '', tone: 'error' });
+
   // Loads the station list from the real API, optionally filtered by the current search term.
   const loadStations = useCallback(async (term) => {
     setLoading(true);
@@ -98,6 +101,27 @@ export default function StationsPage() {
       setFormError(err.response?.data?.message || 'Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // Deactivates a station directly from the list — the same PUT /stations/{id}/deactivate call
+  // StationDetailPage uses, showing the API's exact response (including its 409 message naming
+  // which reservations/slots blocked it) rather than pre-guessing client-side whether it's allowed.
+  // There's no hard-delete endpoint by design: deactivation is the intended "remove" operation, so
+  // history (past reservations, audit trail) stays intact instead of being destroyed.
+  const handleDeactivate = async (station) => {
+    if (!window.confirm(`Deactivate "${station.name}"? This can't be undone from here.`)) {
+      return;
+    }
+    setDeactivatingId(station.id);
+    try {
+      await api.put(`/stations/${station.id}/deactivate`);
+      setToast({ message: 'Station deactivated.', tone: 'success' });
+      await loadStations(search);
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Failed to deactivate station.', tone: 'error' });
+    } finally {
+      setDeactivatingId(null);
     }
   };
 
@@ -174,9 +198,21 @@ export default function StationsPage() {
                   <Badge tone={station.status === 'Active' ? 'success' : 'neutral'}>{station.status}</Badge>
                 </Td>
                 <Td className="text-right">
-                  <Button variant="secondary" size="sm" onClick={() => handleOpenEdit(station.id)}>
-                    Edit
-                  </Button>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="secondary" size="sm" onClick={() => handleOpenEdit(station.id)}>
+                      Edit
+                    </Button>
+                    {station.status === 'Active' && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={deactivatingId === station.id}
+                        onClick={() => handleDeactivate(station)}
+                      >
+                        {deactivatingId === station.id ? 'Deactivating…' : 'Deactivate'}
+                      </Button>
+                    )}
+                  </div>
                 </Td>
               </tr>
             ))}
@@ -192,6 +228,8 @@ export default function StationsPage() {
         onClose={() => setIsFormOpen(false)}
         onSubmit={handleSubmit}
       />
+
+      <Toast message={toast.message} tone={toast.tone} onDismiss={() => setToast({ message: '', tone: 'error' })} />
     </div>
   );
 }
