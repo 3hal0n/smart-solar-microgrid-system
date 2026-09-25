@@ -25,8 +25,11 @@ public class DashboardController : ControllerBase
     }
 
     // GET /api/dashboard/prosumer/{nic}/summary - active/pending/approved-future counts + recent history.
-    // TODO(Rukshan): restore [Authorize] (Self or Backoffice per architecture.md §3) once
-    // JwtService/auth scheme is wired up.
+    // Deliberately left open (2026-09-26): Migara's JWT auth now exists for web Backoffice/
+    // GridOperator accounts, but there is still no Prosumer login/JWT anywhere (mobile or web) —
+    // the mobile Dashboard screen that calls this reads a fixture NIC with no session at all.
+    // Restoring [Authorize] here would 401 every mobile call with nothing to fix it yet. Revisit
+    // once a Prosumer auth flow exists; this isn't a forgotten TODO, it's blocked on that.
     [HttpGet("prosumer/{nic}/summary")]
     public async Task<IActionResult> GetProsumerSummary(string nic)
     {

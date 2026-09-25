@@ -27,13 +27,13 @@ public class ReservationsSearchController : ControllerBase
     }
 
     // GET /api/reservations?nic=&stationId=&status=&from=&to= - search/filter, read-only.
-    // TODO(Rukshan): once JwtService/auth scheme is wired up, replace the two hardcoded
-    // arguments below with the real values read from the caller's JWT claims
-    // (User.FindFirst("role")/("nic")) instead of trusting the client. Until then this endpoint
-    // cannot actually enforce "Prosumer restricted to own nic" — it is effectively unrestricted,
-    // same as every other endpoint in this repo still waiting on Rukshan's auth wiring.
-    // DashboardService.SearchAsync's callerRole/callerNic parameters exist specifically so that
-    // swap is the only thing that needs to change here.
+    // Migara's JWT auth exists now (merged 2026-09-26), but only for web Backoffice/GridOperator
+    // accounts — there's still no Prosumer login/JWT anywhere, so there's no "role"/"nic" claim to
+    // read yet for the mobile caller this endpoint mainly serves. The two hardcoded arguments below
+    // stay as placeholders until a Prosumer auth flow exists; DashboardService.SearchAsync's
+    // callerRole/callerNic parameters exist specifically so that swap is the only thing that needs
+    // to change here once it does. Until then this endpoint cannot actually enforce "Prosumer
+    // restricted to own nic" — it is effectively unrestricted.
     [HttpGet]
     public async Task<IActionResult> Search(
         [FromQuery] string? nic,
