@@ -8,16 +8,12 @@
 //          §6 (moved from Migara to Shalon 2026-09-24 — see §4/§7)
 //          and the endpoint Shalon built per §3.
 //
-//          TODO(swap-in-real-api): this screen currently reads
-//          NearbyStationFixtures instead of the network, for the
-//          same reason as ProsumerDashboardScreen.kt: no shared
-//          Retrofit client (data/remote/ApiClient.kt) exists in this
-//          repo yet, and this branch hasn't been merged to main.
-//          Once both are true, replace the loadStations() call below
-//          with a real GET /stations/nearby?lat=&lng=&radiusKm= call
-//          — NearbyStationFixtures.findNearby has the exact same
-//          signature/return shape on purpose, so this should be a
-//          one-line data-source swap.
+//          Wired to the real backend (2026-09-26) via
+//          data/remote/ApiClient.kt + JouleApi.kt: GET
+//          /stations/nearby?lat=&lng=&radiusKm=. A failed call shows
+//          a retry card rather than crashing or silently showing
+//          nothing — the fixture version never needed this since it
+//          could never fail.
 // Author: Shalon
 // ============================================================
 package com.smartmicrogrid.ui.operator
@@ -40,6 +36,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -57,6 +54,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.smartmicrogrid.ui.components.IconTile
 import com.smartmicrogrid.ui.components.JouleIcons
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.CameraPosition
@@ -64,6 +62,8 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MarkerInfoWindowContent
 import com.google.maps.android.compose.rememberCameraPositionState
+import com.smartmicrogrid.data.remote.ApiClient
+import com.smartmicrogrid.data.remote.JouleApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -77,6 +77,7 @@ private const val SEARCH_RADIUS_KM = 25.0
 @Composable
 fun MapScreen() {
     val context = LocalContext.current
+    val api = remember { ApiClient.create(JouleApi::class.java) }
 
     var hasLocationPermission by remember {
         mutableStateOf(
@@ -88,6 +89,8 @@ fun MapScreen() {
     var center by remember { mutableStateOf<LatLng?>(null) }
     var usingDeviceLocation by remember { mutableStateOf(false) }
     var stations by remember { mutableStateOf<List<NearbyStation>?>(null) }
+    var mapError by remember { mutableStateOf<String?>(null) }
+    var mapRefreshToken by remember { mutableIntStateOf(0) }
 
     // Registers the system runtime-permission prompt; its result decides whether we try to read
     // a device location at all. Denial never crashes — it just leaves `center` for the effect
@@ -118,11 +121,15 @@ fun MapScreen() {
         usingDeviceLocation = resolved != null
     }
 
-    // Loads nearby stations once a center point is known, and again if the center changes.
-    LaunchedEffect(center) {
+    // Loads nearby stations once a center point is known, again if the center changes, and again
+    // on retry after a failure (mapRefreshToken).
+    LaunchedEffect(center, mapRefreshToken) {
         val current = center ?: return@LaunchedEffect
         stations = null
-        stations = NearbyStationFixtures.findNearby(current.latitude, current.longitude, SEARCH_RADIUS_KM)
+        mapError = null
+        runCatching { api.getNearbyStations(current.latitude, current.longitude, SEARCH_RADIUS_KM) }
+            .onSuccess { stations = it }
+            .onFailure { mapError = it.message ?: "Couldn't reach the server." }
     }
 
     if (showRationaleDialog) {
@@ -141,6 +148,7 @@ fun MapScreen() {
 
     Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         when {
+            mapError != null -> ErrorState(message = mapError!!, onRetry = { mapRefreshToken++ })
             center == null || stations == null -> LoadingState()
             stations!!.isEmpty() -> EmptyState()
             else -> StationsMap(center = center!!, stations = stations!!)
@@ -276,6 +284,44 @@ private fun EmptyState() {
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 6.dp),
                 )
+            }
+        }
+    }
+}
+
+// Renders a centered "couldn't load stations" card with a retry button — shown when
+// GET /stations/nearby fails (backend unreachable, wrong API_BASE_URL, etc.).
+@Composable
+private fun ErrorState(message: String, onRetry: () -> Unit) {
+    Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                IconTile(icon = JouleIcons.Bolt, size = 48.dp)
+                Text(
+                    text = "Couldn't load stations",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(top = 16.dp),
+                )
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+                OutlinedButton(onClick = onRetry, modifier = Modifier.padding(top = 16.dp)) {
+                    Text("Retry")
+                }
             }
         }
     }

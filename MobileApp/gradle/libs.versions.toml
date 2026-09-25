@@ -11,6 +11,8 @@ composeBom = "2026.02.01"
 navigationCompose = "2.10.1"
 playServicesMaps = "20.0.0"
 playServicesLocation = "21.4.0"
+retrofit = "2.11.0"
+okhttp = "4.12.0"
 # Pinned below the latest (8.6.0 as of 2026-09-24): 8.4.0+ pulls in kotlin-stdlib with 2.4.x
 # metadata, which this project's Kotlin 2.2.10 compiler can't read ("compiled with an incompatible
 # version of Kotlin" build failure). 8.3.1 is the newest release still on 2.3.x metadata. Bumping
@@ -37,6 +39,9 @@ androidx-navigation-compose = { group = "androidx.navigation", name = "navigatio
 play-services-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "playServicesMaps" }
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 maps-compose = { group = "com.google.maps.android", name = "maps-compose", version.ref = "mapsCompose" }
+retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+retrofit-converter-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
+okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

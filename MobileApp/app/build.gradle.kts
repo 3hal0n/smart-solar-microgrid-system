@@ -17,6 +17,13 @@ val localProperties = Properties().apply {
 }
 val mapsApiKey: String = localProperties.getProperty("MAPS_API_KEY", "")
 
+// Backend base URL, same local.properties override pattern as MAPS_API_KEY above. Defaults to
+// 10.0.2.2 — the special alias the Android emulator resolves to the host machine's own localhost —
+// so `dotnet run`'s API at localhost:5128 is reachable with zero setup on an emulator. A physical
+// device can't reach 10.0.2.2 (it's emulator-only): set API_BASE_URL in local.properties to the
+// host machine's real LAN IP (e.g. http://192.168.1.23:5128/api/) instead.
+val apiBaseUrl: String = localProperties.getProperty("API_BASE_URL", "http://10.0.2.2:5128/api/")
+
 android {
     namespace = "com.smartmicrogrid"
     compileSdk {
@@ -32,6 +39,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["mapsApiKey"] = mapsApiKey
+        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
     }
 
     buildTypes {
@@ -47,6 +55,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
@@ -59,6 +68,9 @@ dependencies {
     implementation(libs.play.services.maps)
     implementation(libs.play.services.location)
     implementation(libs.maps.compose)
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp.logging.interceptor)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)

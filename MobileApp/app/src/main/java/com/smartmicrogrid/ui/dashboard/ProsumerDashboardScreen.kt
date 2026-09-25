@@ -9,23 +9,16 @@
 //          per §3: GET /dashboard/prosumer/{nic}/summary and
 //          GET /reservations.
 //
-//          TODO(swap-in-real-api): this screen currently reads
-//          ProsumerDashboardFixtures instead of the network, because
-//          (a) data/remote/ApiClient.kt — the shared Retrofit client
-//          architecture.md §8 calls for — doesn't exist anywhere in
-//          this repo yet, and (b) the backend branch that built these
-//          two endpoints hasn't been merged to main. Once both are
-//          true, replace ProsumerDashboardFixtures.loadSummary() with
-//          a real call:
-//            GET /dashboard/prosumer/{nic}/summary -> ProsumerDashboardSummary
-//            GET /reservations?nic={nic}&status=&stationId=&from=&to= -> List<ReservationListItem>
-//          The response shapes in ProsumerDashboardModels.kt already
-//          match the JSON field-for-field, so this should be a
-//          data-source swap, not a model rewrite. All filtering shown
-//          here (status/station/from/to) already matches what the
-//          server-side query params support — this screen never
-//          invents its own filtering rule, it only chooses which
-//          query params to send, per the FAT service pattern.
+//          Wired to the real backend (2026-09-26) via
+//          data/remote/ApiClient.kt + JouleApi.kt: GET
+//          /dashboard/prosumer/{nic}/summary for the stat tiles, and
+//          GET /reservations?nic={nic}&status=&stationId=&from=&to=
+//          for the lists below. Status/station/date filters are sent
+//          as query params — this screen never invents its own
+//          filtering rule, it only chooses which ones to send, per
+//          the FAT service pattern. Point API_BASE_URL (local.properties,
+//          see app/build.gradle.kts) at your backend if it isn't on
+//          the emulator-default 10.0.2.2:5128.
 //
 //          Cache-first, then refresh: on open, the last-cached
 //          summary (DashboardCacheDao, architecture.md §8) renders
@@ -100,11 +93,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.smartmicrogrid.data.local.AppDbHelper
 import com.smartmicrogrid.data.local.DashboardCacheDao
+import com.smartmicrogrid.data.remote.ApiClient
+import com.smartmicrogrid.data.remote.JouleApi
 import com.smartmicrogrid.ui.components.IconTile
 import com.smartmicrogrid.ui.components.JouleIcons
 import com.smartmicrogrid.ui.components.SectionCard
 import com.smartmicrogrid.ui.components.StatTray
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.ZoneId
@@ -114,16 +110,19 @@ private val STATUS_FILTERS = listOf("All", "Confirmed", "Completed", "Cancelled"
 private val DATE_INPUT_PATTERN = Regex("""^\d{4}-\d{2}-\d{2}$""")
 
 // Renders the full dashboard: stat tiles, filter controls, then the current/pending/history
-// lists — all derived from a single loaded data source (fixture today, the real API once it's
-// wired).
+// lists — the summary comes from GET /dashboard/prosumer/{nic}/summary, the lists from
+// GET /reservations with the active filters sent as query params.
 @Composable
 fun ProsumerDashboardScreen() {
     val context = LocalContext.current
-    val allReservations = remember { ProsumerDashboardFixtures.reservations }
+    val api = remember { ApiClient.create(JouleApi::class.java) }
 
     var summary by remember { mutableStateOf<ProsumerDashboardSummary?>(null) }
     var loadError by remember { mutableStateOf<String?>(null) }
     var refreshToken by remember { mutableIntStateOf(0) }
+
+    var reservations by remember { mutableStateOf<List<ReservationListItem>>(emptyList()) }
+    var reservationsError by remember { mutableStateOf<String?>(null) }
 
     var statusFilter by remember { mutableStateOf("All") }
     var stationFilter by remember { mutableStateOf("") }
@@ -150,7 +149,7 @@ fun ProsumerDashboardScreen() {
             }
         }
 
-        runCatching { ProsumerDashboardFixtures.loadSummary() }
+        runCatching { api.getProsumerDashboardSummary(FIXTURE_PROSUMER_NIC) }
             .onSuccess { fresh ->
                 summary = fresh
                 runCatching {
@@ -162,28 +161,36 @@ fun ProsumerDashboardScreen() {
                 }
             }
             .onFailure {
-                loadError = "Couldn't refresh the dashboard. Showing the last saved data."
+                loadError = "Couldn't refresh the dashboard. Showing the last saved data. (${it.message ?: "network error"})"
             }
     }
 
     val fromDateValid = fromFilter.isBlank() || DATE_INPUT_PATTERN.matches(fromFilter)
     val toDateValid = toFilter.isBlank() || DATE_INPUT_PATTERN.matches(toFilter)
 
-    // Applies the currently-selected filters to the loaded list. This mirrors what
-    // GET /reservations's status/stationId/from/to query params already do server-side — once the
-    // real API call lands, these same values become query params instead of a local filter.
-    val filtered = remember(statusFilter, stationFilter, fromFilter, toFilter, allReservations) {
-        allReservations.filter { reservation ->
-            (statusFilter == "All" || reservation.status == statusFilter) &&
-                (stationFilter.isBlank() || reservation.stationId.contains(stationFilter, ignoreCase = true)) &&
-                (!fromDateValid || fromFilter.isBlank() || reservation.scheduledAt >= "${fromFilter}T00:00:00Z") &&
-                (!toDateValid || toFilter.isBlank() || reservation.scheduledAt <= "${toFilter}T23:59:59Z")
-        }
+    // Re-fetches GET /reservations 300ms after the filters settle (debounced the same way
+    // StationsPage.jsx's search box is on the web side) — every keystroke in the station-id field
+    // would otherwise fire a request per character. statusFilter's "All" is a UI-only sentinel:
+    // the server has no such status, so it's sent as a missing param (no filter) instead.
+    LaunchedEffect(statusFilter, stationFilter, fromFilter, toFilter, refreshToken) {
+        delay(300)
+        reservationsError = null
+        runCatching {
+            api.searchReservations(
+                nic = FIXTURE_PROSUMER_NIC,
+                stationId = stationFilter.ifBlank { null },
+                status = statusFilter.takeIf { it != "All" },
+                from = fromFilter.takeIf { fromDateValid && it.isNotBlank() },
+                to = toFilter.takeIf { toDateValid && it.isNotBlank() },
+            )
+        }.onSuccess { reservations = it }
+            .onFailure { reservationsError = "Couldn't load bookings. (${it.message ?: "network error"})" }
     }
+
     val now = remember { Instant.now().toString() }
-    val current = filtered.filter { it.status == "Confirmed" }
+    val current = reservations.filter { it.status == "Confirmed" }
     val needsCheckIn = current.filter { it.scheduledAt <= now }
-    val history = filtered.filter { it.status == "Completed" || it.status == "Cancelled" }
+    val history = reservations.filter { it.status == "Completed" || it.status == "Cancelled" }
 
 
     Column(
@@ -198,6 +205,9 @@ fun ProsumerDashboardScreen() {
 
         if (loadError != null) {
             ErrorBanner(message = loadError.orEmpty())
+        }
+        if (reservationsError != null) {
+            ErrorBanner(message = reservationsError.orEmpty())
         }
 
         StatTraysRow(summary = summary)
