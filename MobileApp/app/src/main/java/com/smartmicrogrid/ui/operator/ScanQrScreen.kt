@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.smartmicrogrid.data.local.AppDbHelper
 import com.smartmicrogrid.data.local.ReservationCacheDao
@@ -62,7 +63,7 @@ fun ScanQrScreen() {
 
     // Ask for permission on first composition.
     LaunchedEffect(Unit) {
-        if (!cameraPermission.hasPermission) cameraPermission.launchPermissionRequest()
+        if (!cameraPermission.status.isGranted) cameraPermission.launchPermissionRequest()
     }
 
     Column(
@@ -84,7 +85,7 @@ fun ScanQrScreen() {
                 .weight(1f)
                 .background(Color.Black)
         ) {
-            if (cameraPermission.hasPermission) {
+            if (cameraPermission.status.isGranted) {
                 key(scanResetKey) {
                     CameraPreview(
                         onQrDecoded = { token ->

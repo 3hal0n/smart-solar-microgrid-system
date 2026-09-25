@@ -5,14 +5,51 @@
 //          conflict) verbatim — the client never pre-guesses whether
 //          an action is allowed, per the FAT service pattern; it
 //          just relays what the server said.
+//
+//          Two ways to use it: the default-exported <Toast/> below is
+//          a plain controlled component (message/tone/onDismiss props
+//          + local useState) — see StationsPage.jsx/StationDetailPage.jsx
+//          for that pattern. `useToast()` (added 2026-09-26 while
+//          merging in Dinil's ReservationsAdminPage.jsx/
+//          ReservationDetailPage.jsx, which were already written
+//          against this hook-based shape) is a global alternative:
+//          call `const { show } = useToast()` from anywhere under
+//          <ToastProvider> (mounted once in App.jsx) and
+//          `show(message, tone)` imperatively, no local state needed.
+//          Both render through the same <Toast>/<ToastCard> visuals.
 // Author: Shalon
 // ============================================================
-import { useEffect } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
-const TONE_CLASSES = {
-  error: 'border-error/30 bg-error-soft text-error',
-  success: 'border-success/30 bg-success-soft text-success',
+const TONE_CONFIG = {
+  error: { accent: 'bg-error', iconBg: 'bg-error-soft text-error' },
+  success: { accent: 'bg-success', iconBg: 'bg-success-soft text-success' },
 };
+
+// A tick and a triangle-exclamation, drawn inline rather than pulled from an icon library — this
+// codebase already draws its handful of glyphs inline (see QrPlaceholder in LandingPage.jsx)
+// rather than taking on a dependency for a couple of icons.
+function ToneIcon({ tone }) {
+  if (tone === 'success') {
+    return (
+      <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" aria-hidden="true">
+        <path d="M4 10.5 8 14l8-8" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 20 20" className="h-3.5 w-3.5" fill="none" aria-hidden="true">
+      <path
+        d="M10 3.5 2.5 16h15L10 3.5Z"
+        stroke="currentColor"
+        strokeWidth={1.6}
+        strokeLinejoin="round"
+      />
+      <path d="M10 8.25v3.5" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
+      <circle cx="10" cy="14" r="0.9" fill="currentColor" />
+    </svg>
+  );
+}
 
 // Renders a fixed, auto-dismissing toast; renders nothing when `message` is empty.
 export default function Toast({ message, tone = 'error', onDismiss, durationMs = 6000 }) {
@@ -28,16 +65,79 @@ export default function Toast({ message, tone = 'error', onDismiss, durationMs =
     return null;
   }
 
-  const toneClasses = TONE_CLASSES[tone] ?? TONE_CLASSES.error;
-
   return (
     <div className="fixed bottom-6 right-6 z-50 max-w-sm">
-      <div
-        className={`flex items-start gap-3 rounded-lg border px-4 py-3 text-[13px] font-medium shadow-panel ${toneClasses}`}
-        role="status"
-      >
-        <span className="flex-1">{message}</span>
-        <button type="button" onClick={onDismiss} className="shrink-0 opacity-60 hover:opacity-100" aria-label="Dismiss">
+      {/* Keyed by message so each new toast remounts fresh and replays its enter animation from
+          hidden, instead of needing an effect to reset a `visible` flag back to false first. */}
+      <ToastCard key={message} tone={tone} message={message} onDismiss={onDismiss} />
+    </div>
+  );
+}
+
+const ToastContext = createContext(null);
+
+// Mounts the one global toast + the `show(message, tone)` function every useToast() caller shares
+// — wrap the app (or any subtree) in this once, per architecture.md §8 shared-infra convention.
+export function ToastProvider({ children }) {
+  const [toast, setToast] = useState({ message: '', tone: 'error' });
+
+  const show = useCallback((message, tone = 'success') => {
+    setToast({ message, tone });
+  }, []);
+
+  const dismiss = useCallback(() => {
+    setToast({ message: '', tone: 'error' });
+  }, []);
+
+  return (
+    <ToastContext.Provider value={{ show }}>
+      {children}
+      <Toast message={toast.message} tone={toast.tone} onDismiss={dismiss} />
+    </ToastContext.Provider>
+  );
+}
+
+// Reads the shared `show(message, tone)` function; must be called from inside a ToastProvider.
+// eslint-disable-next-line react-refresh/only-export-components -- colocated hook, not a component
+export function useToast() {
+  const context = useContext(ToastContext);
+  if (!context) {
+    throw new Error('useToast must be used within a ToastProvider');
+  }
+  return context;
+}
+
+// The actual animated card — a separate component so its `visible` state starts fresh on every
+// mount (i.e. every new message, via the `key` above) with no reset-in-effect needed.
+function ToastCard({ tone, message, onDismiss }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const config = TONE_CONFIG[tone] ?? TONE_CONFIG.error;
+
+  return (
+    <div
+      className={`flex items-stretch overflow-hidden rounded-xl border border-line bg-surface shadow-panel transition-all duration-300 ease-out ${
+        visible ? 'translate-y-0 opacity-100' : 'translate-y-2 opacity-0'
+      }`}
+      role="status"
+    >
+      <span className={`w-1 shrink-0 ${config.accent}`} aria-hidden="true" />
+      <div className="flex flex-1 items-start gap-3 px-3.5 py-3.5">
+        <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${config.iconBg}`}>
+          <ToneIcon tone={tone} />
+        </span>
+        <span className="flex-1 pt-0.5 text-[13px] font-medium leading-snug text-ink">{message}</span>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="shrink-0 pt-0.5 text-muted transition-colors hover:text-ink"
+          aria-label="Dismiss"
+        >
           &#10005;
         </button>
       </div>

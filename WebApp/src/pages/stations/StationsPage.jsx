@@ -7,13 +7,16 @@
 //          here, per the FAT service pattern.
 // Author: Shalon
 // ============================================================
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api.js';
 import { Table, Th, Td } from '../../components/common/Table.jsx';
 import Button from '../../components/common/Button.jsx';
 import Input from '../../components/common/Input.jsx';
 import Badge from '../../components/common/Badge.jsx';
+import Toast from '../../components/common/Toast.jsx';
+import ConfirmDialog from '../../components/common/ConfirmDialog.jsx';
+import StatCard from '../../components/common/StatCard.jsx';
 import StationForm from './StationForm.jsx';
 
 // Formats a GeoJSON [lng, lat] coordinate pair as a fixed-width "lat, lng" string.
@@ -38,6 +41,22 @@ export default function StationsPage() {
   // Bumped every time the modal opens so StationForm remounts fresh instead of needing an
   // effect to reset its fields (see StationForm.jsx).
   const [formKey, setFormKey] = useState(0);
+
+  const [deactivatingId, setDeactivatingId] = useState(null);
+  const [confirmingStation, setConfirmingStation] = useState(null);
+  const [activatingId, setActivatingId] = useState(null);
+  const [toast, setToast] = useState({ message: '', tone: 'error' });
+
+  // Quick-glance summary row, derived from the already-loaded list — no extra API calls.
+  const summary = useMemo(
+    () => ({
+      total: stations.length,
+      active: stations.filter((station) => station.status === 'Active').length,
+      capacityKWh: stations.reduce((sum, station) => sum + (station.capacityKWh ?? 0), 0),
+      slots: stations.reduce((sum, station) => sum + (station.totalBatterySlots ?? 0), 0),
+    }),
+    [stations],
+  );
 
   // Loads the station list from the real API, optionally filtered by the current search term.
   const loadStations = useCallback(async (term) => {
@@ -100,6 +119,52 @@ export default function StationsPage() {
     }
   };
 
+  // Opens the confirm dialog for a station's deactivation, in place of the native
+  // window.confirm() — keeps this destructive action inside the app's own dialog styling.
+  const handleRequestDeactivate = (station) => {
+    setConfirmingStation(station);
+  };
+
+  // Deactivates the confirmed station — the same PUT /stations/{id}/deactivate call
+  // StationDetailPage uses, showing the API's exact response (including its 409 message naming
+  // which reservations/slots blocked it) rather than pre-guessing client-side whether it's allowed.
+  // There's no hard-delete endpoint by design: deactivation is the intended "remove" operation, so
+  // history (past reservations, audit trail) stays intact instead of being destroyed.
+  const handleConfirmDeactivate = async () => {
+    const station = confirmingStation;
+    if (!station) {
+      return;
+    }
+    setDeactivatingId(station.id);
+    try {
+      await api.put(`/stations/${station.id}/deactivate`);
+      setToast({ message: 'Station deactivated.', tone: 'success' });
+      setConfirmingStation(null);
+      await loadStations(search);
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Failed to deactivate station.', tone: 'error' });
+      setConfirmingStation(null);
+    } finally {
+      setDeactivatingId(null);
+    }
+  };
+
+  // Reactivates an Inactive station — PUT /stations/{id}/activate, no confirmation needed since,
+  // unlike deactivation, this never conflicts with anything (it only makes the station bookable
+  // again) and isn't destructive.
+  const handleActivate = async (station) => {
+    setActivatingId(station.id);
+    try {
+      await api.put(`/stations/${station.id}/activate`);
+      setToast({ message: 'Station reactivated.', tone: 'success' });
+      await loadStations(search);
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Failed to reactivate station.', tone: 'error' });
+    } finally {
+      setActivatingId(null);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -112,6 +177,23 @@ export default function StationsPage() {
         <Button variant="primary" onClick={handleOpenCreate}>
           New station
         </Button>
+      </div>
+
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard icon="hubs" label="Total hubs" value={summary.total} hint="Registered grid nodes" />
+        <StatCard
+          icon="pulse"
+          label="Active"
+          value={summary.active}
+          hint={`${summary.total - summary.active} inactive`}
+        />
+        <StatCard
+          icon="bolt"
+          label="Total capacity"
+          value={`${summary.capacityKWh.toLocaleString()} kWh`}
+          hint="Across all hubs"
+        />
+        <StatCard icon="battery" label="Battery slots" value={summary.slots} hint="Declared across hubs" />
       </div>
 
       <div className="mb-4 max-w-xs">
@@ -173,9 +255,30 @@ export default function StationsPage() {
                   <Badge tone={station.status === 'Active' ? 'success' : 'neutral'}>{station.status}</Badge>
                 </Td>
                 <Td className="text-right">
-                  <Button variant="secondary" size="sm" onClick={() => handleOpenEdit(station.id)}>
-                    Edit
-                  </Button>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="secondary" size="sm" onClick={() => handleOpenEdit(station.id)}>
+                      Edit
+                    </Button>
+                    {station.status === 'Active' ? (
+                      <Button
+                        variant="danger-outline"
+                        size="sm"
+                        disabled={deactivatingId === station.id}
+                        onClick={() => handleRequestDeactivate(station)}
+                      >
+                        {deactivatingId === station.id ? 'Deactivating…' : 'Deactivate'}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={activatingId === station.id}
+                        onClick={() => handleActivate(station)}
+                      >
+                        {activatingId === station.id ? 'Reactivating…' : 'Reactivate'}
+                      </Button>
+                    )}
+                  </div>
                 </Td>
               </tr>
             ))}
@@ -191,6 +294,23 @@ export default function StationsPage() {
         onClose={() => setIsFormOpen(false)}
         onSubmit={handleSubmit}
       />
+
+      <ConfirmDialog
+        open={Boolean(confirmingStation)}
+        title="Deactivate station?"
+        description={
+          confirmingStation
+            ? `"${confirmingStation.name}" will be marked inactive. This can't be undone from here.`
+            : ''
+        }
+        confirmLabel="Deactivate"
+        tone="danger"
+        confirming={deactivatingId === confirmingStation?.id}
+        onConfirm={handleConfirmDeactivate}
+        onClose={() => setConfirmingStation(null)}
+      />
+
+      <Toast message={toast.message} tone={toast.tone} onDismiss={() => setToast({ message: '', tone: 'error' })} />
     </div>
   );
 }
