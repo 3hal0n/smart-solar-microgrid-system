@@ -141,7 +141,7 @@ export default function UsersPage() {
     }
   };
 
-  const columns = useMemo(
+    const columns = useMemo(
     () => [
       { key: 'username', header: 'Username', render: (u) => <span className="font-medium text-ink">{u.username}</span> },
       { key: 'fullName', header: 'Full name' },
@@ -162,13 +162,18 @@ export default function UsersPage() {
         className: 'text-right',
         render: (u) => (
           <div className="flex justify-end gap-2">
-            <Button variant="secondary" size="sm" onClick={() => handleOpenEdit(u)}>
-              Edit
-            </Button>
-            {u.status === 'Active' && (
-              <Button variant="danger-outline" size="sm" onClick={() => setDeactivateTarget(u)}>
-                Deactivate
-              </Button>
+            {/* Only show Edit and Deactivate buttons if the user is Active */}
+            {u.status === 'Active' ? (
+              <>
+                <Button variant="secondary" size="sm" onClick={() => handleOpenEdit(u)}>
+                  Edit
+                </Button>
+                <Button variant="danger-outline" size="sm" onClick={() => setDeactivateTarget(u)}>
+                  Deactivate
+                </Button>
+              </>
+            ) : (
+              <span className="text-xs text-muted italic">No actions available</span>
             )}
           </div>
         ),
