@@ -11,6 +11,8 @@ const VARIANT_CLASSES = {
   secondary: 'bg-surface text-ink border border-line hover:bg-surface-alt active:bg-surface-alt shadow-card',
   ghost: 'bg-transparent text-body hover:bg-surface-alt hover:text-ink',
   danger: 'bg-error text-on-primary hover:opacity-90 shadow-card',
+  // Destructive-but-secondary: sits next to neutral actions (e.g. Edit) without looking like one.
+  'danger-outline': 'bg-surface text-error border border-error/25 hover:bg-error-soft active:bg-error-soft shadow-card',
 };
 
 const SIZE_CLASSES = {
