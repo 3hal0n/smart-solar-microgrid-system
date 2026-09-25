@@ -234,6 +234,25 @@ public class StationService
         await _context.SolarStations.UpdateOneAsync(s => s.Id == id, update);
     }
 
+    // Flips a station back to Active. Unlike deactivation, reactivating never conflicts with
+    // anything — it only makes the station bookable again, so there's no equivalent check to run.
+    public async Task ActivateAsync(string id)
+    {
+        if (!ObjectId.TryParse(id, out _))
+        {
+            throw new NotFoundException($"Station '{id}' not found.");
+        }
+
+        var update = Builders<Station>.Update
+            .Set(s => s.Status, StationStatus.Active)
+            .Set(s => s.UpdatedAt, DateTime.UtcNow);
+        var result = await _context.SolarStations.UpdateOneAsync(s => s.Id == id, update);
+        if (result.MatchedCount == 0)
+        {
+            throw new NotFoundException($"Station '{id}' not found.");
+        }
+    }
+
     // Returns the read-only "who's booked what" overview for a station, per architecture.md §3
     // GET /stations/{id}/reservations-overview. Reads Dinil's Reservations collection (write-side
     // owner: Dinil; Shalon reads it — see §4).

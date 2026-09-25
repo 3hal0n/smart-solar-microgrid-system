@@ -129,6 +129,23 @@ public class StationsController : ControllerBase
         }
     }
 
+    // PUT /api/stations/{id}/activate - flips an Inactive station back to Active. No conflict check
+    // needed (unlike deactivate): reactivating never blocks on anything.
+    // TODO(Rukshan): restore [Authorize(Roles = "Backoffice")] once JwtService/auth scheme is wired up.
+    [HttpPut("{id}/activate")]
+    public async Task<IActionResult> Activate(string id)
+    {
+        try
+        {
+            await _stationService.ActivateAsync(id);
+            return NoContent();
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
+
     // GET /api/stations/{id}/reservations-overview - read-only "who's booked what" panel.
     // Currently always returns [] — see StationService.GetReservationsOverviewAsync's TODO(Dinil).
     [HttpGet("{id}/reservations-overview")]
