@@ -27,11 +27,16 @@ import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -48,7 +53,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.smartmicrogrid.ui.components.IconTile
+import com.smartmicrogrid.ui.components.JouleIcons
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.CameraPosition
@@ -186,24 +194,48 @@ private fun LocationRationaleDialog(onAllow: () -> Unit, onDismiss: () -> Unit) 
     )
 }
 
-// Small banner naming which center point is active, so a denied/unavailable location is visible
-// to the user rather than silently substituted.
+// Floating card naming which center point is active (so a denied/unavailable location is visible to
+// the user rather than silently substituted), plus how many stations were found.
 @Composable
-private fun LocationSourceBanner(usingDeviceLocation: Boolean, center: LatLng?) {
+private fun LocationSourceBanner(
+    usingDeviceLocation: Boolean,
+    center: LatLng?,
+    stationCount: Int?,
+    modifier: Modifier = Modifier,
+) {
     if (center == null) return
-    val message = if (usingDeviceLocation) {
-        "Showing stations near your location"
-    } else {
-        "Showing stations near Colombo — enable location for stations near you"
+    val title = if (usingDeviceLocation) "Near your location" else "Near Colombo"
+    val subtitle = when {
+        stationCount == null -> "Finding stations…"
+        !usingDeviceLocation -> "Enable location for stations near you"
+        else -> "$stationCount station${if (stationCount == 1) "" else "s"} within ${SEARCH_RADIUS_KM.toInt()} km"
     }
-    Surface(color = MaterialTheme.colorScheme.secondaryContainer) {
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-        )
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        shadowElevation = 6.dp,
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            IconTile(icon = JouleIcons.MapPin, size = 36.dp)
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
     }
 }
 
@@ -211,19 +243,41 @@ private fun LocationSourceBanner(usingDeviceLocation: Boolean, center: LatLng?) 
 @Composable
 private fun LoadingState() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator()
+        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary, strokeWidth = 3.dp)
     }
 }
 
-// Renders the "no stations nearby" empty state.
+// Renders the "no stations nearby" empty state as a centered card.
 @Composable
 private fun EmptyState() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(
-            text = "No stations nearby.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                IconTile(icon = JouleIcons.Hubs, size = 48.dp)
+                Text(
+                    text = "No stations nearby",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(top = 16.dp),
+                )
+                Text(
+                    text = "No active grid nodes within ${SEARCH_RADIUS_KM.toInt()} km of this point.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 6.dp),
+                )
+            }
+        }
     }
 }
 
@@ -248,17 +302,29 @@ private fun StationsMap(center: LatLng, stations: List<NearbyStation>) {
     }
 }
 
-// Renders the tap-to-show info window content: name, capacity, and available slots.
+// Renders the tap-to-show info window content: name + distance, then capacity and available slots
+// as two small labelled figures.
 @Composable
 private fun StationInfoWindow(station: NearbyStation) {
-    Column(modifier = Modifier.padding(8.dp)) {
-        Text(text = station.name, fontWeight = FontWeight.Bold)
-        Text(text = "Capacity: ${station.capacityKWh} kWh", style = MaterialTheme.typography.bodySmall)
-        Text(text = "Available slots: ${station.availableSlots}", style = MaterialTheme.typography.bodySmall)
+    Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+        Text(text = station.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
         Text(
             text = "%.1f km away".format(station.distanceKm),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Row(modifier = Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            InfoFigure(label = "Capacity", value = "${station.capacityKWh} kWh")
+            InfoFigure(label = "Free slots", value = station.availableSlots.toString())
+        }
+    }
+}
+
+// One small label-over-value pair for the info window.
+@Composable
+private fun InfoFigure(label: String, value: String) {
+    Column {
+        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
     }
 }
