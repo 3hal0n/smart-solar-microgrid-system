@@ -15,7 +15,7 @@ namespace SmartMicrogrid.Api.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize] // Requires valid JWT token for all endpoints
+    [Authorize] // Requires valid JWT token for ALL endpoints by default
     public class UsersController : ControllerBase
     {
         private readonly IMongoCollection<User> _users;
@@ -52,6 +52,9 @@ namespace SmartMicrogrid.Api.Controllers
 
         // POST: api/users
         // Creates a new user, hashes password, and saves to MongoDB.
+        // AllowAnonymous is used here so the FIRST admin user can be created 
+        // without a token. All subsequent user creation should be done by an authenticated admin.
+        [AllowAnonymous]
         [HttpPost]
         public async Task<ActionResult<UserResponseDto>> CreateUser([FromBody] CreateUserDto dto)
         {
