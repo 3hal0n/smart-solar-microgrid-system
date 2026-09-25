@@ -1,23 +1,29 @@
 // ============================================================
 // File: LoginPage.jsx
-// Purpose: Handles user authentication UI and role-based 
-//          redirection (Backoffice -> /admin/users, GridOperator -> /operator/dashboard).
-// Author: Migara
+// Purpose: Handles user authentication UI and role-based
+//          redirection (Backoffice -> /stations, GridOperator ->
+//          /reservations — the actual oversight page architecture.md
+//          documents for Grid Operators on web; there is no separate
+//          "/operator/dashboard" page by design, see §6).
+// Author: Migara (restyled to the Joule/Stripe design system and the
+//          broken GridOperator redirect fixed, 2026-09-26 — see
+//          chat notes for the team)
 // ============================================================
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
+import JouleMark from '../../components/common/JouleMark';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -34,13 +40,15 @@ export default function LoginPage() {
       // 2. Update global auth state via AuthContext (persists to localStorage)
       login({ token, role, fullName });
 
-      // 3. Role-based redirection as per assignment spec
+      // 3. Role-based redirection. GridOperator used to point at "/operator/dashboard", a route
+      // that's never existed in App.jsx — every operator login landed on a blank page. Grid
+      // Operators' actual web oversight is the Reservations page (architecture.md §6).
       if (role === 'Backoffice') {
-        navigate('/admin/users');
+        navigate('/stations');
       } else if (role === 'GridOperator') {
-        navigate('/operator/dashboard');
+        navigate('/reservations');
       } else {
-        navigate('/'); 
+        navigate('/');
       }
     } catch (err) {
       // Surface the exact API error message verbatim (FAT service pattern)
@@ -51,49 +59,53 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
-          Smart Microgrid Login
-        </h2>
-        
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
+    <div className="flex min-h-screen items-center justify-center bg-canvas px-4">
+      <div className="w-full max-w-sm">
+        <Link to="/" className="mb-8 flex items-center justify-center gap-2">
+          <JouleMark id="login-joule-mark" className="h-6 w-7" />
+          <span className="text-[16px] font-semibold tracking-[-0.03em] text-ink">Joule</span>
+        </Link>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-            <Input 
-              type="text" 
-              value={username} 
-              onChange={(e) => setUsername(e.target.value)} 
-              required 
+        <div className="rounded-lg border border-line bg-surface p-8 shadow-card">
+          <h1 className="text-lg font-semibold tracking-tight text-ink">Staff sign in</h1>
+          <p className="mt-1 text-[13px] text-muted">Backoffice and Grid Operator accounts only.</p>
+
+          {error && (
+            <p className="mt-4 rounded-md border border-error/30 bg-error-soft px-3 py-2 text-[13px] font-medium text-error">
+              {error}
+            </p>
+          )}
+
+          <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
+            <Input
+              label="Username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
               placeholder="Enter username"
+              autoFocus
             />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <Input 
-              type="password" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-              required 
+            <Input
+              label="Password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
               placeholder="Enter password"
             />
-          </div>
+            <Button type="submit" variant="primary" className="mt-2 w-full" disabled={isLoading}>
+              {isLoading ? 'Signing in…' : 'Sign in'}
+            </Button>
+          </form>
+        </div>
 
-          <Button 
-            type="submit" 
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition-colors"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Logging in...' : 'Login'}
-          </Button>
-        </form>
+        {/* Staff/operator accounts are provisioned by a Backoffice admin via Users management
+            (see UsersPage.jsx) — there's no self-serve registration for this app by design, so
+            no "Create account" link belongs here. */}
+        <Link to="/" className="mt-6 block text-center text-[13px] font-medium text-muted hover:text-ink">
+          ← Back to home
+        </Link>
       </div>
     </div>
   );

@@ -1,15 +1,29 @@
 // ============================================================
 // File: UsersPage.jsx
-// Purpose: Handles CRUD operations for system users (Backoffice/GridOperator).
-//          Fetches users, displays them in a table, and provides 
-//          a custom Tailwind modal for creation.
-// Author: Migara
+// Purpose: Handles CRUD operations for system users (Backoffice/
+//          GridOperator). Fetches users, displays them in a table,
+//          and provides a modal for creation.
+// Author: Migara (restyled to the Joule/Stripe design system,
+//          2026-09-26 — see chat notes for the team: this used a
+//          hand-rolled modal/table/confirm() instead of the shared
+//          Modal/Table/ConfirmDialog components the rest of the app
+//          uses, and raw gray/blue/purple Tailwind instead of the
+//          design tokens)
 // ============================================================
 
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import Toast from '../../components/common/Toast';
+import Button from '../../components/common/Button';
+import Input from '../../components/common/Input';
+import Badge from '../../components/common/Badge';
+import Modal from '../../components/common/Modal';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
+import DataTable from '../../components/common/Table';
+import StatCard from '../../components/common/StatCard';
+
+const EMPTY_FORM = { username: '', password: '', role: 'GridOperator', fullName: '', email: '' };
 
 export default function UsersPage() {
   const { role } = useAuth();
@@ -17,15 +31,12 @@ export default function UsersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [toast, setToast] = useState({ message: '', tone: 'error' });
 
-  // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    username: '',
-    password: '',
-    role: 'GridOperator',
-    fullName: '',
-    email: ''
-  });
+  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [creating, setCreating] = useState(false);
+
+  const [deactivateTarget, setDeactivateTarget] = useState(null);
+  const [deactivating, setDeactivating] = useState(false);
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -47,207 +58,188 @@ export default function UsersPage() {
     }
   }, [role]);
 
+  const summary = useMemo(
+    () => ({
+      total: users.length,
+      active: users.filter((u) => u.status === 'Active').length,
+      backoffice: users.filter((u) => u.role === 'Backoffice').length,
+      operators: users.filter((u) => u.role === 'GridOperator').length,
+    }),
+    [users],
+  );
+
   const handleCreateUser = async (e) => {
     e.preventDefault();
+    setCreating(true);
     try {
       await api.post('/users', formData);
       setToast({ message: 'User created successfully!', tone: 'success' });
       setIsModalOpen(false);
-      setFormData({ username: '', password: '', role: 'GridOperator', fullName: '', email: '' });
-      fetchUsers();
+      setFormData(EMPTY_FORM);
+      await fetchUsers();
     } catch (err) {
       setToast({ message: err.response?.data?.message || 'Failed to create user', tone: 'error' });
+    } finally {
+      setCreating(false);
     }
   };
 
-  const handleDeactivate = async (userId, username) => {
-    if (!window.confirm(`Are you sure you want to deactivate ${username}?`)) {
-      return;
-    }
+  const handleConfirmDeactivate = async () => {
+    if (!deactivateTarget) return;
+    setDeactivating(true);
     try {
-      await api.put(`/users/${userId}/deactivate`);
+      await api.put(`/users/${deactivateTarget.id}/deactivate`);
       setToast({ message: 'User deactivated successfully!', tone: 'success' });
-      fetchUsers();
+      setDeactivateTarget(null);
+      await fetchUsers();
     } catch (err) {
       setToast({ message: err.response?.data?.message || 'Failed to deactivate user', tone: 'error' });
+      setDeactivateTarget(null);
+    } finally {
+      setDeactivating(false);
     }
   };
+
+  const columns = useMemo(
+    () => [
+      { key: 'username', header: 'Username', render: (u) => <span className="font-medium text-ink">{u.username}</span> },
+      { key: 'fullName', header: 'Full name' },
+      { key: 'email', header: 'Email' },
+      {
+        key: 'role',
+        header: 'Role',
+        render: (u) => <Badge tone={u.role === 'Backoffice' ? 'info' : 'neutral'}>{u.role}</Badge>,
+      },
+      {
+        key: 'status',
+        header: 'Status',
+        render: (u) => <Badge tone={u.status === 'Active' ? 'success' : 'neutral'}>{u.status}</Badge>,
+      },
+      {
+        key: 'actions',
+        header: '',
+        className: 'text-right',
+        render: (u) =>
+          u.status === 'Active' && (
+            <Button variant="danger-outline" size="sm" onClick={() => setDeactivateTarget(u)}>
+              Deactivate
+            </Button>
+          ),
+      },
+    ],
+    [],
+  );
 
   // Access control
   if (role !== 'Backoffice') {
     return (
-      <div className="p-8 text-center text-red-600">
-        Access Denied: Only Backoffice users can manage system users.
+      <div className="mx-auto max-w-6xl px-6 py-8">
+        <p className="rounded-md border border-error/30 bg-error-soft px-3 py-2 text-[13px] font-medium text-error">
+          Access denied — only Backoffice users can manage system users.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">User Management</h1>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition-colors"
-        >
-          + Create New User
-        </button>
+    <div className="mx-auto max-w-6xl px-6 py-8">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight text-ink">User management</h1>
+          <p className="mt-1 text-[13px] text-muted">Backoffice and Grid Operator staff accounts.</p>
+        </div>
+        <Button variant="primary" onClick={() => setIsModalOpen(true)}>
+          New user
+        </Button>
       </div>
 
-      {isLoading ? (
-        <div className="text-center py-8 text-gray-500">Loading users...</div>
-      ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Username</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Full Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {users.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="px-6 py-4 text-center text-gray-500">No users found.</td>
-                </tr>
-              ) : (
-                users.map((u) => (
-                  <tr key={u.id} className={u.status === 'Deactivated' ? 'bg-gray-50' : ''}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{u.username}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{u.fullName}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{u.email}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${u.role === 'Backoffice' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}`}>
-                        {u.role}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${u.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                        {u.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {u.status === 'Active' && (
-                        <button 
-                          onClick={() => handleDeactivate(u.id, u.username)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Deactivate
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* ============================================================
-          CUSTOM TAILWIND MODAL (Bypasses teammate's Modal component)
-          ============================================================ */}
-      {isModalOpen && (
-        <div 
-    className="fixed inset-0 z-50 flex items-center justify-center p-4"
-    style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-  >
-    <div className="bg-white rounded-lg shadow-2xl w-full max-w-md p-6 relative">
-            <div className="flex justify-between items-center mb-4 border-b pb-2">
-              <h3 className="text-xl font-bold text-gray-800">Create New User</h3>
-              <button 
-                type="button" 
-                onClick={() => setIsModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-              >
-                &times;
-              </button>
-            </div>
-            
-            <form onSubmit={handleCreateUser} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                <input 
-                  type="text" 
-                  required 
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={formData.username}
-                  onChange={(e) => setFormData({...formData, username: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                <input 
-                  type="password" 
-                  required 
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                <input 
-                  type="text" 
-                  required 
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={formData.fullName}
-                  onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input 
-                  type="email" 
-                  required 
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-                <select 
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={formData.role}
-                  onChange={(e) => setFormData({...formData, role: e.target.value})}
-                >
-                  <option value="Backoffice">Backoffice</option>
-                  <option value="GridOperator">Grid Operator</option>
-                </select>
-              </div>
-              <div className="flex justify-end gap-2 pt-4 border-t">
-                <button 
-                  type="button" 
-                  onClick={() => setIsModalOpen(false)}
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-                >
-                  Create User
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Toast Notification */}
-      {toast.message && (
-        <Toast 
-          message={toast.message} 
-          tone={toast.tone} 
-          onDismiss={() => setToast({ message: '', tone: 'error' })} 
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard icon="user" label="Total users" value={summary.total} hint="Registered staff accounts" />
+        <StatCard
+          icon="pulse"
+          label="Active"
+          value={summary.active}
+          hint={`${summary.total - summary.active} deactivated`}
         />
-      )}
+        <StatCard icon="hubs" label="Backoffice" value={summary.backoffice} hint="Admin accounts" />
+        <StatCard icon="bolt" label="Grid operators" value={summary.operators} hint="Field accounts" />
+      </div>
+
+      <DataTable
+        columns={columns}
+        data={users}
+        loading={isLoading}
+        emptyMessage="No users found."
+        rowKey={(u) => u.id}
+      />
+
+      <Modal
+        open={isModalOpen}
+        onClose={() => !creating && setIsModalOpen(false)}
+        title="Create new user"
+        description="Provisions a Backoffice or Grid Operator staff account."
+      >
+        <form onSubmit={handleCreateUser} className="flex flex-col gap-4">
+          <Input
+            label="Username"
+            required
+            value={formData.username}
+            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+          />
+          <Input
+            label="Password"
+            type="password"
+            required
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+          />
+          <Input
+            label="Full name"
+            required
+            value={formData.fullName}
+            onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+          />
+          <Input
+            label="Email"
+            type="email"
+            required
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          />
+          <Input
+            label="Role"
+            as="select"
+            value={formData.role}
+            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+          >
+            <option value="Backoffice">Backoffice</option>
+            <option value="GridOperator">Grid Operator</option>
+          </Input>
+          <div className="mt-2 flex justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)} disabled={creating}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" disabled={creating}>
+              {creating ? 'Creating…' : 'Create user'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <ConfirmDialog
+        open={Boolean(deactivateTarget)}
+        title="Deactivate user?"
+        description={
+          deactivateTarget ? `"${deactivateTarget.username}" will no longer be able to sign in.` : ''
+        }
+        confirmLabel="Deactivate"
+        tone="danger"
+        confirming={deactivating}
+        onConfirm={handleConfirmDeactivate}
+        onClose={() => setDeactivateTarget(null)}
+      />
+
+      <Toast message={toast.message} tone={toast.tone} onDismiss={() => setToast({ message: '', tone: 'error' })} />
     </div>
   );
 }

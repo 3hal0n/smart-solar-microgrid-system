@@ -53,6 +53,7 @@ const PATHS = {
       <path d="M4 16.5c.9-2.7 3.2-4 6-4s5.1 1.3 6 4" strokeLinecap="round" strokeLinejoin="round" />
     </>
   ),
+  check: <path d="M4 10.5 8 14l8-8" strokeLinecap="round" strokeLinejoin="round" />,
 };
 
 // Renders the named icon; decorative by default (aria-hidden), so pair it with visible text.

@@ -1,33 +1,16 @@
 // ============================================================
 // File: DashboardDtos.cs
-// Purpose: Request/response shapes for GET /reservations and
-//          GET /dashboard/prosumer/{nic}/summary, per architecture.md
-//          §3 (moved from Migara to Shalon 2026-09-21 — see §3/§4/§7).
+// Purpose: Response shapes for GET /dashboard/prosumer/{nic}/summary,
+//          per architecture.md §3 (moved from Migara to Shalon
+//          2026-09-21 — see §3/§4/§7). Used to also hold
+//          ReservationSearchResultResponse for a GET /reservations
+//          this file's own service implemented — removed 2026-09-26
+//          once that turned out to duplicate Dinil's already-built,
+//          already-authenticated ReservationsController.List at the
+//          identical route (see DashboardService.cs's header).
 // Author: Shalon
 // ============================================================
 namespace SmartMicrogrid.Api.Models;
-
-// Response row for GET /reservations — the full reservation shape architecture.md §3 calls
-// "[{ ...reservation }]", matching every field in §2.4's Reservations schema. Named
-// ReservationSearchResultResponse (not the more obvious ReservationResponse) since that name was
-// already taken by Dinil's ReservationDtos.cs for his own, differently-shaped single-reservation
-// response — this is purely a C# type name; it has no effect on this endpoint's JSON.
-public class ReservationSearchResultResponse
-{
-    public string Id { get; set; } = string.Empty;
-    public string ProsumerNic { get; set; } = string.Empty;
-    public string StationId { get; set; } = string.Empty;
-    public string SlotId { get; set; } = string.Empty;
-    public DateTime ScheduledAt { get; set; }
-    public string Status { get; set; } = string.Empty;
-    public string QrToken { get; set; } = string.Empty;
-    public DateTime QrTokenExpiresAt { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
-    public DateTime? CompletedAt { get; set; }
-    public string? CompletedByUserId { get; set; }
-    public string? CancelReason { get; set; }
-}
 
 // Compact shape for a reservation inside a dashboard's recent-history list.
 public class ReservationHistoryItemResponse
