@@ -76,7 +76,8 @@ export default function LandingPage() {
         </nav>
       </header>
 
-      {/* Hero — copy paired with a product artifact, not a centered generic block */}
+      {/* Hero — full-bleed photo, dark-tinted (not washed out), copy in light text over it, per
+          the enterprise-energy reference (Huawei FusionSolar) rather than a faint canvas overlay. */}
       <section id="platform" className="relative overflow-hidden border-b border-line">
         <img
           src="/images/solar-sky-hero.jpg"
@@ -88,21 +89,23 @@ export default function LandingPage() {
           decoding="async"
           className="absolute inset-0 h-full w-full object-cover"
         />
-        <div className="absolute inset-0 bg-canvas/93" />
-        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 lg:grid-cols-2 lg:py-28">
+        <div className="absolute inset-0 bg-linear-to-r from-ink/85 via-ink/70 to-ink/50" />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 lg:min-h-140 lg:grid-cols-2 lg:py-28">
           <div>
-            <p className="text-[13px] font-semibold uppercase tracking-wider text-primary">Power, exchanged precisely.</p>
-            <h1 className="mt-5 text-4xl font-medium leading-[1.05] tracking-[-0.03em] text-ink sm:text-5xl">
+            <p className="text-[13px] font-semibold uppercase tracking-wider text-primary">
+              Power, exchanged precisely.
+            </p>
+            <h1 className="mt-5 text-4xl font-medium leading-[1.05] tracking-[-0.03em] text-white sm:text-5xl">
               Peer-to-peer solar energy, settled on managed grid infrastructure.
             </h1>
-            <p className="mt-5 max-w-lg text-[17px] font-light leading-relaxed text-body">
+            <p className="mt-5 max-w-lg text-[17px] font-light leading-relaxed text-white/75">
               Joule connects property owners with solar arrays to a network of operated grid hubs. Backoffice teams
               manage node capacity and schedules, prosumers reserve energy slots from mobile, and grid operators verify
               every transfer at the point of delivery.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link to="/login">
-                <Button variant="dark">Staff / Operator sign in</Button>
+                <Button variant="primary">Staff / Operator sign in</Button>
               </Link>
               <a href="#capabilities">
                 <Button variant="secondary">Explore the platform</Button>
