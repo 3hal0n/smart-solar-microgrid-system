@@ -142,6 +142,32 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Infrastructure band — real photography, cropped with Stripe's angled-edge signature */}
+      <section className="relative overflow-hidden bg-ink">
+        <div className="relative h-55 w-full sm:h-75 lg:h-105">
+          <img
+            src="/images/solar-farm-hero.jpg"
+            alt="Aerial view of a solar panel array feeding the managed microgrid"
+            width={1920}
+            height={900}
+            loading="lazy"
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-cover [clip-path:polygon(0_0,100%_0,100%_100%,0_92%)]"
+          />
+          <div className="absolute inset-0 bg-linear-to-t from-ink/95 via-ink/15 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0">
+            <div className="mx-auto max-w-6xl px-6 pb-6 sm:pb-8 lg:pb-10">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-white/60">
+                Live grid infrastructure
+              </p>
+              <p className="mt-2 max-w-xl text-lg font-medium leading-snug text-white sm:text-xl lg:text-2xl">
+                Every hub in the network reports capacity and slot availability in real time.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Feature grid */}
       <section id="capabilities" className="mx-auto max-w-6xl px-6 py-20 lg:py-24">
         <h2 className="max-w-2xl text-3xl font-medium tracking-[-0.02em] text-ink">
@@ -166,8 +192,18 @@ export default function LandingPage() {
       {/* Prosumer callout */}
       <section id="prosumers" className="border-y border-line bg-canvas">
         <div className="mx-auto max-w-6xl px-6 py-20">
-          <div className="flex flex-col items-start gap-10 rounded-lg border border-line bg-ink p-8 text-on-dark sm:p-10 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-xl">
+          <div className="relative flex flex-col items-start gap-10 overflow-hidden rounded-lg border border-line p-8 text-on-dark sm:p-10 lg:flex-row lg:items-center lg:justify-between">
+            <img
+              src="/images/rooftop-solar.jpg"
+              alt="Rooftop solar panel installation on a prosumer's home"
+              width={1200}
+              height={900}
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-ink/88" />
+            <div className="relative max-w-xl">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-white/50">For solar prosumers</span>
               <h2 className="mt-3 text-3xl font-medium tracking-[-0.02em]">Get the Prosumer app</h2>
               <p className="mt-3 text-[15px] font-light leading-relaxed text-white/70">
@@ -182,7 +218,7 @@ export default function LandingPage() {
               </ol>
             </div>
 
-            <div className="flex shrink-0 flex-col items-center gap-3 rounded-lg bg-white/5 p-6">
+            <div className="relative flex shrink-0 flex-col items-center gap-3 rounded-lg bg-white/10 p-6 backdrop-blur-sm">
               <QrPlaceholder />
               <p className="text-center text-[12px] font-light text-white/60">
                 Scan to download
