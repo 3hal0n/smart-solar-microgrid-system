@@ -15,7 +15,9 @@ import Modal from '../../components/common/Modal';
 import Toast from '../../components/common/Toast';
 
 export default function UsersPage() {
-  const { user } = useAuth();
+  // FIX: Shalon's AuthContext exports 'role' directly, not a 'user' object.
+  const { role } = useAuth(); 
+  
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -77,8 +79,8 @@ export default function UsersPage() {
     }
   };
 
-  // Only Backoffice can see this page (backend enforces it, but we hide UI for Grid Operators)
-  if (user?.role !== 'Backoffice') {
+  // Check if the logged-in user is a Backoffice admin
+  if (role !== 'Backoffice') {
     return (
       <div className="p-8 text-center text-red-600">
         Access Denied: Only Backoffice users can manage system users.
