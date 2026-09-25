@@ -9,13 +9,14 @@
 // Author: Shalon
 // ============================================================
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import api from '../../services/api.js';
 import { Table, Th, Td } from '../../components/common/Table.jsx';
 import Button from '../../components/common/Button.jsx';
 import Input from '../../components/common/Input.jsx';
 import Badge from '../../components/common/Badge.jsx';
 import Toast from '../../components/common/Toast.jsx';
+import ConfirmDialog from '../../components/common/ConfirmDialog.jsx';
 import SlotForm from './SlotForm.jsx';
 
 // Formats a GeoJSON [lng, lat] coordinate pair as a readable "lat, lng" string.
@@ -59,6 +60,7 @@ export default function StationDetailPage() {
   const [loadError, setLoadError] = useState('');
   const [scheduleSubmitting, setScheduleSubmitting] = useState(false);
   const [deactivating, setDeactivating] = useState(false);
+  const [confirmDeactivateOpen, setConfirmDeactivateOpen] = useState(false);
 
   const [reservations, setReservations] = useState([]);
   const [reservationsLoading, setReservationsLoading] = useState(true);
@@ -170,6 +172,7 @@ export default function StationDetailPage() {
       setToast({ message: err.response?.data?.message || 'Failed to deactivate station.', tone: 'error' });
     } finally {
       setDeactivating(false);
+      setConfirmDeactivateOpen(false);
     }
   };
 
@@ -242,10 +245,6 @@ export default function StationDetailPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
-      <Link to="/stations" className="mb-4 inline-block text-[13px] font-medium text-muted hover:text-ink">
-        ← Back to stations
-      </Link>
-
       <div className="mb-8 flex flex-col gap-4 rounded-lg border border-line bg-surface p-6 shadow-card sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2.5">
@@ -272,7 +271,7 @@ export default function StationDetailPage() {
           </div>
         </div>
         {station.status === 'Active' ? (
-          <Button variant="secondary" onClick={handleDeactivate} disabled={deactivating}>
+          <Button variant="danger-outline" onClick={() => setConfirmDeactivateOpen(true)} disabled={deactivating}>
             {deactivating ? 'Deactivating…' : 'Deactivate station'}
           </Button>
         ) : (
@@ -412,6 +411,17 @@ export default function StationDetailPage() {
         serverError={slotFormError}
         onClose={() => setIsSlotFormOpen(false)}
         onSubmit={handleSubmitSlot}
+      />
+
+      <ConfirmDialog
+        open={confirmDeactivateOpen}
+        title="Deactivate station?"
+        description={`"${station.name}" will be marked inactive. This can't be undone from here.`}
+        confirmLabel="Deactivate"
+        tone="danger"
+        confirming={deactivating}
+        onConfirm={handleDeactivate}
+        onClose={() => setConfirmDeactivateOpen(false)}
       />
 
       <Toast message={toast.message} tone={toast.tone} onDismiss={() => setToast({ message: '', tone: 'error' })} />

@@ -163,10 +163,20 @@ export default function StationsPage() {
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard label="Total hubs" value={summary.total} />
-        <StatCard label="Active" value={summary.active} hint={`${summary.total - summary.active} inactive`} />
-        <StatCard label="Total capacity" value={`${summary.capacityKWh.toLocaleString()} kWh`} />
-        <StatCard label="Battery slots" value={summary.slots} />
+        <StatCard icon="hubs" label="Total hubs" value={summary.total} hint="Registered grid nodes" />
+        <StatCard
+          icon="pulse"
+          label="Active"
+          value={summary.active}
+          hint={`${summary.total - summary.active} inactive`}
+        />
+        <StatCard
+          icon="bolt"
+          label="Total capacity"
+          value={`${summary.capacityKWh.toLocaleString()} kWh`}
+          hint="Across all hubs"
+        />
+        <StatCard icon="battery" label="Battery slots" value={summary.slots} hint="Declared across hubs" />
       </div>
 
       <div className="mb-4 max-w-xs">
@@ -234,7 +244,7 @@ export default function StationsPage() {
                     </Button>
                     {station.status === 'Active' && (
                       <Button
-                        variant="secondary"
+                        variant="danger-outline"
                         size="sm"
                         disabled={deactivatingId === station.id}
                         onClick={() => handleRequestDeactivate(station)}
