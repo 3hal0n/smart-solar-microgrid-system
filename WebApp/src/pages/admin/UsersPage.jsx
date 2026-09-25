@@ -90,14 +90,18 @@ export default function UsersPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
+            {/* Create User Button - Using standard HTML button to ensure onClick fires reliably */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">User Management</h1>
-        <Button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+        <button 
+          onClick={() => {
+            console.log("Create button clicked!"); // Debug log
+            setIsModalOpen(true);
+          }}
+          className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition-colors"
         >
           + Create New User
-        </Button>
+        </button>
       </div>
 
       {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4">{error}</div>}
@@ -156,75 +160,77 @@ export default function UsersPage() {
         </div>
       )}
 
-      {/* Create User Modal */}
-      {isModalOpen && (
-        <Modal onClose={() => setIsModalOpen(false)} title="Create New User">
-          <form onSubmit={handleCreateUser} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-              <Input 
-                type="text" 
-                required 
-                value={formData.username}
-                onChange={(e) => setFormData({...formData, username: e.target.value})}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-              <Input 
-                type="password" 
-                required 
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-              <Input 
-                type="text" 
-                required 
-                value={formData.fullName}
-                onChange={(e) => setFormData({...formData, fullName: e.target.value})}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <Input 
-                type="email" 
-                required 
-                value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
-              <select 
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                value={formData.role}
-                onChange={(e) => setFormData({...formData, role: e.target.value})}
-              >
-                <option value="Backoffice">Backoffice</option>
-                <option value="GridOperator">Grid Operator</option>
-              </select>
-            </div>
-            <div className="flex justify-end gap-2 pt-4">
-              <Button 
-                type="button" 
-                onClick={() => setIsModalOpen(false)}
-                className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded"
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-              >
-                Create User
-              </Button>
-            </div>
-          </form>
-        </Modal>
-      )}
+      {/* Create User Modal - Passing isOpen prop explicitly */}
+      <Modal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        title="Create New User"
+      >
+        <form onSubmit={handleCreateUser} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+            <Input 
+              type="text" 
+              required 
+              value={formData.username}
+              onChange={(e) => setFormData({...formData, username: e.target.value})}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <Input 
+              type="password" 
+              required 
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+            <Input 
+              type="text" 
+              required 
+              value={formData.fullName}
+              onChange={(e) => setFormData({...formData, fullName: e.target.value})}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <Input 
+              type="email" 
+              required 
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+            <select 
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={formData.role}
+              onChange={(e) => setFormData({...formData, role: e.target.value})}
+            >
+              <option value="Backoffice">Backoffice</option>
+              <option value="GridOperator">Grid Operator</option>
+            </select>
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <button 
+              type="button" 
+              onClick={() => setIsModalOpen(false)}
+              className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded"
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+            >
+              Create User
+            </button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Toast Notification */}
       {toast.message && (
