@@ -70,7 +70,8 @@ export default function LandingPage() {
 
           <Link to="/login">
             <Button variant="primary" size="sm">
-              Staff / Operator sign in
+              <span className="sm:hidden">Sign in</span>
+              <span className="hidden sm:inline">Staff / Operator sign in</span>
             </Button>
           </Link>
         </nav>
