@@ -10,6 +10,8 @@
 // ============================================================
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.jsx";
+import { ToastProvider } from "./components/common/Toast.jsx";
+import RequireAuth from "./components/auth/RequireAuth.jsx";
 import AppShell from "./components/layout/AppShell.jsx";
 import LandingPage from "./pages/home/LandingPage.jsx";
 import LoginPage from "./pages/auth/LoginPage.jsx"; // ADDED
@@ -20,29 +22,47 @@ import ReservationDetailPage from "./pages/reservations/ReservationDetailPage.js
 import UsersPage from "./pages/admin/UsersPage.jsx";
 
 
-// Renders the app's routing shell wrapped in the shared auth provider.
+// Renders the app's routing shell wrapped in the shared auth/toast providers.
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Public pages — deliberately outside AppShell (no sidebar/top bar). */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} /> {/* ADDED */}
+      <ToastProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Public pages — deliberately outside AppShell (no sidebar/top bar). */}
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage />} /> {/* ADDED */}
 
-          <Route element={<AppShell />}>
-            <Route path="/stations" element={<StationsPage />} />
-            <Route path="/stations/:id" element={<StationDetailPage />} />
+            {/* Everything below requires a signed-in session (2026-09-26: these routes were
+                reachable with no login check at all until Migara's real auth existed to gate
+                them against) — see RequireAuth.jsx. */}
+            <Route
+              element={
+                <RequireAuth>
+                  <AppShell />
+                </RequireAuth>
+              }
+            >
+              <Route path="/stations" element={<StationsPage />} />
+              <Route path="/stations/:id" element={<StationDetailPage />} />
 
-            {/* Migara: User Management route (Placeholder for next step) */}
-            <Route path="/admin/users" element={<UsersPage />} />
+              {/* Migara: User Management — Backoffice only. */}
+              <Route
+                path="/admin/users"
+                element={
+                  <RequireAuth roles={["Backoffice"]}>
+                    <UsersPage />
+                  </RequireAuth>
+                }
+              />
 
-            {/* reservation admin oversight */}
-            <Route path="/reservations" element={<ReservationsAdminPage />} />
-            <Route path="/reservations/:id" element={<ReservationDetailPage />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+              {/* Dinil: reservation admin oversight */}
+              <Route path="/reservations" element={<ReservationsAdminPage />} />
+              <Route path="/reservations/:id" element={<ReservationDetailPage />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </ToastProvider>
     </AuthProvider>
   );
 }

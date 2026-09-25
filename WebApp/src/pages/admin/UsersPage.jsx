@@ -27,13 +27,6 @@ export default function UsersPage() {
     email: ''
   });
 
-  // Fetch users on mount
-  useEffect(() => {
-    if (role === 'Backoffice') {
-      fetchUsers();
-    }
-  }, [role]);
-
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
@@ -45,6 +38,14 @@ export default function UsersPage() {
       setIsLoading(false);
     }
   };
+
+  // Fetch users on mount
+  useEffect(() => {
+    if (role === 'Backoffice') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- standard fetch-on-mount
+      fetchUsers();
+    }
+  }, [role]);
 
   const handleCreateUser = async (e) => {
     e.preventDefault();

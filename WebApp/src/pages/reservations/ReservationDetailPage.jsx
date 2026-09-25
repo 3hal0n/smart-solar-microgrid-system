@@ -74,7 +74,8 @@ export default function ReservationDetailPage() {
   }
 
   useEffect(() => {
-    load(); /* eslint-disable-next-line */
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- standard fetch-on-mount/id-change
+    load();
   }, [id]);
 
   // Cancels the reservation. The 12-hour rejection surfaces verbatim.
