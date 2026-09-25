@@ -38,3 +38,4 @@ export function Td({ children, className = '', ...props }) {
     </td>
   );
 }
+export default Table;

@@ -44,3 +44,16 @@ export default function Toast({ message, tone = 'error', onDismiss, durationMs =
     </div>
   );
 }
+
+// ============================================================
+// TEMPORARY FIX ADDED BY MIGARA TO UNBLOCK BUILD
+// TODO: @Shalon - Please implement the actual useToast context/hook.
+// ============================================================
+export const useToast = () => {
+  return {
+    showToast: (message, tone = 'error') => {
+      console.warn(`[useToast Dummy] ${tone.toUpperCase()}: ${message}`);
+    },
+    hideToast: () => {}
+  };
+};
