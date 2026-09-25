@@ -28,6 +28,19 @@ const FEATURES = [
   },
 ];
 
+const PROSUMER_STEPS = [
+  'Install the Android app and register using your NIC.',
+  'Wait for Backoffice activation, then sign in.',
+  'Reserve a slot and present your QR code at the node.',
+];
+
+// Illustrative rows for the hero's product mockup — sample data, not a live query.
+const MOCK_HUBS = [
+  ['Colombo Central', '240', '12'],
+  ['Kandy Ridge', '180', '8'],
+  ['Galle Coastal', '120', '6'],
+];
+
 // Small inline QR-style glyph — a placeholder artifact for the store link, not a scannable code.
 function QrPlaceholder() {
   return (
@@ -130,11 +143,7 @@ export default function LandingPage() {
                 </tr>
               </thead>
               <tbody className="text-body">
-                {[
-                  ['Colombo Central', '240', '12'],
-                  ['Kandy Ridge', '180', '8'],
-                  ['Galle Coastal', '120', '6'],
-                ].map(([name, capacity, slots]) => (
+                {MOCK_HUBS.map(([name, capacity, slots]) => (
                   <tr key={name} className="border-b border-line last:border-b-0">
                     <td className="px-5 py-2.5 font-medium text-ink">{name}</td>
                     <td className="tnum px-5 py-2.5 text-right">
@@ -224,9 +233,11 @@ export default function LandingPage() {
                 hub.
               </p>
               <ol className="mt-6 space-y-2 text-[14px] font-light text-white/70">
-                <li>1. Install the Android app and register using your NIC.</li>
-                <li>2. Wait for Backoffice activation, then sign in.</li>
-                <li>3. Reserve a slot and present your QR code at the node.</li>
+                {PROSUMER_STEPS.map((step, index) => (
+                  <li key={step}>
+                    {index + 1}. {step}
+                  </li>
+                ))}
               </ol>
             </div>
 
