@@ -17,6 +17,8 @@ import StationsPage from "./pages/stations/StationsPage.jsx";
 import StationDetailPage from "./pages/stations/StationDetailPage.jsx";
 import ReservationsAdminPage from "./pages/reservations/ReservationsAdminPage.jsx";
 import ReservationDetailPage from "./pages/reservations/ReservationDetailPage.jsx";
+import UsersPage from "./pages/admin/UsersPage.jsx";
+
 
 // Renders the app's routing shell wrapped in the shared auth provider.
 export default function App() {
@@ -33,7 +35,7 @@ export default function App() {
             <Route path="/stations/:id" element={<StationDetailPage />} />
 
             {/* Migara: User Management route (Placeholder for next step) */}
-            <Route path="/admin/users" element={<div className="p-8"><h1 className="text-2xl font-bold">User Management (Coming Next)</h1></div>} />
+            <Route path="/admin/users" element={<UsersPage />} />
 
             {/* reservation admin oversight */}
             <Route path="/reservations" element={<ReservationsAdminPage />} />
