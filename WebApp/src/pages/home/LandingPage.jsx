@@ -1,13 +1,14 @@
 // ============================================================
 // File: LandingPage.jsx
-// Purpose: Public marketing/index page at "/" — explains the Smart
-//          Solar Microgrid Trading System to both operators and
-//          prosumers, and routes staff to sign-in. Static UI only:
-//          no API calls and no auth logic live here.
+// Purpose: Public marketing/index page at "/" — explains Joule (the
+//          Smart Solar Microgrid Trading System) to both operators
+//          and prosumers, and routes staff to sign-in. Static UI
+//          only: no API calls and no auth logic live here.
 // Author: Shalon
 // ============================================================
 import { Link } from 'react-router-dom';
 import Button from '../../components/common/Button.jsx';
+import JouleMark from '../../components/common/JouleMark.jsx';
 
 const FEATURES = [
   {
@@ -50,10 +51,8 @@ export default function LandingPage() {
       <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur">
         <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-ink text-[11px] font-bold text-on-dark">
-              SM
-            </span>
-            <span className="text-[15px] font-semibold tracking-tight text-ink">Smart Solar Microgrid</span>
+            <JouleMark id="nav-joule-mark" className="h-6 w-7" />
+            <span className="text-[15px] font-semibold tracking-tight text-ink">Joule</span>
           </div>
 
           <div className="hidden items-center gap-7 md:flex">

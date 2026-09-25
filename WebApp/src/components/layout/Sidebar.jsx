@@ -7,6 +7,7 @@
 // Author: Shalon
 // ============================================================
 import { NavLink } from 'react-router-dom';
+import JouleMark from '../common/JouleMark.jsx';
 
 // Renders one nav section (a micro-label heading plus its links).
 function NavSection({ section, onNavigate }) {
@@ -45,10 +46,8 @@ export default function Sidebar({ sections, open, onClose }) {
         }`}
       >
         <div className="mb-6 flex items-center gap-2 px-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-ink text-[11px] font-bold text-on-dark">
-            SM
-          </span>
-          <span className="text-sm font-semibold tracking-tight text-ink">Smart Microgrid</span>
+          <JouleMark id="sidebar-joule-mark" className="h-5 w-6" />
+          <span className="text-sm font-semibold tracking-tight text-ink">Joule</span>
         </div>
         <nav className="flex-1 overflow-y-auto">
           {sections.map((section) => (
