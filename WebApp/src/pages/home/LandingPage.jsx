@@ -301,7 +301,7 @@ export default function LandingPage() {
           </div>
 
           <div className="mt-12 border-t border-white/10 pt-6 text-[12px] font-light text-white/40">
-            Smart Solar Microgrid Trading System — academic project, {new Date().getFullYear()}.
+            Joule — Smart Solar Microgrid Trading System, academic project, {new Date().getFullYear()}.
           </div>
         </div>
       </footer>
