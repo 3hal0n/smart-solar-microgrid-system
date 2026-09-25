@@ -35,6 +35,11 @@ val StripeSuperNavy = Color(0xFF061B31)
 val StripeFooterBg = Color(0xFF0A2540)
 val StripeOnPrimary = Color(0xFFFFFFFF)
 
+// Tray tint for stat/feature trays — a step darker than {colors.canvas} so a tray reads as a frame
+// on the canvas background (the doc's surfaceAlt #fafbfd is lighter than canvas, which washes out).
+// Same value WebApp uses for its surface-alt trays.
+val StripeTray = Color(0xFFF1F5F9)
+
 // Soft container tints for semantic colors — not literal doc tokens (the doc only gives a single
 // hex per semantic role), derived by lightening each one for container/on-container pairs the way
 // Material3's color roles require.

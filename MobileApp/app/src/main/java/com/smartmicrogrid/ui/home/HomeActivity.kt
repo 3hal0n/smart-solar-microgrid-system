@@ -22,29 +22,28 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.smartmicrogrid.ui.components.JouleIcons
 import com.smartmicrogrid.ui.dashboard.OperatorDashboardScreen
 import com.smartmicrogrid.ui.dashboard.ProsumerDashboardScreen
 import com.smartmicrogrid.ui.operator.MapScreen
@@ -53,21 +52,20 @@ import com.smartmicrogrid.ui.prosumer.BookingsScreen
 import com.smartmicrogrid.ui.prosumer.ProfileScreen
 import com.smartmicrogrid.ui.theme.SmartMicrogridTheme
 
-// One bottom-nav tab: its route and label. The tab "icon" is just the label's first letter in a
-// circle (see TabIcon below) — kept dependency-free rather than pulling in Material Icons
-// Extended for a handful of icons.
-private data class HomeDestination(val route: String, val label: String)
+// One bottom-nav tab: its route, label and icon (from the shared JouleIcons set — kept
+// dependency-free rather than pulling in Material Icons Extended for a handful of icons).
+private data class HomeDestination(val route: String, val label: String, val icon: ImageVector)
 
 private val PROSUMER_DESTINATIONS = listOf(
-    HomeDestination(HomeRoutes.PROSUMER_DASHBOARD, "Dashboard"),
-    HomeDestination(HomeRoutes.PROSUMER_BOOKINGS, "Bookings"),
-    HomeDestination(HomeRoutes.PROSUMER_PROFILE, "Profile"),
+    HomeDestination(HomeRoutes.PROSUMER_DASHBOARD, "Dashboard", JouleIcons.Grid),
+    HomeDestination(HomeRoutes.PROSUMER_BOOKINGS, "Bookings", JouleIcons.Calendar),
+    HomeDestination(HomeRoutes.PROSUMER_PROFILE, "Profile", JouleIcons.User),
 )
 
 private val OPERATOR_DESTINATIONS = listOf(
-    HomeDestination(HomeRoutes.OPERATOR_DASHBOARD, "Dashboard"),
-    HomeDestination(HomeRoutes.OPERATOR_SCAN_QR, "Scan QR"),
-    HomeDestination(HomeRoutes.OPERATOR_MAP, "Map"),
+    HomeDestination(HomeRoutes.OPERATOR_DASHBOARD, "Dashboard", JouleIcons.Grid),
+    HomeDestination(HomeRoutes.OPERATOR_SCAN_QR, "Scan QR", JouleIcons.Scan),
+    HomeDestination(HomeRoutes.OPERATOR_MAP, "Map", JouleIcons.MapPin),
 )
 
 class HomeActivity : ComponentActivity() {
@@ -107,27 +105,38 @@ private fun NavGraphShell(destinations: List<HomeDestination>) {
     val navController = rememberNavController()
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            NavigationBar {
-                val backStackEntry by navController.currentBackStackEntryAsState()
-                val currentRoute = backStackEntry?.destination?.route
-                destinations.forEach { destination ->
-                    NavigationBarItem(
-                        selected = currentRoute == destination.route,
-                        onClick = {
-                            // Standard "switch tabs" navigation options: don't pile up back-stack
-                            // entries per tab switch, and restore each tab's own state on return.
-                            navController.navigate(destination.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+            Column {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
+                    val backStackEntry by navController.currentBackStackEntryAsState()
+                    val currentRoute = backStackEntry?.destination?.route
+                    destinations.forEach { destination ->
+                        NavigationBarItem(
+                            selected = currentRoute == destination.route,
+                            onClick = {
+                                // Standard "switch tabs" navigation options: don't pile up back-stack
+                                // entries per tab switch, and restore each tab's own state on return.
+                                navController.navigate(destination.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
-                        icon = { TabIcon(label = destination.label) },
-                        label = { Text(destination.label) },
-                    )
+                            },
+                            icon = { Icon(destination.icon, contentDescription = null, modifier = Modifier.size(22.dp)) },
+                            label = { Text(destination.label, style = MaterialTheme.typography.labelMedium) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = MaterialTheme.colorScheme.primary,
+                                selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            ),
+                        )
+                    }
                 }
             }
         },
@@ -144,24 +153,5 @@ private fun NavGraphShell(destinations: List<HomeDestination>) {
             composable(HomeRoutes.OPERATOR_SCAN_QR) { ScanQrScreen() }
             composable(HomeRoutes.OPERATOR_MAP) { MapScreen() }
         }
-    }
-}
-
-// Renders a small circular "icon" showing a tab label's first letter.
-@Composable
-private fun TabIcon(label: String) {
-    Box(
-        modifier = Modifier
-            .size(22.dp)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primaryContainer),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label.first().toString(),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
-        )
     }
 }
