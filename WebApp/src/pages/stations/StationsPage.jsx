@@ -7,7 +7,7 @@
 //          here, per the FAT service pattern.
 // Author: Shalon
 // ============================================================
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api.js';
 import { Table, Th, Td } from '../../components/common/Table.jsx';
@@ -15,6 +15,8 @@ import Button from '../../components/common/Button.jsx';
 import Input from '../../components/common/Input.jsx';
 import Badge from '../../components/common/Badge.jsx';
 import Toast from '../../components/common/Toast.jsx';
+import ConfirmDialog from '../../components/common/ConfirmDialog.jsx';
+import StatCard from '../../components/common/StatCard.jsx';
 import StationForm from './StationForm.jsx';
 
 // Formats a GeoJSON [lng, lat] coordinate pair as a fixed-width "lat, lng" string.
@@ -41,7 +43,19 @@ export default function StationsPage() {
   const [formKey, setFormKey] = useState(0);
 
   const [deactivatingId, setDeactivatingId] = useState(null);
+  const [confirmingStation, setConfirmingStation] = useState(null);
   const [toast, setToast] = useState({ message: '', tone: 'error' });
+
+  // Quick-glance summary row, derived from the already-loaded list — no extra API calls.
+  const summary = useMemo(
+    () => ({
+      total: stations.length,
+      active: stations.filter((station) => station.status === 'Active').length,
+      capacityKWh: stations.reduce((sum, station) => sum + (station.capacityKWh ?? 0), 0),
+      slots: stations.reduce((sum, station) => sum + (station.totalBatterySlots ?? 0), 0),
+    }),
+    [stations],
+  );
 
   // Loads the station list from the real API, optionally filtered by the current search term.
   const loadStations = useCallback(async (term) => {
