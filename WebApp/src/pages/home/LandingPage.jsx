@@ -77,19 +77,28 @@ export default function LandingPage() {
       </header>
 
       {/* Hero — copy paired with a product artifact, not a centered generic block */}
-      <section id="platform" className="border-b border-line bg-canvas">
-        <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 lg:grid-cols-2 lg:py-28">
+      <section id="platform" className="relative overflow-hidden border-b border-line">
+        <img
+          src="/images/solar-sky-hero.jpg"
+          alt=""
+          aria-hidden="true"
+          width={1920}
+          height={2560}
+          loading="eager"
+          decoding="async"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-canvas/93" />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 lg:grid-cols-2 lg:py-28">
           <div>
-            <span className="inline-flex items-center rounded-md border border-primary/20 bg-primary-soft px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-primary">
-              Energy trading infrastructure
-            </span>
+            <p className="text-[13px] font-semibold uppercase tracking-wider text-primary">Power, exchanged precisely.</p>
             <h1 className="mt-5 text-4xl font-medium leading-[1.05] tracking-[-0.03em] text-ink sm:text-5xl">
               Peer-to-peer solar energy, settled on managed grid infrastructure.
             </h1>
             <p className="mt-5 max-w-lg text-[17px] font-light leading-relaxed text-body">
-              Smart Solar Microgrid connects property owners with solar arrays to a network of operated grid hubs.
-              Backoffice teams manage node capacity and schedules, prosumers reserve energy slots from mobile, and grid
-              operators verify every transfer at the point of delivery.
+              Joule connects property owners with solar arrays to a network of operated grid hubs. Backoffice teams
+              manage node capacity and schedules, prosumers reserve energy slots from mobile, and grid operators verify
+              every transfer at the point of delivery.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link to="/login">
@@ -236,10 +245,8 @@ export default function LandingPage() {
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-md bg-white/10 text-[11px] font-bold">
-                  SM
-                </span>
-                <span className="text-[14px] font-semibold tracking-tight">Smart Solar Microgrid</span>
+                <JouleMark id="footer-joule-mark" className="h-6 w-7" />
+                <span className="text-[14px] font-semibold tracking-tight">Joule</span>
               </div>
               <p className="mt-3 text-[13px] font-light text-white/50">
                 Client-server energy trading platform for solar prosumers and microgrid operators.
