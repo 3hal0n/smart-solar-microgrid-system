@@ -151,8 +151,11 @@ export default function UsersPage() {
           CUSTOM TAILWIND MODAL (Bypasses teammate's Modal component)
           ============================================================ */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-md p-6 relative">
+        <div 
+    className="fixed inset-0 z-50 flex items-center justify-center p-4"
+    style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+  >
+    <div className="bg-white rounded-lg shadow-2xl w-full max-w-md p-6 relative">
             <div className="flex justify-between items-center mb-4 border-b pb-2">
               <h3 className="text-xl font-bold text-gray-800">Create New User</h3>
               <button 
