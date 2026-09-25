@@ -35,13 +35,14 @@ function NavSection({ section, onNavigate }) {
 }
 
 // Renders the sidebar itself: brand header, nav sections, and (on small screens) a backdrop +
-// slide-in transform driven by the `open` prop.
+// slide-in transform driven by the `open` prop. Mobile keeps the flush edge-to-edge drawer
+// convention; desktop (lg:) becomes a rounded floating panel to match the rest of the shell.
 export default function Sidebar({ sections, open, onClose }) {
   return (
     <>
       {open && <div className="fixed inset-0 z-30 bg-ink/50 lg:hidden" onClick={onClose} aria-hidden="true" />}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-line bg-surface px-3 py-4 transition-transform duration-200 lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-line bg-surface px-3 py-4 shadow-panel transition-transform duration-200 lg:static lg:inset-auto lg:translate-x-0 lg:rounded-2xl lg:border lg:border-line lg:shadow-card ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >

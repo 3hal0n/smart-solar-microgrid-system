@@ -11,7 +11,7 @@ import Button from '../common/Button.jsx';
 // Renders the hamburger (mobile only), signed-in user info, and a logout button.
 export default function TopBar({ onToggleSidebar, fullName, role, onLogout }) {
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-line bg-surface px-4 sm:px-6">
+    <header className="flex h-14 shrink-0 items-center justify-between border-b border-line px-4 sm:px-6">
       <button
         type="button"
         onClick={onToggleSidebar}
