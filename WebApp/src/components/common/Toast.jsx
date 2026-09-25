@@ -5,9 +5,21 @@
 //          conflict) verbatim — the client never pre-guesses whether
 //          an action is allowed, per the FAT service pattern; it
 //          just relays what the server said.
+//
+//          Two ways to use it: the default-exported <Toast/> below is
+//          a plain controlled component (message/tone/onDismiss props
+//          + local useState) — see StationsPage.jsx/StationDetailPage.jsx
+//          for that pattern. `useToast()` (added 2026-09-26 while
+//          merging in Dinil's ReservationsAdminPage.jsx/
+//          ReservationDetailPage.jsx, which were already written
+//          against this hook-based shape) is a global alternative:
+//          call `const { show } = useToast()` from anywhere under
+//          <ToastProvider> (mounted once in App.jsx) and
+//          `show(message, tone)` imperatively, no local state needed.
+//          Both render through the same <Toast>/<ToastCard> visuals.
 // Author: Shalon
 // ============================================================
-import { useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 const TONE_CONFIG = {
   error: { accent: 'bg-error', iconBg: 'bg-error-soft text-error' },
@@ -60,6 +72,39 @@ export default function Toast({ message, tone = 'error', onDismiss, durationMs =
       <ToastCard key={message} tone={tone} message={message} onDismiss={onDismiss} />
     </div>
   );
+}
+
+const ToastContext = createContext(null);
+
+// Mounts the one global toast + the `show(message, tone)` function every useToast() caller shares
+// — wrap the app (or any subtree) in this once, per architecture.md §8 shared-infra convention.
+export function ToastProvider({ children }) {
+  const [toast, setToast] = useState({ message: '', tone: 'error' });
+
+  const show = useCallback((message, tone = 'success') => {
+    setToast({ message, tone });
+  }, []);
+
+  const dismiss = useCallback(() => {
+    setToast({ message: '', tone: 'error' });
+  }, []);
+
+  return (
+    <ToastContext.Provider value={{ show }}>
+      {children}
+      <Toast message={toast.message} tone={toast.tone} onDismiss={dismiss} />
+    </ToastContext.Provider>
+  );
+}
+
+// Reads the shared `show(message, tone)` function; must be called from inside a ToastProvider.
+// eslint-disable-next-line react-refresh/only-export-components -- colocated hook, not a component
+export function useToast() {
+  const context = useContext(ToastContext);
+  if (!context) {
+    throw new Error('useToast must be used within a ToastProvider');
+  }
+  return context;
 }
 
 // The actual animated card — a separate component so its `visible` state starts fresh on every
