@@ -39,4 +39,7 @@ public class MongoDbContext
 
     // Typed accessor for the EnergyBookingSlots collection (owner: Shalon).
     public IMongoCollection<Slot> EnergyBookingSlots => _database.GetCollection<Slot>("EnergyBookingSlots");
+
+        // ADDED BY MIGARA: Required for ReservationService to access the Reservations collection.
+    public IMongoCollection<Reservation> Reservations => _database.GetCollection<Reservation>("Reservations");
 }
