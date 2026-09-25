@@ -131,15 +131,21 @@ fun MapScreen() {
         )
     }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        LocationSourceBanner(usingDeviceLocation = usingDeviceLocation, center = center)
-        Box(modifier = Modifier.fillMaxSize()) {
-            when {
-                center == null || stations == null -> LoadingState()
-                stations!!.isEmpty() -> EmptyState()
-                else -> StationsMap(center = center!!, stations = stations!!)
-            }
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        when {
+            center == null || stations == null -> LoadingState()
+            stations!!.isEmpty() -> EmptyState()
+            else -> StationsMap(center = center!!, stations = stations!!)
         }
+        // Floats over the map (rather than pushing it down) so the map keeps the full screen.
+        LocationSourceBanner(
+            usingDeviceLocation = usingDeviceLocation,
+            center = center,
+            stationCount = stations?.size,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(12.dp),
+        )
     }
 }
 

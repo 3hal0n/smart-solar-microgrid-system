@@ -60,21 +60,29 @@
 // ============================================================
 package com.smartmicrogrid.ui.dashboard
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -85,14 +93,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.smartmicrogrid.data.local.AppDbHelper
 import com.smartmicrogrid.data.local.DashboardCacheDao
+import com.smartmicrogrid.ui.components.IconTile
+import com.smartmicrogrid.ui.components.JouleIcons
+import com.smartmicrogrid.ui.components.SectionCard
+import com.smartmicrogrid.ui.components.StatTray
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 private val STATUS_FILTERS = listOf("All", "Confirmed", "Completed", "Cancelled")
 private val DATE_INPUT_PATTERN = Regex("""^\d{4}-\d{2}-\d{2}$""")
@@ -169,42 +185,24 @@ fun ProsumerDashboardScreen() {
     val needsCheckIn = current.filter { it.scheduledAt <= now }
     val history = filtered.filter { it.status == "Completed" || it.status == "Cancelled" }
 
+
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
+            .padding(horizontal = 16.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column {
-                Text(text = "Dashboard", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text(
-                    text = "NIC $FIXTURE_PROSUMER_NIC",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Button(onClick = { refreshToken++ }) {
-                Text("Refresh")
-            }
-        }
+        DashboardHeader(onRefresh = { refreshToken++ })
 
         if (loadError != null) {
-            Text(
-                text = loadError.orEmpty(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 12.dp),
-            )
+            ErrorBanner(message = loadError.orEmpty())
         }
 
-        StatTilesRow(summary = summary, modifier = Modifier.padding(top = 16.dp))
+        StatTraysRow(summary = summary)
 
-        FilterControls(
+        FilterCard(
             statusFilter = statusFilter,
             onStatusFilterChange = { statusFilter = it },
             stationFilter = stationFilter,
@@ -215,60 +213,115 @@ fun ProsumerDashboardScreen() {
             toFilter = toFilter,
             onToFilterChange = { toFilter = it },
             toDateValid = toDateValid,
-            modifier = Modifier.padding(top = 20.dp),
         )
 
         ReservationSection(
             title = "Current bookings",
             reservations = current,
             emptyMessage = "No current bookings match this filter.",
-            modifier = Modifier.padding(top = 20.dp),
         )
 
         ReservationSection(
             title = "Pending reservations — needs check-in",
             reservations = needsCheckIn,
             emptyMessage = "No pending reservations match this filter.",
-            modifier = Modifier.padding(top = 20.dp),
         )
 
         ReservationSection(
             title = "Booking history",
             reservations = history,
             emptyMessage = "No booking history matches this filter.",
-            modifier = Modifier.padding(top = 20.dp),
         )
     }
 }
 
-// Renders the three summary stat tiles (active/pending/approved-future) in a row. `summary` is
-// null only before either the cache read or the first refresh has resolved — tiles show an em
-// dash rather than a misleading "0" in that brief window.
-@Composable
-private fun StatTilesRow(summary: ProsumerDashboardSummary?, modifier: Modifier = Modifier) {
-    Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        StatTile(label = "Active", value = summary?.activeCount, modifier = Modifier.weight(1f))
-        StatTile(label = "Pending", value = summary?.pendingCount, modifier = Modifier.weight(1f))
-        StatTile(label = "Approved future", value = summary?.approvedFutureCount, modifier = Modifier.weight(1f))
-    }
-}
+private val ROW_DATE_FORMAT: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("dd MMM yyyy · HH:mm").withZone(ZoneId.systemDefault())
 
-// Renders a single stat tile: a large number (or an em dash while nothing's loaded yet) over a
-// label, inside a card.
+// "2026-10-02T09:00:00Z" -> "02 Oct 2026 · 14:30" in the device's time zone; falls back to the
+// raw string if it isn't a valid ISO instant.
+private fun formatScheduled(iso: String): String =
+    runCatching { ROW_DATE_FORMAT.format(Instant.parse(iso)) }.getOrDefault(iso)
+
+// Screen title, the prosumer's NIC, and an outlined refresh icon button.
 @Composable
-private fun StatTile(label: String, value: Int?, modifier: Modifier = Modifier) {
-    Card(modifier = modifier, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(text = value?.toString() ?: "—", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-            Text(text = label, style = MaterialTheme.typography.bodySmall)
+private fun DashboardHeader(onRefresh: () -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Dashboard",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground,
+            )
+            Text(
+                text = "NIC $FIXTURE_PROSUMER_NIC",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        OutlinedIconButton(
+            onClick = onRefresh,
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        ) {
+            Icon(JouleIcons.Refresh, contentDescription = "Refresh", tint = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
 
-// Renders the status filter chips, the station-id search field, and a scheduledAt date-range
-// filter (from/to, "YYYY-MM-DD"), covering 4 of GET /reservations's query params.
+// Inline error banner shown when a refresh fails (the last-known data stays on screen below it).
 @Composable
-private fun FilterControls(
+private fun ErrorBanner(message: String) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.errorContainer,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.25f)),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onErrorContainer,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+        )
+    }
+}
+
+// The three summary trays (active / pending / approved-future). Labels are kept short so three fit
+// on a 360dp phone; the rubric wording lives in each tray's hint line. `summary` is null only
+// before either the cache read or the first refresh has resolved — trays show an em dash then.
+@Composable
+private fun StatTraysRow(summary: ProsumerDashboardSummary?) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        StatTray(
+            label = "Active",
+            value = summary?.activeCount,
+            hint = "Confirmed",
+            icon = JouleIcons.Pulse,
+            modifier = Modifier.weight(1f),
+        )
+        StatTray(
+            label = "Pending",
+            value = summary?.pendingCount,
+            hint = "Needs check-in",
+            icon = JouleIcons.Bolt,
+            modifier = Modifier.weight(1f),
+        )
+        StatTray(
+            label = "Upcoming",
+            value = summary?.approvedFutureCount,
+            hint = "Approved future",
+            icon = JouleIcons.Calendar,
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+// Status chips (horizontally scrollable, so they never clip on narrow phones), the station-id
+// search, and a scheduledAt date range (from/to, "YYYY-MM-DD") — 4 of GET /reservations's params.
+@Composable
+private fun FilterCard(
     statusFilter: String,
     onStatusFilterChange: (String) -> Unit,
     stationFilter: String,
@@ -279,12 +332,12 @@ private fun FilterControls(
     toFilter: String,
     onToFilterChange: (String) -> Unit,
     toDateValid: Boolean,
-    modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier) {
-        Text(text = "Filter", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+    SectionCard(title = "Filter") {
         Row(
-            modifier = Modifier.padding(top = 8.dp),
+            modifier = Modifier
+                .padding(top = 12.dp)
+                .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             STATUS_FILTERS.forEach { status ->
@@ -292,14 +345,18 @@ private fun FilterControls(
                     selected = statusFilter == status,
                     onClick = { onStatusFilterChange(status) },
                     label = { Text(status) },
+                    shape = RoundedCornerShape(50),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.primary,
+                    ),
                 )
             }
         }
-        OutlinedTextField(
+        FilterTextField(
             value = stationFilter,
             onValueChange = onStationFilterChange,
-            label = { Text("Station ID contains") },
-            singleLine = true,
+            label = "Station ID contains",
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 12.dp),
@@ -310,19 +367,17 @@ private fun FilterControls(
                 .padding(top = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            OutlinedTextField(
+            FilterTextField(
                 value = fromFilter,
                 onValueChange = onFromFilterChange,
-                label = { Text("From (YYYY-MM-DD)") },
-                singleLine = true,
+                label = "From (YYYY-MM-DD)",
                 isError = !fromDateValid,
                 modifier = Modifier.weight(1f),
             )
-            OutlinedTextField(
+            FilterTextField(
                 value = toFilter,
                 onValueChange = onToFilterChange,
-                label = { Text("To (YYYY-MM-DD)") },
-                singleLine = true,
+                label = "To (YYYY-MM-DD)",
                 isError = !toDateValid,
                 modifier = Modifier.weight(1f),
             )
@@ -332,76 +387,115 @@ private fun FilterControls(
                 text = "Dates must be in YYYY-MM-DD format — ignored until fixed.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 4.dp),
+                modifier = Modifier.padding(top = 6.dp),
             )
         }
     }
 }
 
-// Renders a titled section: a list of reservation rows, or an empty-state message.
+// Single-line outlined field with the app's rounded shape and hairline border.
+@Composable
+private fun FilterTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    isError: Boolean = false,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        singleLine = true,
+        isError = isError,
+        shape = RoundedCornerShape(12.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+        ),
+        modifier = modifier,
+    )
+}
+
+// A titled section card: reservation rows separated by hairlines, or an empty-state message.
 @Composable
 private fun ReservationSection(
     title: String,
     reservations: List<ReservationListItem>,
     emptyMessage: String,
-    modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier) {
-        Text(text = "$title (${reservations.size})", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+    SectionCard(title = title, count = reservations.size) {
         if (reservations.isEmpty()) {
             Text(
                 text = emptyMessage,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp),
+                modifier = Modifier.padding(top = 12.dp),
             )
         } else {
-            Column(modifier = Modifier.padding(top = 8.dp)) {
-                reservations.forEach { reservation ->
+            Column(modifier = Modifier.padding(top = 4.dp)) {
+                reservations.forEachIndexed { index, reservation ->
+                    if (index > 0) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline)
+                    }
                     ReservationRow(reservation)
-                    HorizontalDivider()
                 }
             }
         }
     }
 }
 
-// Renders one reservation as a compact row: station/slot + scheduled time on the left, a status
-// pill on the right.
+// One reservation: an icon tile, station + slot/time, and a status pill on the right.
 @Composable
 private fun ReservationRow(reservation: ReservationListItem) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 10.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column {
-            Text(text = "Station ${reservation.stationId.takeLast(6)}", fontWeight = FontWeight.Bold)
+        IconTile(icon = JouleIcons.Hubs, size = 36.dp)
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Slot ${reservation.slotId.takeLast(6)} · ${reservation.scheduledAt}",
+                text = "Station ${reservation.stationId.takeLast(6)}",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = "Slot ${reservation.slotId.takeLast(6)} · ${formatScheduled(reservation.scheduledAt)}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
         StatusPill(status = reservation.status)
     }
 }
 
-// Renders a small colored pill naming a reservation's status.
+// Small rounded status pill with a leading dot, toned by reservation status.
 @Composable
 private fun StatusPill(status: String) {
-    val containerColor = when (status) {
-        "Confirmed" -> MaterialTheme.colorScheme.primaryContainer
-        "Completed" -> MaterialTheme.colorScheme.tertiaryContainer
-        else -> MaterialTheme.colorScheme.errorContainer
+    val (container, content) = when (status) {
+        "Confirmed" -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.primary
+        "Completed" -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.error
     }
-    Card(colors = CardDefaults.cardColors(containerColor = containerColor)) {
-        Text(
-            text = status,
-            style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(container)
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(6.dp)
+                .clip(RoundedCornerShape(50))
+                .background(content),
         )
+        Text(text = status, style = MaterialTheme.typography.labelMedium, color = content)
     }
 }
