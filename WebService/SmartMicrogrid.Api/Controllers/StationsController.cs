@@ -9,6 +9,8 @@
 //          requests/exceptions to HTTP.
 // Author: Shalon
 // ============================================================
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartMicrogrid.Api.Models;
 using SmartMicrogrid.Api.Services;
@@ -72,15 +74,15 @@ public class StationsController : ControllerBase
         return Ok(station);
     }
 
-    // POST /api/stations - creates a new station.
-    // TODO(Rukshan): restore [Authorize(Roles = "Backoffice")] and read the caller's id from the JWT
-    // once JwtService/auth scheme is wired up 
+    // POST /api/stations - creates a new station. Backoffice only — Migara's JWT auth (merged
+    // 2026-09-26) now exists, so the TODO to restore [Authorize] and read the real caller id is done.
+    [Authorize(Roles = "Backoffice")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateStationRequest request)
     {
         try
         {
-            var id = await _stationService.CreateAsync(request, createdByUserId: null);
+            var id = await _stationService.CreateAsync(request, createdByUserId: CallerId());
             return CreatedAtAction(nameof(GetById), new { id }, new CreatedIdResponse { Id = id });
         }
         catch (ValidationException ex)
@@ -89,8 +91,8 @@ public class StationsController : ControllerBase
         }
     }
 
-    // PUT /api/stations/{id} - partial update of station fields.
-    // TODO(Rukshan): restore [Authorize(Roles = "Backoffice")] once JwtService/auth scheme is wired up.
+    // PUT /api/stations/{id} - partial update of station fields. Backoffice only.
+    [Authorize(Roles = "Backoffice")]
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateStationRequest request)
     {
@@ -110,7 +112,8 @@ public class StationsController : ControllerBase
     }
 
     // PUT /api/stations/{id}/deactivate - blocks with 409 if the station has active slots/reservations.
-    // TODO(Rukshan): restore [Authorize(Roles = "Backoffice")] once JwtService/auth scheme is wired up.
+    // Backoffice only.
+    [Authorize(Roles = "Backoffice")]
     [HttpPut("{id}/deactivate")]
     public async Task<IActionResult> Deactivate(string id)
     {
@@ -130,8 +133,8 @@ public class StationsController : ControllerBase
     }
 
     // PUT /api/stations/{id}/activate - flips an Inactive station back to Active. No conflict check
-    // needed (unlike deactivate): reactivating never blocks on anything.
-    // TODO(Rukshan): restore [Authorize(Roles = "Backoffice")] once JwtService/auth scheme is wired up.
+    // needed (unlike deactivate): reactivating never blocks on anything. Backoffice only.
+    [Authorize(Roles = "Backoffice")]
     [HttpPut("{id}/activate")]
     public async Task<IActionResult> Activate(string id)
     {
@@ -161,4 +164,8 @@ public class StationsController : ControllerBase
             return NotFound(new { message = ex.Message });
         }
     }
+
+    // Reads the caller's user id from the JWT "sub" claim Migara's AuthController sets — only
+    // ever called from an [Authorize]-protected action, so the claim is guaranteed present.
+    private string? CallerId() => User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
 }
