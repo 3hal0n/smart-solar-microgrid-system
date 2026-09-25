@@ -4,6 +4,16 @@
 //          treatment: white surface, 1px keylines, compact rows,
 //          uppercase micro-labels in the header). Alignment and
 //          numeric/mono styling are passed per-cell via className.
+//
+//          Two ways to use it: the named `Table`/`Th`/`Td` below are
+//          compound-component primitives you compose yourself (see
+//          StationsPage.jsx/StationDetailPage.jsx). The default
+//          export, `DataTable` (added 2026-09-26 while merging in
+//          Dinil's ReservationsAdminPage.jsx, which was already
+//          written against a columns/data-driven shape), takes
+//          `columns` ({ key, header, render?(row) }[]), `data`,
+//          `loading`, `emptyMessage`, and `rowKey(row)`, and renders
+//          through these same primitives underneath.
 // Author: Shalon
 // ============================================================
 // Wraps table content in the shared bordered, rounded container.
@@ -38,4 +48,47 @@ export function Td({ children, className = '', ...props }) {
     </td>
   );
 }
-export default Table;
+
+// Data-driven table: pass columns + rows, get header/body/loading/empty states for free. Each
+// column is { key, header, render?(row) } — render falls back to row[key] when omitted.
+export default function DataTable({ columns, data, loading, emptyMessage = 'No data.', rowKey }) {
+  return (
+    <Table>
+      <thead>
+        <tr>
+          {columns.map((column) => (
+            <Th key={column.key} className={column.className}>
+              {column.header}
+            </Th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {loading && (
+          <tr>
+            <Td colSpan={columns.length} className="py-8 text-center text-[13px] text-muted">
+              Loading…
+            </Td>
+          </tr>
+        )}
+        {!loading && data.length === 0 && (
+          <tr>
+            <Td colSpan={columns.length} className="py-8 text-center text-[13px] text-muted">
+              {emptyMessage}
+            </Td>
+          </tr>
+        )}
+        {!loading &&
+          data.map((row) => (
+            <tr key={rowKey(row)} className="transition-colors hover:bg-surface-alt/60">
+              {columns.map((column) => (
+                <Td key={column.key} className={column.className}>
+                  {column.render ? column.render(row) : row[column.key]}
+                </Td>
+              ))}
+            </tr>
+          ))}
+      </tbody>
+    </Table>
+  );
+}

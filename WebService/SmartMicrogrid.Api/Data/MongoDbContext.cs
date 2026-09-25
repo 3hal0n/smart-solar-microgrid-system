@@ -30,9 +30,8 @@ public class MongoDbContext
     // Exposes the raw database handle for collections that don't have a typed accessor yet.
     public IMongoDatabase Database => _database;
 
-    // Collection for system users (Backoffice/GridOperator)
-        public IMongoCollection<User> Users => _database.GetCollection<User>("Users");
-
+    // Typed accessor for the Users collection (owner: Migara — Backoffice/GridOperator accounts).
+    public IMongoCollection<User> Users => _database.GetCollection<User>("Users");
 
     // Typed accessor for the SolarStations collection (owner: Shalon).
     public IMongoCollection<Station> SolarStations => _database.GetCollection<Station>("SolarStations");
@@ -40,6 +39,8 @@ public class MongoDbContext
     // Typed accessor for the EnergyBookingSlots collection (owner: Shalon).
     public IMongoCollection<Slot> EnergyBookingSlots => _database.GetCollection<Slot>("EnergyBookingSlots");
 
-        // ADDED BY MIGARA: Required for ReservationService to access the Reservations collection.
+    // Typed accessor for the Reservations collection (write-side owner: Dinil; Shalon reads it
+    // for the station-deactivation check, the reservations-overview panel, and the
+    // dashboard/search/nearby endpoints — see architecture.md §3/§4).
     public IMongoCollection<Reservation> Reservations => _database.GetCollection<Reservation>("Reservations");
 }

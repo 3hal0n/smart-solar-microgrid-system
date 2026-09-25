@@ -1,18 +1,32 @@
 // ============================================================
 // File: Sidebar.jsx
-// Purpose: Shared left navigation rail for AppShell — renders the
-//          product's nav sections and slides in as an overlay on
-//          small screens. Purely presentational: takes its sections
-//          as a prop so it isn't hardcoded to any one owner's pages.
+// Purpose: Shared left navigation rail for AppShell — brand at the
+//          top, icon nav sections in the middle, and the signed-in
+//          user + sign out pinned to the bottom. Sits flat on the
+//          canvas (the content panel is the one raised surface) and
+//          slides in as an overlay on small screens. Purely
+//          presentational: sections/user/callbacks come in as props.
 // Author: Shalon
 // ============================================================
 import { NavLink } from 'react-router-dom';
+import JouleMark from '../common/JouleMark.jsx';
+import Icon from '../common/Icon.jsx';
 
-// Renders one nav section (a micro-label heading plus its links).
+// Initials for the avatar chip, e.g. "Shalon Fernando" -> "SF".
+function initialsOf(name) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join('');
+}
+
+// Renders one nav section (a micro-label heading plus its icon links).
 function NavSection({ section, onNavigate }) {
   return (
     <div className="mb-6">
-      <p className="mb-1.5 px-2 text-[11px] font-semibold uppercase tracking-wider text-muted">{section.title}</p>
+      <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted">{section.title}</p>
       <div className="flex flex-col gap-0.5">
         {section.items.map((item) => (
           <NavLink
@@ -20,12 +34,19 @@ function NavSection({ section, onNavigate }) {
             to={item.to}
             onClick={onNavigate}
             className={({ isActive }) =>
-              `rounded-md px-2 py-1.5 text-[13px] font-medium transition-colors ${
-                isActive ? 'bg-primary-soft text-primary' : 'text-body hover:bg-surface-alt hover:text-ink'
+              `flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${
+                isActive
+                  ? 'bg-surface text-ink shadow-card ring-1 ring-line'
+                  : 'text-body hover:bg-surface/70 hover:text-ink'
               }`
             }
           >
-            {item.label}
+            {({ isActive }) => (
+              <>
+                <Icon name={item.icon} className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-muted'}`} />
+                {item.label}
+              </>
+            )}
           </NavLink>
         ))}
       </div>
@@ -33,28 +54,47 @@ function NavSection({ section, onNavigate }) {
   );
 }
 
-// Renders the sidebar itself: brand header, nav sections, and (on small screens) a backdrop +
-// slide-in transform driven by the `open` prop.
-export default function Sidebar({ sections, open, onClose }) {
+// Renders the sidebar: brand, nav sections, and the user/sign-out footer. On small screens it's a
+// fixed drawer driven by `open`; on desktop (lg:) it's a static rail.
+export default function Sidebar({ sections, open, onClose, fullName, role, onLogout }) {
   return (
     <>
-      {open && <div className="fixed inset-0 z-30 bg-ink/50 lg:hidden" onClick={onClose} aria-hidden="true" />}
+      {open && <div className="fixed inset-0 z-30 bg-ink/40 lg:hidden" onClick={onClose} aria-hidden="true" />}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-line bg-surface px-3 py-4 transition-transform duration-200 lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-canvas px-3 py-4 shadow-panel transition-transform duration-200 lg:static lg:translate-x-0 lg:shadow-none ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="mb-6 flex items-center gap-2 px-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-ink text-[11px] font-bold text-on-dark">
-            SM
-          </span>
-          <span className="text-sm font-semibold tracking-tight text-ink">Smart Microgrid</span>
+        <div className="mb-8 flex items-center gap-2.5 px-3 pt-1">
+          <JouleMark id="sidebar-joule-mark" className="h-6 w-7" />
+          <span className="text-[16px] font-semibold tracking-[-0.03em] text-ink">Joule</span>
         </div>
+
         <nav className="flex-1 overflow-y-auto">
           {sections.map((section) => (
             <NavSection key={section.title} section={section} onNavigate={onClose} />
           ))}
         </nav>
+
+        <div className="mt-4 border-t border-line pt-4">
+          <div className="flex items-center gap-2.5 px-2">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-[12px] font-semibold text-primary">
+              {fullName ? initialsOf(fullName) : '—'}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] font-medium text-ink">{fullName ?? 'Not signed in'}</p>
+              {role && <p className="truncate text-[11px] text-muted">{role}</p>}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onLogout}
+            className="mt-3 flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-body transition-colors hover:bg-surface/70 hover:text-ink"
+          >
+            <Icon name="logout" className="h-4 w-4 text-muted" />
+            Sign out
+          </button>
+        </div>
       </aside>
     </>
   );

@@ -6,6 +6,7 @@
 //          pattern; this file only maps requests/exceptions to HTTP.
 // Author: Shalon
 // ============================================================
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SmartMicrogrid.Api.Models;
 using SmartMicrogrid.Api.Services;
@@ -24,7 +25,8 @@ public class SlotsController : ControllerBase
     }
 
     // POST /api/stations/{stationId}/slots - creates a new slot under an existing station.
-    // TODO(Rukshan): restore [Authorize(Roles = "Backoffice")] once JwtService/auth scheme is wired up.
+    // Backoffice only, per architecture.md §3's endpoint table.
+    [Authorize(Roles = "Backoffice")]
     [HttpPost("stations/{stationId}/slots")]
     public async Task<IActionResult> Create(string stationId, [FromBody] CreateSlotRequest request)
     {
@@ -43,8 +45,9 @@ public class SlotsController : ControllerBase
         }
     }
 
-    // PUT /api/slots/{id} - partial update of slot fields.
-    // TODO(Rukshan): restore [Authorize(Roles = "Backoffice")] once JwtService/auth scheme is wired up.
+    // PUT /api/slots/{id} - partial update of slot fields. Backoffice only, per architecture.md
+    // §3's endpoint table.
+    [Authorize(Roles = "Backoffice")]
     [HttpPut("slots/{id}")]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateSlotRequest request)
     {

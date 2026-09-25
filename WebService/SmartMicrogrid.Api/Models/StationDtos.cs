@@ -82,12 +82,25 @@ public class CreatedIdResponse
 }
 
 // Response row for GET /stations/{id}/reservations-overview, per architecture.md §3's declared
-// shape: [{ slotId, status, prosumerNic?, scheduledAt? }]. See StationService.GetReservationsOverviewAsync
-// for why this is currently always an empty list (Dinil's Reservations collection doesn't exist yet).
+// shape: [{ slotId, status, prosumerNic?, scheduledAt? }].
 public class ReservationOverviewResponse
 {
     public string SlotId { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string? ProsumerNic { get; set; }
     public DateTime? ScheduledAt { get; set; }
+}
+
+// Response row for GET /stations/nearby (moved from Migara to Shalon 2026-09-21 — see §3/§4).
+// NOTE: capacityKWh and availableSlots were added 2026-09-24 beyond architecture.md §3's original
+// shape (id, name, location, distanceKm), for the mobile map's info window — backward-compatible
+// addition, same pattern as GET /stations' totalBatterySlots.
+public class NearbyStationResponse
+{
+    public string Id { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public LocationResponse Location { get; set; } = new();
+    public double DistanceKm { get; set; }
+    public double CapacityKWh { get; set; }
+    public int AvailableSlots { get; set; }
 }

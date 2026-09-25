@@ -1,9 +1,17 @@
 // ============================================================
 // File: AppDbHelper.kt
-// Purpose: Single SQLiteOpenHelper. Each owner's CREATE_TABLE
-//          constant lives in their own DAO file, called here.
-//          This file is written once and essentially frozen.
-// Author: Dinil (shared infra)
+// Purpose: Shared local SQLite database helper — built jointly Day 1
+//          per architecture.md §8, then frozen. onCreate() only ever
+//          calls each person's own CREATE_TABLE constant, defined in
+//          their own DAO file (never written inline here), so two
+//          mobile developers never edit this same method body on
+//          different days — see architecture.md §8's merge-conflict
+//          note, which this file follows exactly. Merged 2026-09-26:
+//          Shalon and Dinil each built this file independently before
+//          coordinating (Shalon's DashboardCacheDao + Dinil's
+//          ReservationCacheDao) — this is the reconciled version both
+//          tables now go through.
+// Author: Shalon + Dinil (shared infra)
 // ============================================================
 package com.smartmicrogrid.data.local
 
@@ -11,14 +19,25 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
+private const val DATABASE_NAME = "smart_microgrid.db"
+private const val DATABASE_VERSION = 1
+
 class AppDbHelper(context: Context) : SQLiteOpenHelper(
-    context.applicationContext, "smart_microgrid.db", null, 1
+    context.applicationContext, DATABASE_NAME, null, DATABASE_VERSION
 ) {
+
+    // Creates every local table this app needs, one execSQL call per owner's own CREATE_TABLE
+    // constant — add your own line here, don't edit anyone else's.
     override fun onCreate(db: SQLiteDatabase) {
+        db.execSQL(DashboardCacheDao.CREATE_TABLE)
         db.execSQL(ReservationCacheDao.CREATE_TABLE)
-        // Other owners: add your CREATE_TABLE constants here.
+        // TODO(Rukshan): add `db.execSQL(ProsumerSessionDao.CREATE_TABLE)` here once
+        // ProsumerSessionDao.kt exists (architecture.md §8) — your own file, your own constant,
+        // just this one extra line in this method.
     }
 
+    // Handles schema upgrades. No-op beyond Dinil's local_verified_scans rebuild for now, since
+    // DATABASE_VERSION has never been bumped past 1 — extend this (not onCreate) if that changes.
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
         db.execSQL("DROP TABLE IF EXISTS local_verified_scans")
         onCreate(db)

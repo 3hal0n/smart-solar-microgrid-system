@@ -63,6 +63,7 @@ builder.Services.AddControllers()
 builder.Services.AddSingleton<MongoDbContext>();
 builder.Services.AddScoped<StationService>();
 builder.Services.AddScoped<SlotService>();
+builder.Services.AddScoped<DashboardService>();
 builder.Services.AddSingleton<QrTokenService>();
 builder.Services.AddScoped<ReservationService>();
 
