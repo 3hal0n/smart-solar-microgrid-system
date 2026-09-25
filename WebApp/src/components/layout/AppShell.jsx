@@ -17,15 +17,21 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import Sidebar from './Sidebar.jsx';
 import TopBar from './TopBar.jsx';
 
-// Nav sections shown in the sidebar. `icon` is a name from components/common/Icon.jsx. Grouped by
-// owner's module so it's obvious where to add more: Rukshan's admin section/items go here once
-// LoginPage/UsersPage/ProsumersPage exist (architecture.md §6: /admin/users, /admin/prosumers,
-// /admin/prosumers/pending) — don't hardcode links to routes that don't exist yet, since that
-// ships dead nav entries.
+// Nav sections shown in the sidebar. `icon` is a name from components/common/Icon.jsx.
 const NAV_SECTIONS = [
   {
     title: 'Node management',
     items: [{ label: 'Microgrid hubs', to: '/stations', icon: 'hubs' }],
+  },
+  // Dinil — reservation oversight (web admin view of the reservations collection).
+  {
+    title: 'Reservations',
+    items: [{ label: 'Reservations', to: '/reservations', icon: 'calendar' }],
+  },
+  // Migara — user management (Backoffice/GridOperator accounts).
+  {
+    title: 'Administration',
+    items: [{ label: 'Users', to: '/admin/users', icon: 'user' }],
   },
 ];
 

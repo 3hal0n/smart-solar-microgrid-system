@@ -277,7 +277,7 @@ public class StationService
         return reservations.Select(r => new ReservationOverviewResponse
         {
             SlotId = r.SlotId,
-            Status = r.Status.ToString(),
+            Status = r.Status,
             ProsumerNic = r.ProsumerNic,
             ScheduledAt = r.ScheduledAt
         }).ToList();
@@ -365,7 +365,7 @@ public class StationService
     private async Task<bool> HasConfirmedReservationsAsync(string stationId)
     {
         return await _context.Reservations
-            .Find(r => r.StationId == stationId && r.Status == ReservationStatus.Confirmed)
+            .Find(r => r.StationId == stationId && r.Status == "Confirmed")
             .AnyAsync();
     }
 

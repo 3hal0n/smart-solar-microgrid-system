@@ -47,7 +47,7 @@ public class DashboardService
         var now = DateTime.UtcNow;
         var filterBuilder = Builders<Reservation>.Filter;
         var byNic = filterBuilder.Eq(r => r.ProsumerNic, nic);
-        var confirmed = byNic & filterBuilder.Eq(r => r.Status, ReservationStatus.Confirmed);
+        var confirmed = byNic & filterBuilder.Eq(r => r.Status, "Confirmed");
 
         var activeCount = (int)await _context.Reservations.CountDocumentsAsync(confirmed);
         var pendingCount = (int)await _context.Reservations
@@ -105,12 +105,7 @@ public class DashboardService
 
         if (!string.IsNullOrWhiteSpace(status))
         {
-            if (!Enum.TryParse<ReservationStatus>(status, ignoreCase: true, out var parsedStatus))
-            {
-                throw new ValidationException(
-                    $"Invalid status filter '{status}'. Expected 'Confirmed', 'Completed', or 'Cancelled'.");
-            }
-            filter &= filterBuilder.Eq(r => r.Status, parsedStatus);
+            filter &= filterBuilder.Eq(r => r.Status, NormalizeStatus(status));
         }
 
         if (from.HasValue)
@@ -141,6 +136,22 @@ public class DashboardService
         }
     }
 
+    // Reservation.Status is a plain string (Dinil's model — see Reservation.cs), not a validated
+    // enum, so a status query param is matched case-insensitively against the exact three values
+    // his ReservationService ever writes and normalized to that casing before filtering, rather
+    // than trusting the caller's casing to already match what's stored.
+    private static readonly string[] ValidStatuses = { "Confirmed", "Completed", "Cancelled" };
+
+    private static string NormalizeStatus(string status)
+    {
+        var match = ValidStatuses.FirstOrDefault(s => string.Equals(s, status, StringComparison.OrdinalIgnoreCase));
+        if (match is null)
+        {
+            throw new ValidationException($"Invalid status filter '{status}'. Expected 'Confirmed', 'Completed', or 'Cancelled'.");
+        }
+        return match;
+    }
+
     // Maps a stored Reservation to its full client-facing response shape.
     private static ReservationResponse MapToResponse(Reservation reservation) => new()
     {
@@ -149,7 +160,7 @@ public class DashboardService
         StationId = reservation.StationId,
         SlotId = reservation.SlotId,
         ScheduledAt = reservation.ScheduledAt,
-        Status = reservation.Status.ToString(),
+        Status = reservation.Status,
         QrToken = reservation.QrToken,
         QrTokenExpiresAt = reservation.QrTokenExpiresAt,
         CreatedAt = reservation.CreatedAt,
@@ -166,6 +177,6 @@ public class DashboardService
         StationId = reservation.StationId,
         SlotId = reservation.SlotId,
         ScheduledAt = reservation.ScheduledAt,
-        Status = reservation.Status.ToString()
+        Status = reservation.Status
     };
 }

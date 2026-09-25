@@ -9,7 +9,7 @@
 //          and the endpoint Shalon built per §3.
 //
 //          Wired to the real backend (2026-09-26) via
-//          data/remote/ApiClient.kt + JouleApi.kt: GET
+//          data/remote/ApiClient.kt + ApiService.kt: GET
 //          /stations/nearby?lat=&lng=&radiusKm=. A failed call shows
 //          a retry card rather than crashing or silently showing
 //          nothing — the fixture version never needed this since it
@@ -63,7 +63,6 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MarkerInfoWindowContent
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.smartmicrogrid.data.remote.ApiClient
-import com.smartmicrogrid.data.remote.JouleApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -77,7 +76,7 @@ private const val SEARCH_RADIUS_KM = 25.0
 @Composable
 fun MapScreen() {
     val context = LocalContext.current
-    val api = remember { ApiClient.create(JouleApi::class.java) }
+    val api = remember { ApiClient.service }
 
     var hasLocationPermission by remember {
         mutableStateOf(

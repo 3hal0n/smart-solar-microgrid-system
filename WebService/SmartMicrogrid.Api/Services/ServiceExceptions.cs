@@ -34,3 +34,15 @@ public class ConflictException : Exception
     {
     }
 }
+
+public class ServiceException : Exception
+{
+    public int StatusCode { get; }
+    public string Code { get; }
+
+    public ServiceException(int statusCode, string code, string message) : base(message)
+    {
+        StatusCode = statusCode;
+        Code = code;
+    }
+}

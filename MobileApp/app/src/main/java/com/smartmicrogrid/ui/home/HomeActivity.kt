@@ -7,7 +7,7 @@
 //          composable per architecture.md §6: Dashboard is Migara's
 //          (ui/dashboard/*), Bookings/Profile are Dinil's
 //          (ui/prosumer/*) for the Prosumer role, and Scan QR/Map are
-//          Migara's (ui/operator/*) for the Grid Operator role.
+//          Dinil's & _____ (ui/operator/*) for the Grid Operator role.
 //          Several of those destinations are still placeholders (see
 //          their own TODO(<owner>) files) — this file never needs to
 //          change once the real screens land, since it only

@@ -10,7 +10,7 @@
 //          GET /reservations.
 //
 //          Wired to the real backend (2026-09-26) via
-//          data/remote/ApiClient.kt + JouleApi.kt: GET
+//          data/remote/ApiClient.kt + ApiService.kt: GET
 //          /dashboard/prosumer/{nic}/summary for the stat tiles, and
 //          GET /reservations?nic={nic}&status=&stationId=&from=&to=
 //          for the lists below. Status/station/date filters are sent
@@ -94,7 +94,6 @@ import androidx.compose.ui.unit.dp
 import com.smartmicrogrid.data.local.AppDbHelper
 import com.smartmicrogrid.data.local.DashboardCacheDao
 import com.smartmicrogrid.data.remote.ApiClient
-import com.smartmicrogrid.data.remote.JouleApi
 import com.smartmicrogrid.ui.components.IconTile
 import com.smartmicrogrid.ui.components.JouleIcons
 import com.smartmicrogrid.ui.components.SectionCard
@@ -115,7 +114,7 @@ private val DATE_INPUT_PATTERN = Regex("""^\d{4}-\d{2}-\d{2}$""")
 @Composable
 fun ProsumerDashboardScreen() {
     val context = LocalContext.current
-    val api = remember { ApiClient.create(JouleApi::class.java) }
+    val api = remember { ApiClient.service }
 
     var summary by remember { mutableStateOf<ProsumerDashboardSummary?>(null) }
     var loadError by remember { mutableStateOf<String?>(null) }

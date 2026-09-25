@@ -1,11 +1,20 @@
+// ============================================================
+// File: Program.cs
+// Purpose: Application entry point. Configures services, middleware, 
+//          JWT authentication, and CORS for the Smart Microgrid API.
+// Author: Shalon
+// ============================================================
+
+using System.Text;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using SmartMicrogrid.Api.Data;
 using SmartMicrogrid.Api.Services;
 
-// Loads .env into process environment variables (e.g. ConnectionStrings__MongoDb) before the
-// config builder reads them, so a real Atlas connection string never has to live in appsettings.json
-// (which is committed to git). Optional — teammates without a .env fall back to appsettings.json's
-// local MongoDB default.
+// Loads .env into process environment variables (e.g. ConnectionStrings__MongoDb, Jwt__Key) before the
+// config builder reads them, so a real Atlas connection string or JWT secret never has to live in appsettings.json
+// (which is committed to git). Optional — teammates without a .env fall back to appsettings.json's defaults.
 if (File.Exists(".env"))
 {
     DotNetEnv.Env.Load();
@@ -14,25 +23,77 @@ if (File.Exists(".env"))
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
+
+// Configure Swagger with JWT Bearer Authentication
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Enter 'Bearer' [space] and then your JWT token. Example: Bearer eyJhbGci..."
+    });
+
+    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 // Controllers, with enums serialized as strings so the JSON contract matches architecture.md
 // (e.g. Station/Slot "status" as "Active"/"Available" rather than raw integers).
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
-// Shared MongoDB connection and Shalon's Stations/Slots/Dashboard services.
+// Shared MongoDB connection and Shalon's/Dinil's services.
 builder.Services.AddSingleton<MongoDbContext>();
 builder.Services.AddScoped<StationService>();
 builder.Services.AddScoped<SlotService>();
 builder.Services.AddScoped<DashboardService>();
+builder.Services.AddSingleton<QrTokenService>();
+builder.Services.AddScoped<ReservationService>();
+
+// ============================================================
+// ADDED: JWT Authentication Configuration (For User Management)
+// ============================================================
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "YourSuperSecretKeyHereAtLeast32Chars!";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "SmartMicrogridApi";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "SmartMicrogridClients";
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        };
+    });
+
+// Enable Authorization policies (required for [Authorize] attributes)
+builder.Services.AddAuthorization();
 
 // CORS for the browser-based WebApp — without this, every fetch/axios call from the React dev
-// server is blocked by the browser (curl/Postman never hit this, since only browsers enforce
-// CORS, which is why it wasn't caught until testing against the real WebApp in-browser).
-// Allowed origins come from config (Cors:AllowedOrigins in appsettings.json) so each dev's actual
-// Vite port doesn't need a code change.
+// server is blocked by the browser. Allowed origins come from config (Cors:AllowedOrigins).
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
 builder.Services.AddCors(options =>
 {
@@ -47,11 +108,21 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    // Enable Swagger UI for interactive API testing (Replaces MapOpenApi)
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Optional: Commented out to prevent HTTPS redirect warnings during local HTTP testing
+// app.UseHttpsRedirection();
+
+// ⚠️ ORDER MATTERS: CORS must come before Auth, and Auth must come before Controllers
 app.UseCors("WebApp");
+
+// ADDED: Authentication and Authorization Middleware
+app.UseAuthentication(); 
+app.UseAuthorization();  
+
 app.MapControllers();
 
 // Ensures the 2dsphere index on SolarStations.location exists before the API serves traffic.
@@ -61,6 +132,7 @@ using (var startupScope = app.Services.CreateScope())
     await stationService.EnsureIndexesAsync();
 }
 
+// (Kept exactly as your team had it to avoid breaking anything)
 var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"

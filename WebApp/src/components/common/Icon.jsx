@@ -41,6 +41,18 @@ const PATHS = {
   ),
   menu: <path d="M3.5 5.5h13M3.5 10h13M3.5 14.5h13" strokeLinecap="round" />,
   chevronRight: <path d="m8 5 5 5-5 5" strokeLinecap="round" strokeLinejoin="round" />,
+  calendar: (
+    <>
+      <rect x="3.5" y="4.5" width="13" height="12" rx="1.5" />
+      <path d="M3.5 8.5h13M7 3.5v3M13 3.5v3" strokeLinecap="round" />
+    </>
+  ),
+  user: (
+    <>
+      <circle cx="10" cy="7" r="3" />
+      <path d="M4 16.5c.9-2.7 3.2-4 6-4s5.1 1.3 6 4" strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
 };
 
 // Renders the named icon; decorative by default (aria-hidden), so pair it with visible text.
