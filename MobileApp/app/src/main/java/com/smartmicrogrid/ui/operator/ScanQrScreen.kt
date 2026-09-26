@@ -63,7 +63,8 @@ fun ScanQrScreen() {
 
     // Ask for permission on first composition.
     LaunchedEffect(Unit) {
-        if (!cameraPermission.status.isGranted) cameraPermission.launchPermissionRequest()
+        //if (!cameraPermission.hasPermission) cameraPermission.launchPermissionRequest()
+        if (cameraPermission.status.isGranted)  cameraPermission.launchPermissionRequest()
     }
 
     Column(
@@ -85,7 +86,8 @@ fun ScanQrScreen() {
                 .weight(1f)
                 .background(Color.Black)
         ) {
-            if (cameraPermission.status.isGranted) {
+//            if (cameraPermission.hasPermission) {
+            if (cameraPermission.status.isGranted)  {
                 key(scanResetKey) {
                     CameraPreview(
                         onQrDecoded = { token ->

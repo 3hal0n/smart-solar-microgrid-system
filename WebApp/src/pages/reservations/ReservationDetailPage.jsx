@@ -14,7 +14,7 @@ import Button from "../../components/common/Button.jsx";
 import Badge from "../../components/common/Badge.jsx";
 import Input from "../../components/common/Input.jsx";
 import Modal from "../../components/common/Modal.jsx";
-import { useToast } from "../../components/common/Toast.jsx";
+import Toast from "../../components/common/Toast.jsx";
 
 // Formats an ISO timestamp for display, or an em dash for null.
 function formatDateTime(iso) {
@@ -45,15 +45,22 @@ function statusTone(status) {
 export default function ReservationDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { show } = useToast();
 
   const [reservation, setReservation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Parent-owned toast state, matching Shalon's Toast.jsx pattern.
+  const [toast, setToast] = useState({ message: "", tone: "error" });
+
   const [showCancel, setShowCancel] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelBusy, setCancelBusy] = useState(false);
+
+  // Small helper so call sites stay readable: show(msg, tone).
+  function show(message, tone = "error") {
+    setToast({ message, tone });
+  }
 
   // Fetches the reservation by ID.
   async function load() {
@@ -64,9 +71,8 @@ export default function ReservationDetailPage() {
       setReservation(data);
     } catch (e) {
       const msg =
-        e?.response?.data?.message || e?.response?.status === 404
-          ? "Reservation not found."
-          : e.message;
+        e?.response?.data?.message ||
+        (e?.response?.status === 404 ? "Reservation not found." : e.message);
       setError(msg);
     } finally {
       setLoading(false);
@@ -74,8 +80,28 @@ export default function ReservationDetailPage() {
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- standard fetch-on-mount/id-change
-    load();
+    let mounted = true;
+
+    async function fetchData() {
+      setLoading(true);
+      setError(null);
+      try {
+        const { data } = await api.get(`/reservations/${id}`);
+        if (mounted) setReservation(data);
+      } catch (e) {
+        const msg =
+          e?.response?.data?.message ||
+          (e?.response?.status === 404 ? "Reservation not found." : e.message);
+        if (mounted) setError(msg);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+
+    fetchData();
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
   // Cancels the reservation. The 12-hour rejection surfaces verbatim.
@@ -235,6 +261,13 @@ export default function ReservationDetailPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Toast — parent-owned state */}
+      <Toast
+        message={toast.message}
+        tone={toast.tone}
+        onDismiss={() => setToast({ message: "", tone: "error" })}
+      />
     </div>
   );
 }

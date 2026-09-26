@@ -17,9 +17,14 @@ object HomeRoutes {
     const val EXTRA_ROLE = "com.smartmicrogrid.extra.ROLE"
 
     // Prosumer destinations. Dashboard belongs to Migara (ui/dashboard/*); Bookings and Profile
-    // belong to Dinil (ui/prosumer/*) — architecture.md §6.
+    // belong to Dinil (ui/prosumer/*) — architecture.md §6. Map added 2026-09-26: the assignment
+    // spec bundles "Dashboard & Maps" as one prosumer-facing feature ("...nearby grid nodes via
+    // Google Maps API"), but the nav only ever wired Map under Grid Operator — a prosumer had no
+    // way to reach it at all. Reuses the same ui/operator/MapScreen.kt Shalon already built; no
+    // new screen needed, just a second route to the existing one.
     const val PROSUMER_DASHBOARD = "home/prosumer/dashboard"
     const val PROSUMER_BOOKINGS = "home/prosumer/bookings"
+    const val PROSUMER_MAP = "home/prosumer/map"
     const val PROSUMER_PROFILE = "home/prosumer/profile"
 
     // Grid operator destinations. Dashboard, Scan QR and Map all belong to Migara (ui/dashboard/*

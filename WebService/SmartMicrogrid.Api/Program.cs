@@ -63,9 +63,16 @@ builder.Services.AddControllers()
 builder.Services.AddSingleton<MongoDbContext>();
 builder.Services.AddScoped<StationService>();
 builder.Services.AddScoped<SlotService>();
-builder.Services.AddScoped<DashboardService>();
-builder.Services.AddSingleton<QrTokenService>();
+
+// Add Dinil's services:
+builder.Services.AddSingleton<QrTokenService>(); // singleton: holds HMAC secret
 builder.Services.AddScoped<ReservationService>();
+
+// Rukshan's Prosumer Management Service
+builder.Services.AddScoped<ProsumerService>();
+
+// Rukshan's Prosumer Management & Auth Services
+builder.Services.AddScoped<JwtService>(); 
 
 // ============================================================
 // ADDED: JWT Authentication Configuration (For User Management)

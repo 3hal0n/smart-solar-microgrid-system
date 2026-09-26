@@ -59,6 +59,7 @@ private data class HomeDestination(val route: String, val label: String, val ico
 private val PROSUMER_DESTINATIONS = listOf(
     HomeDestination(HomeRoutes.PROSUMER_DASHBOARD, "Dashboard", JouleIcons.Grid),
     HomeDestination(HomeRoutes.PROSUMER_BOOKINGS, "Bookings", JouleIcons.Calendar),
+    HomeDestination(HomeRoutes.PROSUMER_MAP, "Map", JouleIcons.MapPin),
     HomeDestination(HomeRoutes.PROSUMER_PROFILE, "Profile", JouleIcons.User),
 )
 
@@ -148,6 +149,7 @@ private fun NavGraphShell(destinations: List<HomeDestination>) {
         ) {
             composable(HomeRoutes.PROSUMER_DASHBOARD) { ProsumerDashboardScreen() }
             composable(HomeRoutes.PROSUMER_BOOKINGS) { BookingsScreen() }
+            composable(HomeRoutes.PROSUMER_MAP) { MapScreen() }
             composable(HomeRoutes.PROSUMER_PROFILE) { ProfileScreen() }
             composable(HomeRoutes.OPERATOR_DASHBOARD) { OperatorDashboardScreen() }
             composable(HomeRoutes.OPERATOR_SCAN_QR) { ScanQrScreen() }

@@ -12,7 +12,6 @@
 using MongoDB.Driver;
 using SmartMicrogrid.Api.Data;
 using SmartMicrogrid.Api.Models;
-
 namespace SmartMicrogrid.Api.Services;
 
 public class ReservationService
@@ -54,7 +53,7 @@ public class ReservationService
         // Slot must exist and be Available.
         var slot = await _slotService.GetByIdAsync(req.SlotId)
             ?? throw new ServiceException(404, "SLOT_NOT_FOUND", "Slot does not exist.");
-         if (slot.Status != SlotStatus.Available)
+        if (slot.Status != SlotStatus.Available)
             throw new ServiceException(409, "SLOT_NOT_AVAILABLE", "Slot is not available.");
 
         // Station must exist and be Active.
@@ -179,6 +178,10 @@ public class ReservationService
         // 3. Load station + slot for the operator-visible confirmation payload.
         var station = await _stationService.GetByIdAsync(reservation.StationId)
             ?? throw new ServiceException(404, "STATION_NOT_FOUND", "Station not found.");
+
+        if (station.Status != "Active")
+         throw new ServiceException(409, "STATION_INACTIVE", "Station is not active.");
+
         var slot = await _slotService.GetByIdAsync(reservation.SlotId)
             ?? throw new ServiceException(404, "SLOT_NOT_FOUND", "Slot not found.");
 
