@@ -1,7 +1,12 @@
 // ============================================================
 // File: OnboardingActivity.kt
 // Purpose: First-run-only explainer (3-slide swipeable pager) shown
-//          once before the user reaches MainActivity. Marks itself
+//          once before the user reaches MainActivity. Full-bleed
+//          photo backgrounds (solar/rooftop imagery) with a gradient
+//          scrim on the first two slides, the Joule brand gradient on
+//          the third — colorful, immersive treatment rather than
+//          plain-white-with-icon, per 2026-09-26 direction ("more
+//          colorful, great UI/UX, not full enterprise"). Marks itself
 //          as seen via OnboardingPreferences so SplashActivity skips
 //          straight past it on every later launch. Pure UI, and kept
 //          general/app-level — no prosumer- or operator-specific
@@ -17,6 +22,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -34,8 +40,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,35 +50,38 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.smartmicrogrid.R
 import com.smartmicrogrid.MainActivity
-import com.smartmicrogrid.ui.components.IconTile
-import com.smartmicrogrid.ui.components.JouleIcons
 import com.smartmicrogrid.ui.components.JouleMark
 import com.smartmicrogrid.ui.theme.SmartMicrogridTheme
+import com.smartmicrogrid.ui.theme.StripeInk
 import kotlinx.coroutines.launch
 
-// One onboarding slide's icon and copy.
-private data class OnboardingSlide(val icon: ImageVector, val eyebrow: String, val title: String, val body: String)
+// One onboarding slide's background photo (null = brand-gradient background instead) and copy.
+private data class OnboardingSlide(val imageRes: Int?, val eyebrow: String, val title: String, val body: String)
 
 private val SLIDES = listOf(
     OnboardingSlide(
-        icon = JouleIcons.MapPin,
+        imageRes = R.drawable.onboarding_solar,
         eyebrow = "Discover",
         title = "Find microgrid hubs near you",
         body = "Browse solar energy hubs on the map, each with live battery slot availability.",
     ),
     OnboardingSlide(
-        icon = JouleIcons.Battery,
+        imageRes = R.drawable.onboarding_battery,
         eyebrow = "Reserve",
         title = "Reserve an energy slot",
         body = "Book a charging or discharging slot in a few taps, within a simple 7-day window.",
     ),
     OnboardingSlide(
-        icon = JouleIcons.Pulse,
+        imageRes = null,
         eyebrow = "Track",
         title = "Track every transfer",
         body = "Get a QR code for each booking and follow your energy transfer history from your dashboard.",
@@ -86,9 +95,7 @@ class OnboardingActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            SmartMicrogridTheme {
-                OnboardingScreen(onFinished = ::finishOnboarding)
-            }
+            OnboardingScreen(onFinished = ::finishOnboarding)
         }
     }
 
@@ -101,16 +108,22 @@ class OnboardingActivity : ComponentActivity() {
     }
 }
 
-// Renders the brand row + Skip, the slide pager, the pill indicator, and Next/Get started.
+// Renders the full-bleed background for the active slide, the brand row + Skip, the slide pager,
+// the pill indicator, and Next/Get started — all overlaid on top of that background rather than
+// confined to a plain surface, so the photo/gradient reaches every edge of the screen. Still uses
+// SmartMicrogridTheme for the shared type scale, but every color on this screen is set explicitly
+// (white text, ink button content) rather than theme-relative — this screen is intentionally
+// always dark-on-photo regardless of the device's light/dark setting.
 @Composable
 private fun OnboardingScreen(onFinished: () -> Unit) {
+  SmartMicrogridTheme {
     val pagerState = rememberPagerState(pageCount = { SLIDES.size })
     val coroutineScope = rememberCoroutineScope()
     val isLastPage = pagerState.currentPage == SLIDES.lastIndex
 
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        // safeDrawingPadding() keeps Skip/Next clear of the status bar and gesture nav bar under
-        // enableEdgeToEdge() — this screen has no Scaffold (which would apply that automatically).
+    Box(modifier = Modifier.fillMaxSize()) {
+        SlideBackground(slide = SLIDES[pagerState.currentPage])
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -119,21 +132,21 @@ private fun OnboardingScreen(onFinished: () -> Unit) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 24.dp, end = 12.dp, top = 12.dp),
+                    .padding(start = 20.dp, end = 12.dp, top = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                JouleMark(modifier = Modifier.width(28.dp))
+                JouleMark(modifier = Modifier.width(26.dp), monochrome = Color.White)
                 Text(
                     text = "Joule",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = Color.White,
                     modifier = Modifier
                         .padding(start = 8.dp)
                         .weight(1f),
                 )
-                TextButton(onClick = onFinished) {
-                    Text("Skip", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                TextButton(onClick = onFinished, colors = ButtonDefaults.textButtonColors(contentColor = Color.White)) {
+                    Text("Skip")
                 }
             }
 
@@ -149,7 +162,7 @@ private fun OnboardingScreen(onFinished: () -> Unit) {
                 currentPage = pagerState.currentPage,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 24.dp),
+                    .padding(bottom = 20.dp),
             )
 
             Button(
@@ -162,51 +175,84 @@ private fun OnboardingScreen(onFinished: () -> Unit) {
                         }
                     }
                 },
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = StripeInk),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp)
-                    .padding(bottom = 16.dp)
+                    .padding(bottom = 20.dp)
                     .height(52.dp),
             ) {
                 Text(if (isLastPage) "Get started" else "Next", style = MaterialTheme.typography.labelLarge)
             }
         }
     }
+  }
 }
 
-// Renders a single slide: an icon tile, eyebrow label, title and body. Scrollable so long body
-// copy on a short/landscape screen clips into a scroll instead of overflowing off-screen.
+// The active slide's full-screen backdrop: a photo with a bottom-heavy dark scrim (so white text
+// stays legible without hiding the image), or the Joule brand gradient when there's no photo.
+@Composable
+private fun SlideBackground(slide: OnboardingSlide) {
+    if (slide.imageRes != null) {
+        Image(
+            painter = painterResource(slide.imageRes),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        0f to StripeInk.copy(alpha = 0.35f),
+                        0.55f to StripeInk.copy(alpha = 0.75f),
+                        1f to StripeInk.copy(alpha = 0.96f),
+                    ),
+                ),
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Brush.linearGradient(listOf(Color(0xFF533AFD), Color(0xFF2E2B8C), Color(0xFF11EFE3)))),
+        )
+    }
+}
+
+// Renders a single slide's eyebrow, title and body, anchored toward the bottom of the pager area
+// (over the scrim) rather than centered — a Stories-style layout that keeps the photo's upper
+// two-thirds uncluttered. Scrollable so long body copy on a short/landscape screen clips into a
+// scroll instead of overflowing off-screen.
 @Composable
 private fun OnboardingSlideContent(slide: OnboardingSlide) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 32.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .padding(horizontal = 28.dp),
+        verticalArrangement = Arrangement.Bottom,
+        horizontalAlignment = Alignment.Start,
     ) {
-        IconTile(icon = slide.icon, size = 72.dp)
         Text(
             text = slide.eyebrow.uppercase(),
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(top = 28.dp),
+            color = Color(0xFF9AF2EC),
+            modifier = Modifier.padding(bottom = 10.dp),
         )
         Text(
             text = slide.title,
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onBackground,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 8.dp),
+            color = Color.White,
+            textAlign = TextAlign.Start,
         )
         Text(
             text = slide.body,
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 12.dp),
+            color = Color.White.copy(alpha = 0.8f),
+            textAlign = TextAlign.Start,
+            modifier = Modifier.padding(top = 10.dp, bottom = 24.dp),
         )
     }
 }
@@ -215,25 +261,19 @@ private fun OnboardingSlideContent(slide: OnboardingSlide) {
 @Composable
 private fun PageIndicator(pageCount: Int, currentPage: Int, modifier: Modifier = Modifier) {
     Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.Center,
+        modifier = modifier.padding(horizontal = 28.dp),
+        horizontalArrangement = Arrangement.Start,
     ) {
         repeat(pageCount) { index ->
             val isSelected = index == currentPage
             val width by animateDpAsState(targetValue = if (isSelected) 22.dp else 6.dp, label = "indicatorWidth")
             Box(
                 modifier = Modifier
-                    .padding(horizontal = 3.dp)
+                    .padding(end = 6.dp)
                     .height(6.dp)
                     .width(width)
                     .clip(RoundedCornerShape(50))
-                    .background(
-                        if (isSelected) {
-                            MaterialTheme.colorScheme.primary
-                        } else {
-                            MaterialTheme.colorScheme.outlineVariant
-                        },
-                    ),
+                    .background(if (isSelected) Color.White else Color.White.copy(alpha = 0.35f)),
             )
         }
     }
