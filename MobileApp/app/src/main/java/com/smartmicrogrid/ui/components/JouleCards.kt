@@ -30,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -39,29 +40,43 @@ import androidx.compose.ui.unit.dp
 val OuterShape = RoundedCornerShape(16.dp)
 val InnerShape = RoundedCornerShape(12.dp)
 
-// Quick-glance stat: tinted tray with an icon + label, wrapping a white card with the number and a
-// context line. `value` null renders an em dash (nothing loaded yet) rather than a misleading 0.
+// Quick-glance stat: tinted tray (tinted by `accent`, not a flat gray — 2026-09-26 "more colorful"
+// pass, so a row of stats reads as color-coded at a glance) with a solid icon badge + label,
+// wrapping a white card with the number and a context line. `value` null renders an em dash
+// (nothing loaded yet) rather than a misleading 0. Callers pass a semantic accent/container pair
+// per stat (e.g. primary/primaryContainer for one, StripeWarning/StripeWarningContainer for
+// another) rather than every tray sharing one color.
 @Composable
 fun StatTray(
     label: String,
     value: Int?,
     hint: String,
     icon: ImageVector,
+    accent: Color,
+    accentContainer: Color,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier
             .clip(OuterShape)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .border(1.dp, MaterialTheme.colorScheme.outline, OuterShape)
+            .background(accentContainer)
+            .border(1.dp, accent.copy(alpha = 0.25f), OuterShape)
             .padding(4.dp),
     ) {
         Row(
-            modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 6.dp),
+            modifier = Modifier.padding(start = 6.dp, end = 8.dp, top = 4.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+            Box(
+                modifier = Modifier
+                    .size(20.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(accent),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+            }
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,
