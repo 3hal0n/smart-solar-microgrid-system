@@ -98,6 +98,10 @@ import com.smartmicrogrid.ui.components.IconTile
 import com.smartmicrogrid.ui.components.JouleIcons
 import com.smartmicrogrid.ui.components.SectionCard
 import com.smartmicrogrid.ui.components.StatTray
+import com.smartmicrogrid.ui.theme.StripeCyan
+import com.smartmicrogrid.ui.theme.StripeCyanContainer
+import com.smartmicrogrid.ui.theme.StripeWarning
+import com.smartmicrogrid.ui.theme.StripeWarningContainer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -308,6 +312,8 @@ private fun StatTraysRow(summary: ProsumerDashboardSummary?) {
             value = summary?.activeCount,
             hint = "Confirmed",
             icon = JouleIcons.Pulse,
+            accent = MaterialTheme.colorScheme.primary,
+            accentContainer = MaterialTheme.colorScheme.primaryContainer,
             modifier = Modifier.weight(1f),
         )
         StatTray(
@@ -315,6 +321,8 @@ private fun StatTraysRow(summary: ProsumerDashboardSummary?) {
             value = summary?.pendingCount,
             hint = "Needs check-in",
             icon = JouleIcons.Bolt,
+            accent = StripeWarning,
+            accentContainer = StripeWarningContainer,
             modifier = Modifier.weight(1f),
         )
         StatTray(
@@ -322,6 +330,8 @@ private fun StatTraysRow(summary: ProsumerDashboardSummary?) {
             value = summary?.approvedFutureCount,
             hint = "Approved future",
             icon = JouleIcons.Calendar,
+            accent = StripeCyan,
+            accentContainer = StripeCyanContainer,
             modifier = Modifier.weight(1f),
         )
     }
