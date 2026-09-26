@@ -128,16 +128,16 @@ export default function ReservationDetailPage() {
   }
 
   if (loading) {
-    return <div className="p-8 text-muted text-sm">Loading reservation…</div>;
+    return <div className="mx-auto max-w-6xl px-6 py-8 text-[13px] text-muted">Loading reservation…</div>;
   }
 
   if (error || !reservation) {
     return (
-      <div className="p-8">
-        <div className="rounded-md border border-line bg-error-soft text-error px-4 py-3 text-sm mb-4">
+      <div className="mx-auto max-w-6xl px-6 py-8">
+        <p className="mb-4 rounded-md border border-error/30 bg-error-soft px-3 py-2 text-[13px] font-medium text-error">
           {error || "Reservation not found."}
-        </div>
-        <Button variant="ghost" onClick={() => navigate("/reservations")}>
+        </p>
+        <Button variant="secondary" onClick={() => navigate("/reservations")}>
           ← Back to reservations
         </Button>
       </div>
@@ -148,7 +148,7 @@ export default function ReservationDetailPage() {
   const isCancellable = r.status === "Confirmed";
 
   return (
-    <div className="p-6 md:p-8">
+    <div className="mx-auto max-w-6xl px-6 py-8">
       {/* Breadcrumb */}
       <div className="text-sm text-muted mb-4">
         <Link to="/reservations" className="hover:underline">
@@ -161,7 +161,7 @@ export default function ReservationDetailPage() {
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-ink">
+          <h1 className="text-xl font-semibold tracking-tight text-ink">
             Reservation{" "}
             <span className="font-mono text-lg">{r.id.slice(-8)}</span>
           </h1>
@@ -172,7 +172,7 @@ export default function ReservationDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           <Badge tone={statusTone(r.status)}>{r.status}</Badge>
-          <Button variant="ghost" onClick={load}>
+          <Button variant="secondary" onClick={load}>
             Refresh
           </Button>
           {isCancellable && (
@@ -245,7 +245,7 @@ export default function ReservationDetailPage() {
           />
           <div className="flex justify-end gap-2 pt-2">
             <Button
-              variant="ghost"
+              variant="secondary"
               onClick={() => setShowCancel(false)}
               disabled={cancelBusy}
             >

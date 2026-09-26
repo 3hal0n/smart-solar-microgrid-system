@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+File: network_security_config.xml
+Purpose: Android blocks plaintext HTTP by default (targetSdk 28+). The
+         real backend runs locally over http:// during development
+         (see ApiClient.kt / API_BASE_URL), so cleartext is allowed
+         here, but only to local dev addresses — not the whole app —
+         so a real deployment wouldn't silently inherit this.
+         10.0.2.2 is the Android emulator's alias for the host
+         machine's own localhost. If you're running on a physical
+         device instead, add your host machine's LAN IP here too (the
+         same one you set API_BASE_URL to in local.properties).
+Author: Shalon
+-->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">127.0.0.1</domain>
+    </domain-config>
+</network-security-config>

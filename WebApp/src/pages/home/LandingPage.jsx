@@ -1,13 +1,14 @@
 // ============================================================
 // File: LandingPage.jsx
-// Purpose: Public marketing/index page at "/" — explains the Smart
-//          Solar Microgrid Trading System to both operators and
-//          prosumers, and routes staff to sign-in. Static UI only:
-//          no API calls and no auth logic live here.
+// Purpose: Public marketing/index page at "/" — explains Joule (the
+//          Smart Solar Microgrid Trading System) to both operators
+//          and prosumers, and routes staff to sign-in. Static UI
+//          only: no API calls and no auth logic live here.
 // Author: Shalon
 // ============================================================
 import { Link } from 'react-router-dom';
 import Button from '../../components/common/Button.jsx';
+import JouleMark from '../../components/common/JouleMark.jsx';
 
 const FEATURES = [
   {
@@ -25,6 +26,19 @@ const FEATURES = [
     body: 'Grid operators scan the prosumer transaction QR at the node, verify it against the server and finalise the energy transfer in a single step.',
     meta: 'Grid operator',
   },
+];
+
+const PROSUMER_STEPS = [
+  'Install the Android app and register using your NIC.',
+  'Wait for Backoffice activation, then sign in.',
+  'Reserve a slot and present your QR code at the node.',
+];
+
+// Illustrative rows for the hero's product mockup — sample data, not a live query.
+const MOCK_HUBS = [
+  ['Colombo Central', '240', '12'],
+  ['Kandy Ridge', '180', '8'],
+  ['Galle Coastal', '120', '6'],
 ];
 
 // Small inline QR-style glyph — a placeholder artifact for the store link, not a scannable code.
@@ -50,10 +64,8 @@ export default function LandingPage() {
       <header className="sticky top-0 z-40 border-b border-line bg-surface/90 backdrop-blur">
         <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-ink text-[11px] font-bold text-on-dark">
-              SM
-            </span>
-            <span className="text-[15px] font-semibold tracking-tight text-ink">Smart Solar Microgrid</span>
+            <JouleMark id="nav-joule-mark" className="h-6 w-7" />
+            <span className="text-[15px] font-semibold tracking-tight text-ink">Joule</span>
           </div>
 
           <div className="hidden items-center gap-7 md:flex">
@@ -70,30 +82,43 @@ export default function LandingPage() {
 
           <Link to="/login">
             <Button variant="primary" size="sm">
-              Staff / Operator sign in
+              <span className="sm:hidden">Sign in</span>
+              <span className="hidden sm:inline">Staff / Operator sign in</span>
             </Button>
           </Link>
         </nav>
       </header>
 
-      {/* Hero — copy paired with a product artifact, not a centered generic block */}
-      <section id="platform" className="border-b border-line bg-canvas">
-        <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 lg:grid-cols-2 lg:py-28">
+      {/* Hero — full-bleed photo, dark-tinted (not washed out), copy in light text over it, per
+          the enterprise-energy reference (Huawei FusionSolar) rather than a faint canvas overlay. */}
+      <section id="platform" className="relative overflow-hidden border-b border-line">
+        <img
+          src="/images/solar-sky-hero.jpg"
+          alt=""
+          aria-hidden="true"
+          width={1920}
+          height={2560}
+          loading="eager"
+          decoding="async"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="absolute inset-0 bg-linear-to-r from-ink/85 via-ink/70 to-ink/50" />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-12 px-6 py-20 lg:min-h-140 lg:grid-cols-2 lg:py-28">
           <div>
-            <span className="inline-flex items-center rounded-md border border-primary/20 bg-primary-soft px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-primary">
-              Energy trading infrastructure
-            </span>
-            <h1 className="mt-5 text-4xl font-medium leading-[1.05] tracking-[-0.03em] text-ink sm:text-5xl">
+            <p className="text-[13px] font-semibold uppercase tracking-wider text-primary">
+              Power, exchanged precisely.
+            </p>
+            <h1 className="mt-5 text-4xl font-medium leading-[1.05] tracking-[-0.03em] text-white sm:text-5xl">
               Peer-to-peer solar energy, settled on managed grid infrastructure.
             </h1>
-            <p className="mt-5 max-w-lg text-[17px] font-light leading-relaxed text-body">
-              Smart Solar Microgrid connects property owners with solar arrays to a network of operated grid hubs.
-              Backoffice teams manage node capacity and schedules, prosumers reserve energy slots from mobile, and grid
-              operators verify every transfer at the point of delivery.
+            <p className="mt-5 max-w-lg text-[17px] font-light leading-relaxed text-white/75">
+              Joule connects property owners with solar arrays to a network of operated grid hubs. Backoffice teams
+              manage node capacity and schedules, prosumers reserve energy slots from mobile, and grid operators verify
+              every transfer at the point of delivery.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link to="/login">
-                <Button variant="dark">Staff / Operator sign in</Button>
+                <Button variant="primary">Staff / Operator sign in</Button>
               </Link>
               <a href="#capabilities">
                 <Button variant="secondary">Explore the platform</Button>
@@ -118,11 +143,7 @@ export default function LandingPage() {
                 </tr>
               </thead>
               <tbody className="text-body">
-                {[
-                  ['Colombo Central', '240', '12'],
-                  ['Kandy Ridge', '180', '8'],
-                  ['Galle Coastal', '120', '6'],
-                ].map(([name, capacity, slots]) => (
+                {MOCK_HUBS.map(([name, capacity, slots]) => (
                   <tr key={name} className="border-b border-line last:border-b-0">
                     <td className="px-5 py-2.5 font-medium text-ink">{name}</td>
                     <td className="tnum px-5 py-2.5 text-right">
@@ -137,6 +158,32 @@ export default function LandingPage() {
             <div className="flex items-center justify-between border-t border-line bg-surface-alt px-5 py-3 text-[12px] text-muted">
               <span className="font-mono">6.9271, 79.8612</span>
               <span>Synced just now</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Infrastructure band — real photography, cropped with Stripe's angled-edge signature */}
+      <section className="relative overflow-hidden bg-ink">
+        <div className="relative h-55 w-full sm:h-75 lg:h-105">
+          <img
+            src="/images/solar-farm-hero.jpg"
+            alt="Aerial view of a solar panel array feeding the managed microgrid"
+            width={1920}
+            height={900}
+            loading="lazy"
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-cover [clip-path:polygon(0_0,100%_0,100%_100%,0_92%)]"
+          />
+          <div className="absolute inset-0 bg-linear-to-t from-ink/95 via-ink/15 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0">
+            <div className="mx-auto max-w-6xl px-6 pb-6 sm:pb-8 lg:pb-10">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-white/60">
+                Live grid infrastructure
+              </p>
+              <p className="mt-2 max-w-xl text-lg font-medium leading-snug text-white sm:text-xl lg:text-2xl">
+                Every hub in the network reports capacity and slot availability in real time.
+              </p>
             </div>
           </div>
         </div>
@@ -166,8 +213,18 @@ export default function LandingPage() {
       {/* Prosumer callout */}
       <section id="prosumers" className="border-y border-line bg-canvas">
         <div className="mx-auto max-w-6xl px-6 py-20">
-          <div className="flex flex-col items-start gap-10 rounded-lg border border-line bg-ink p-8 text-on-dark sm:p-10 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-xl">
+          <div className="relative flex flex-col items-start gap-10 overflow-hidden rounded-lg border border-line p-8 text-on-dark sm:p-10 lg:flex-row lg:items-center lg:justify-between">
+            <img
+              src="/images/rooftop-solar.jpg"
+              alt="Rooftop solar panel installation on a prosumer's home"
+              width={1200}
+              height={900}
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-ink/88" />
+            <div className="relative max-w-xl">
               <span className="text-[11px] font-semibold uppercase tracking-wider text-white/50">For solar prosumers</span>
               <h2 className="mt-3 text-3xl font-medium tracking-[-0.02em]">Get the Prosumer app</h2>
               <p className="mt-3 text-[15px] font-light leading-relaxed text-white/70">
@@ -176,13 +233,15 @@ export default function LandingPage() {
                 hub.
               </p>
               <ol className="mt-6 space-y-2 text-[14px] font-light text-white/70">
-                <li>1. Install the Android app and register using your NIC.</li>
-                <li>2. Wait for Backoffice activation, then sign in.</li>
-                <li>3. Reserve a slot and present your QR code at the node.</li>
+                {PROSUMER_STEPS.map((step, index) => (
+                  <li key={step}>
+                    {index + 1}. {step}
+                  </li>
+                ))}
               </ol>
             </div>
 
-            <div className="flex shrink-0 flex-col items-center gap-3 rounded-lg bg-white/5 p-6">
+            <div className="relative flex shrink-0 flex-col items-center gap-3 rounded-lg bg-white/10 p-6 backdrop-blur-sm">
               <QrPlaceholder />
               <p className="text-center text-[12px] font-light text-white/60">
                 Scan to download
@@ -200,10 +259,8 @@ export default function LandingPage() {
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <div className="flex items-center gap-2">
-                <span className="flex h-7 w-7 items-center justify-center rounded-md bg-white/10 text-[11px] font-bold">
-                  SM
-                </span>
-                <span className="text-[14px] font-semibold tracking-tight">Smart Solar Microgrid</span>
+                <JouleMark id="footer-joule-mark" className="h-6 w-7" />
+                <span className="text-[14px] font-semibold tracking-tight">Joule</span>
               </div>
               <p className="mt-3 text-[13px] font-light text-white/50">
                 Client-server energy trading platform for solar prosumers and microgrid operators.
@@ -258,7 +315,7 @@ export default function LandingPage() {
           </div>
 
           <div className="mt-12 border-t border-white/10 pt-6 text-[12px] font-light text-white/40">
-            Smart Solar Microgrid Trading System — academic project, {new Date().getFullYear()}.
+            Joule — Smart Solar Microgrid Trading System, academic project, {new Date().getFullYear()}.
           </div>
         </div>
       </footer>

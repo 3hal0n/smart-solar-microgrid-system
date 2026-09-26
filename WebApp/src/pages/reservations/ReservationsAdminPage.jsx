@@ -197,43 +197,31 @@ export default function ReservationsAdminPage() {
   // );
 
   return (
-    <div className="p-6 md:p-8">
+    <div className="mx-auto max-w-6xl px-6 py-8">
       {/* Page header */}
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-ink">Reservations</h1>
-          <p className="text-sm text-muted mt-1">
+          <h1 className="text-xl font-semibold tracking-tight text-ink">Reservations</h1>
+          <p className="mt-1 text-[13px] text-muted">
             All energy slot reservations across microgrid nodes. Read-only
             oversight — creation and edits happen on the Prosumer mobile app.
           </p>
         </div>
-        <Button variant="ghost" onClick={load} disabled={loading}>
+        <Button variant="secondary" onClick={load} disabled={loading}>
           {loading ? "Refreshing…" : "Refresh"}
         </Button>
       </div>
 
-      {/* Summary chips */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <SummaryChip label="Total" value={counts.total} tone="neutral" />
-        <SummaryChip
-          label="Confirmed"
-          value={counts.confirmed}
-          tone="warning"
-        />
-        <SummaryChip
-          label="Completed"
-          value={counts.completed}
-          tone="success"
-        />
-        <SummaryChip
-          label="Cancelled"
-          value={counts.cancelled}
-          tone="neutral"
-        />
+      {/* Summary row */}
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard icon="calendar" label="Total" value={counts.total} hint="All reservations" />
+        <StatCard icon="pulse" label="Confirmed" value={counts.confirmed} hint="Awaiting check-in" />
+        <StatCard icon="check" label="Completed" value={counts.completed} hint="Transfer finished" />
+        <StatCard icon="bolt" label="Cancelled" value={counts.cancelled} hint="Slot released" />
       </div>
 
       {/* Filters */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+      <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">
         <Input
           label="Status"
           as="select"
@@ -261,9 +249,9 @@ export default function ReservationsAdminPage() {
 
       {/* Error state */}
       {error && (
-        <div className="mb-4 rounded-md border border-line bg-error-soft text-error px-4 py-3 text-sm">
+        <p className="mb-4 rounded-md border border-error/30 bg-error-soft px-3 py-2 text-[13px] font-medium text-error">
           {error}
-        </div>
+        </p>
       )}
 
       {/* Table — Shalon's shared shell, rendered with named exports */}
@@ -364,7 +352,7 @@ export default function ReservationsAdminPage() {
             />
             <div className="flex justify-end gap-2 pt-2">
               <Button
-                variant="ghost"
+                variant="secondary"
                 onClick={() => setCancelTarget(null)}
                 disabled={cancelBusy}
               >
@@ -387,28 +375,6 @@ export default function ReservationsAdminPage() {
         tone={toast.tone}
         onDismiss={() => setToast({ message: "", tone: "error" })}
       />
-    </div>
-  );
-}
-
-// Small reusable summary chip for the counts row.
-function SummaryChip({ label, value, tone }) {
-  const toneClass =
-    {
-      neutral: "bg-surface-alt text-ink",
-      warning: "bg-warning-soft text-warning",
-      success: "bg-success-soft text-success",
-      error: "bg-error-soft text-error"
-    }[tone] || "bg-surface-alt text-ink";
-
-  return (
-    <div className="rounded-lg border border-line bg-surface p-4">
-      <div className="text-xs uppercase tracking-wide text-muted">{label}</div>
-      <div
-        className={`mt-1 inline-block rounded-md px-2 py-0.5 text-lg font-semibold tnum ${toneClass}`}
-      >
-        {value}
-      </div>
     </div>
   );
 }
