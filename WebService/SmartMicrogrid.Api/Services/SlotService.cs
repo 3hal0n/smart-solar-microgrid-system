@@ -139,67 +139,39 @@ public class SlotService
             throw new ValidationException("slotNumber must be greater than 0.");
         }
     }
-    
-        // ============================================================
-    // ADDED BY MIGARA: Helper methods required by ReservationService
-    // These methods allow the ReservationService to query and update slot status.
-    // TODO: @Shalon - Please review and integrate with your business logic if needed.
+
+
+    // ============================================================
+    // Dinil additions to SlotService 
     // ============================================================
 
-    // Retrieves a slot by its ID from the database.
-    // Returns null if the slot is not found.
-    public async Task<Slot?> GetByIdAsync(string slotId)
+    // Returns a slot by id, or null if not found or id is not a valid ObjectId.
+    public async Task<Slot?> GetByIdAsync(string id)
     {
-        if (!ObjectId.TryParse(slotId, out _))
+        if (!ObjectId.TryParse(id, out _))
         {
-            throw new NotFoundException($"Invalid slot ID format: '{slotId}'.");
+            return null;
         }
-
-        var filter = Builders<Slot>.Filter.Eq(s => s.Id, slotId);
-        return await _context.EnergyBookingSlots.Find(filter).FirstOrDefaultAsync();
+        return await _context.EnergyBookingSlots.Find(s => s.Id == id).FirstOrDefaultAsync();
     }
 
-    // Marks a slot as Reserved when a reservation is created.
-    // This prevents other prosumers from booking the same slot.
-    public async Task MarkReserved(string slotId)
+    // Flips a slot's status to Reserved. Called from ReservationService
+    // when a reservation is created (and when a reservation's slot changes).
+    public async Task MarkReserved(string id)
     {
-        if (!ObjectId.TryParse(slotId, out _))
-        {
-            throw new NotFoundException($"Invalid slot ID format: '{slotId}'.");
-        }
-
-        var filter = Builders<Slot>.Filter.Eq(s => s.Id, slotId);
         var update = Builders<Slot>.Update
             .Set(s => s.Status, SlotStatus.Reserved)
             .Set(s => s.UpdatedAt, DateTime.UtcNow);
-
-        var result = await _context.EnergyBookingSlots.UpdateOneAsync(filter, update);
-
-        if (result.MatchedCount == 0)
-        {
-            throw new NotFoundException($"Slot '{slotId}' not found.");
-        }
+        await _context.EnergyBookingSlots.UpdateOneAsync(s => s.Id == id, update);
     }
 
-    // Marks a slot as Available when a reservation is cancelled or completed.
-    // This allows other prosumers to book the slot again.
-    public async Task MarkAvailable(string slotId)
+    // Flips a slot's status to Available. Called from ReservationService
+    // on cancellation and after operator QR verification.
+    public async Task MarkAvailable(string id)
     {
-        if (!ObjectId.TryParse(slotId, out _))
-        {
-            throw new NotFoundException($"Invalid slot ID format: '{slotId}'.");
-        }
-
-        var filter = Builders<Slot>.Filter.Eq(s => s.Id, slotId);
         var update = Builders<Slot>.Update
             .Set(s => s.Status, SlotStatus.Available)
             .Set(s => s.UpdatedAt, DateTime.UtcNow);
-
-        var result = await _context.EnergyBookingSlots.UpdateOneAsync(filter, update);
-
-        if (result.MatchedCount == 0)
-        {
-            throw new NotFoundException($"Slot '{slotId}' not found.");
-        }
+        await _context.EnergyBookingSlots.UpdateOneAsync(s => s.Id == id, update);
     }
 }

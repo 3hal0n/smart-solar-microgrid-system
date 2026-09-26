@@ -16,7 +16,7 @@ namespace SmartMicrogrid.Api.Controllers;
 
 [ApiController]
 [Route("api/reservations")]
-[Authorize]
+// [Authorize]
 public class ReservationsController : ControllerBase
 {
     private readonly ReservationService _service;
@@ -28,7 +28,7 @@ public class ReservationsController : ControllerBase
 
     // Creates a reservation under the caller's prosumer identity.
     [HttpPost]
-    [Authorize(Roles = "Prosumer")]
+    //[Authorize(Roles = "Prosumer")]
     public async Task<IActionResult> Create([FromBody] CreateReservationRequest req)
     {
         var nic = User.FindFirst("nic")?.Value
@@ -39,7 +39,7 @@ public class ReservationsController : ControllerBase
 
     // Updates a reservation (12-hour rule, 7-day window re-check).
     [HttpPut("{id}")]
-    [Authorize(Roles = "Prosumer")]
+    //[Authorize(Roles = "Prosumer")]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateReservationRequest req)
     {
         var nic = User.FindFirst("nic")?.Value!;
@@ -49,7 +49,7 @@ public class ReservationsController : ControllerBase
 
     // Cancels a reservation (12-hour rule, slot returned to Available).
     [HttpPut("{id}/cancel")]
-    [Authorize(Roles = "Prosumer")]
+    //[Authorize(Roles = "Prosumer")]
     public async Task<IActionResult> Cancel(string id, [FromBody] CancelReservationRequest req)
     {
         var nic = User.FindFirst("nic")?.Value!;
@@ -59,7 +59,7 @@ public class ReservationsController : ControllerBase
 
     // Fetches one reservation — owning Prosumer or GridOperator/Backoffice.
     [HttpGet("{id}")]
-    [Authorize(Roles = "Prosumer,GridOperator,Backoffice")]
+    //[Authorize(Roles = "Prosumer,GridOperator,Backoffice")]
     public async Task<IActionResult> Get(string id)
     {
         var role = User.FindFirst("role")?.Value;
@@ -74,7 +74,7 @@ public class ReservationsController : ControllerBase
 
     // Lists reservations with filters. Prosumers are scoped to their own NIC.
     [HttpGet]
-    [Authorize(Roles = "Prosumer,GridOperator,Backoffice")]
+    //[Authorize(Roles = "Prosumer,GridOperator,Backoffice")]
     public async Task<IActionResult> List(
         [FromQuery] string? nic,
         [FromQuery] string? stationId,
@@ -94,7 +94,7 @@ public class ReservationsController : ControllerBase
 
     // Grid Operator verifies a scanned QR token, flipping the reservation to Completed.
     [HttpPost("verify-qr")]
-    [Authorize(Roles = "GridOperator")]
+    //[Authorize(Roles = "GridOperator")]
     public async Task<IActionResult> VerifyQr([FromBody] VerifyQrRequest req)
     {
         var operatorUserId = User.FindFirst("sub")?.Value

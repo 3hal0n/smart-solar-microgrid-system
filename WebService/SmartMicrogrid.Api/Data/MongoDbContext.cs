@@ -39,8 +39,6 @@ public class MongoDbContext
     // Typed accessor for the EnergyBookingSlots collection (owner: Shalon).
     public IMongoCollection<Slot> EnergyBookingSlots => _database.GetCollection<Slot>("EnergyBookingSlots");
 
-    // Typed accessor for the Reservations collection (write-side owner: Dinil; Shalon reads it
-    // for the station-deactivation check, the reservations-overview panel, and the
-    // dashboard/search/nearby endpoints — see architecture.md §3/§4).
+    // Dinil — typed accessor for the Reservations collection (owner: Dinil, architecture.md).
     public IMongoCollection<Reservation> Reservations => _database.GetCollection<Reservation>("Reservations");
 }
