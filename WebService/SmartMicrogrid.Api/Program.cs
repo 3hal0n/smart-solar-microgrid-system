@@ -68,6 +68,12 @@ builder.Services.AddScoped<SlotService>();
 builder.Services.AddSingleton<QrTokenService>(); // singleton: holds HMAC secret
 builder.Services.AddScoped<ReservationService>();
 
+// Rukshan's Prosumer Management Service
+builder.Services.AddScoped<ProsumerService>();
+
+// Rukshan's Prosumer Management & Auth Services
+builder.Services.AddScoped<JwtService>(); 
+
 // ============================================================
 // ADDED: JWT Authentication Configuration (For User Management)
 // ============================================================
