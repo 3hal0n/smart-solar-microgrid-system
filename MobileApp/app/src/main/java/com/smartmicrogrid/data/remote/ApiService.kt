@@ -10,7 +10,6 @@ package com.smartmicrogrid.data.remote
 
 import com.smartmicrogrid.data.remote.dto.*
 import com.smartmicrogrid.ui.dashboard.ProsumerDashboardSummary
-import com.smartmicrogrid.ui.dashboard.ReservationListItem
 import com.smartmicrogrid.ui.operator.NearbyStation
 import retrofit2.Response
 import retrofit2.http.Body
@@ -38,11 +37,8 @@ interface ApiService {
     @PUT("api/reservations/{id}/cancel")
     suspend fun cancelReservation(@Path("id") id: String, @Body req: CancelReservationRequest): Response<Void>
 
-    // Shalon — GET /dashboard/prosumer/{nic}/summary
-    @GET("api/dashboard/prosumer/{nic}/summary")
-    suspend fun getProsumerDashboardSummary(@Path("nic") nic: String): ProsumerDashboardSummary
-
-    // Shalon — GET /reservations?nic=&stationId=&status=&from=&to=
+    // Shalon/Migara — GET /api/reservations?nic=&stationId=&status=&from=&to=
+    // Updated to return List<ReservationResponse> to match backend and provide full details (including qrToken)
     @GET("api/reservations")
     suspend fun searchReservations(
         @Query("nic") nic: String?,
@@ -50,7 +46,11 @@ interface ApiService {
         @Query("status") status: String?,
         @Query("from") from: String?,
         @Query("to") to: String?,
-    ): List<ReservationListItem>
+    ): List<ReservationResponse>
+
+    // Shalon — GET /dashboard/prosumer/{nic}/summary
+    @GET("api/dashboard/prosumer/{nic}/summary")
+    suspend fun getProsumerDashboardSummary(@Path("nic") nic: String): ProsumerDashboardSummary
 
     // Shalon — GET /stations/nearby?lat=&lng=&radiusKm=
     @GET("api/stations/nearby")

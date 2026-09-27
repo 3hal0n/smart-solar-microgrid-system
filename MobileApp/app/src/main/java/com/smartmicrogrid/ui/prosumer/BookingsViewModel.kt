@@ -4,7 +4,6 @@
 //          Fetches reservations, handles creation, and cancellation.
 // Author: Migara
 // ============================================================
-
 package com.smartmicrogrid.ui.prosumer
 
 import androidx.lifecycle.ViewModel
@@ -18,9 +17,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-// Sealed class to represent the UI state
 sealed class BookingsUiState {
-    object Loading : BookingsUiState()
+    data object Loading : BookingsUiState()
     data class Success(val reservations: List<ReservationResponse>) : BookingsUiState()
     data class Error(val message: String) : BookingsUiState()
 }
@@ -35,18 +33,12 @@ class BookingsViewModel(
     private val _actionResult = MutableStateFlow<String?>(null)
     val actionResult: StateFlow<String?> = _actionResult.asStateFlow()
 
-    // Fetch reservations for a specific prosumer NIC
     fun fetchReservations(nic: String) {
         viewModelScope.launch {
             _uiState.value = BookingsUiState.Loading
             try {
-                // Fetch only "Confirmed" or "Completed" reservations for this user
                 val response = apiService.searchReservations(
-                    nic = nic,
-                    status = null, // Fetch all statuses, UI can filter if needed
-                    from = null,
-                    to = null,
-                    stationId = null
+                    nic = nic, status = null, from = null, to = null, stationId = null
                 )
                 _uiState.value = BookingsUiState.Success(response)
             } catch (e: Exception) {
@@ -55,18 +47,14 @@ class BookingsViewModel(
         }
     }
 
-    // Create a new reservation
     fun createReservation(request: CreateReservationRequest) {
         viewModelScope.launch {
-            _uiState.value = BookingsUiState.Loading
             try {
                 val response = apiService.createReservation(request)
-                if (response.isSuccessful && response.body() != null) {
-                    _actionResult.value = "Booking confirmed! QR Code generated."
-                    // Refresh the list (assuming we have the NIC, in a real app we'd pass it or fetch current user)
-                    // For now, we'll let the UI handle the refresh or we can store the NIC in the VM.
+                if (response.isSuccessful) {
+                    _actionResult.value = "Booking confirmed!"
                 } else {
-                    _actionResult.value = response.errorBody()?.string() ?: "Failed to create booking"
+                    _actionResult.value = "Failed to create booking"
                 }
             } catch (e: Exception) {
                 _actionResult.value = e.message ?: "Network error"
@@ -74,16 +62,14 @@ class BookingsViewModel(
         }
     }
 
-    // Cancel an existing reservation
     fun cancelReservation(id: String, reason: String? = "Cancelled by user") {
         viewModelScope.launch {
-            _uiState.value = BookingsUiState.Loading
             try {
                 val response = apiService.cancelReservation(id, CancelReservationRequest(reason))
                 if (response.isSuccessful) {
-                    _actionResult.value = "Reservation cancelled successfully."
+                    _actionResult.value = "Reservation cancelled."
                 } else {
-                    _actionResult.value = response.errorBody()?.string() ?: "Failed to cancel"
+                    _actionResult.value = "Failed to cancel"
                 }
             } catch (e: Exception) {
                 _actionResult.value = e.message ?: "Network error"
