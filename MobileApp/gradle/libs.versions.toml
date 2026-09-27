@@ -1,5 +1,5 @@
 [versions]
-agp = "9.4.1"
+agp = "8.8.0"
 coreKtx = "1.10.1"
 junit = "4.13.2"
 junitVersion = "1.1.5"
@@ -41,4 +41,5 @@ maps-compose = { group = "com.google.maps.android", name = "maps-compose", versi
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 

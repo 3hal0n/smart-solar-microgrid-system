@@ -2,16 +2,11 @@
 // File: UsersPage.jsx
 // Purpose: Handles CRUD operations for system users (Backoffice/
 //          GridOperator). Fetches users, displays them in a table,
-//          and provides a modal for creation.
-// Author: Migara (restyled to the Joule/Stripe design system,
-//          2026-09-26 — see chat notes for the team: this used a
-//          hand-rolled modal/table/confirm() instead of the shared
-//          Modal/Table/ConfirmDialog components the rest of the app
-//          uses, and raw gray/blue/purple Tailwind instead of the
-//          design tokens)
+//          and provides modals for creation and updating.
+// Author: Migara (updated with Edit functionality)
 // ============================================================
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import Toast from '../../components/common/Toast';
@@ -32,13 +27,15 @@ export default function UsersPage() {
   const [toast, setToast] = useState({ message: '', tone: 'error' });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState(null); // Tracks if we are editing
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [creating, setCreating] = useState(false);
+  const [updating, setUpdating] = useState(false);
 
   const [deactivateTarget, setDeactivateTarget] = useState(null);
   const [deactivating, setDeactivating] = useState(false);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await api.get('/users');
@@ -48,15 +45,14 @@ export default function UsersPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   // Fetch users on mount
   useEffect(() => {
     if (role === 'Backoffice') {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- standard fetch-on-mount
       fetchUsers();
     }
-  }, [role]);
+  }, [role, fetchUsers]);
 
   const summary = useMemo(
     () => ({
@@ -68,19 +64,64 @@ export default function UsersPage() {
     [users],
   );
 
+  const handleOpenCreate = () => {
+    setEditingUser(null);
+    setFormData(EMPTY_FORM);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (user) => {
+    setEditingUser(user);
+    setFormData({
+      username: user.username,
+      password: '', // Password is not updated via this form
+      role: user.role,
+      fullName: user.fullName,
+      email: user.email,
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingUser(null);
+    setFormData(EMPTY_FORM);
+  };
+
   const handleCreateUser = async (e) => {
     e.preventDefault();
     setCreating(true);
     try {
       await api.post('/users', formData);
       setToast({ message: 'User created successfully!', tone: 'success' });
-      setIsModalOpen(false);
-      setFormData(EMPTY_FORM);
+      handleCloseModal();
       await fetchUsers();
     } catch (err) {
       setToast({ message: err.response?.data?.message || 'Failed to create user', tone: 'error' });
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleUpdateUser = async (e) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    setUpdating(true);
+    try {
+      // Only send the fields the backend expects for update
+      const updatePayload = {
+        fullName: formData.fullName,
+        email: formData.email,
+        role: formData.role,
+      };
+      await api.put(`/users/${editingUser.id}`, updatePayload);
+      setToast({ message: 'User updated successfully!', tone: 'success' });
+      handleCloseModal();
+      await fetchUsers();
+    } catch (err) {
+      setToast({ message: err.response?.data?.message || 'Failed to update user', tone: 'error' });
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -100,7 +141,7 @@ export default function UsersPage() {
     }
   };
 
-  const columns = useMemo(
+    const columns = useMemo(
     () => [
       { key: 'username', header: 'Username', render: (u) => <span className="font-medium text-ink">{u.username}</span> },
       { key: 'fullName', header: 'Full name' },
@@ -119,15 +160,26 @@ export default function UsersPage() {
         key: 'actions',
         header: '',
         className: 'text-right',
-        render: (u) =>
-          u.status === 'Active' && (
-            <Button variant="danger-outline" size="sm" onClick={() => setDeactivateTarget(u)}>
-              Deactivate
-            </Button>
-          ),
+        render: (u) => (
+          <div className="flex justify-end gap-2">
+            {/* Only show Edit and Deactivate buttons if the user is Active */}
+            {u.status === 'Active' ? (
+              <>
+                <Button variant="secondary" size="sm" onClick={() => handleOpenEdit(u)}>
+                  Edit
+                </Button>
+                <Button variant="danger-outline" size="sm" onClick={() => setDeactivateTarget(u)}>
+                  Deactivate
+                </Button>
+              </>
+            ) : (
+              <span className="text-xs text-muted italic">No actions available</span>
+            )}
+          </div>
+        ),
       },
     ],
-    [],
+    [handleOpenEdit],
   );
 
   // Access control
@@ -148,7 +200,7 @@ export default function UsersPage() {
           <h1 className="text-xl font-semibold tracking-tight text-ink">User management</h1>
           <p className="mt-1 text-[13px] text-muted">Backoffice and Grid Operator staff accounts.</p>
         </div>
-        <Button variant="primary" onClick={() => setIsModalOpen(true)}>
+        <Button variant="primary" onClick={handleOpenCreate}>
           New user
         </Button>
       </div>
@@ -175,24 +227,29 @@ export default function UsersPage() {
 
       <Modal
         open={isModalOpen}
-        onClose={() => !creating && setIsModalOpen(false)}
-        title="Create new user"
-        description="Provisions a Backoffice or Grid Operator staff account."
+        onClose={handleCloseModal}
+        title={editingUser ? "Edit user" : "Create new user"}
+        description={editingUser ? "Update user details." : "Provisions a Backoffice or Grid Operator staff account."}
       >
-        <form onSubmit={handleCreateUser} className="flex flex-col gap-4">
-          <Input
-            label="Username"
-            required
-            value={formData.username}
-            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-          />
-          <Input
-            label="Password"
-            type="password"
-            required
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-          />
+        <form onSubmit={editingUser ? handleUpdateUser : handleCreateUser} className="flex flex-col gap-4">
+          {/* Only show Username and Password when creating a new user */}
+          {!editingUser && (
+            <>
+              <Input
+                label="Username"
+                required
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              />
+              <Input
+                label="Password"
+                type="password"
+                required
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              />
+            </>
+          )}
           <Input
             label="Full name"
             required
@@ -216,11 +273,11 @@ export default function UsersPage() {
             <option value="GridOperator">Grid Operator</option>
           </Input>
           <div className="mt-2 flex justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={() => setIsModalOpen(false)} disabled={creating}>
+            <Button type="button" variant="secondary" onClick={handleCloseModal} disabled={creating || updating}>
               Cancel
             </Button>
-            <Button type="submit" variant="primary" disabled={creating}>
-              {creating ? 'Creating…' : 'Create user'}
+            <Button type="submit" variant="primary" disabled={creating || updating}>
+              {creating ? 'Creating…' : updating ? 'Updating…' : (editingUser ? 'Update user' : 'Create user')}
             </Button>
           </div>
         </form>

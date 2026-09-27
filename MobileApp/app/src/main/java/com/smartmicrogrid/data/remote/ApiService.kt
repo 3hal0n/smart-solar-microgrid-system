@@ -2,26 +2,20 @@
 // File: ApiService.kt
 // Purpose: Retrofit interface. Dinil owns the verify-qr call
 //          (operator scan); Shalon owns the dashboard/reservations-
-//          search/nearby-stations calls below (merged in 2026-09-26
-//          — previously lived in a separate JouleApi.kt Shalon built
-//          before coordinating with Dinil on this file). Other owners
-//          append their endpoints here rather than creating separate
-//          interfaces. Response shapes are
-//          ProsumerDashboardModels.kt / NearbyStationModels.kt, whose
-//          field names already match the JSON exactly.
-// Author: Dinil + Shalon (shared infra — coordinate before editing)
+//          search/nearby-stations calls. Migara added the
+//          Prosumer booking lifecycle endpoints (create/update/cancel).
+// Author: Dinil + Shalon + Migara (shared infra)
 // ============================================================
 package com.smartmicrogrid.data.remote
 
-import com.smartmicrogrid.data.remote.dto.VerifyQrRequest
-import com.smartmicrogrid.data.remote.dto.VerifyQrResponse
+import com.smartmicrogrid.data.remote.dto.*
 import com.smartmicrogrid.ui.dashboard.ProsumerDashboardSummary
-import com.smartmicrogrid.ui.dashboard.ReservationListItem
 import com.smartmicrogrid.ui.operator.NearbyStation
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -31,16 +25,20 @@ interface ApiService {
     @POST("api/reservations/verify-qr")
     suspend fun verifyQr(@Body req: VerifyQrRequest): Response<VerifyQrResponse>
 
-    // Shalon — GET /dashboard/prosumer/{nic}/summary: active/pending/approved-future counts +
-    // recent history, for ProsumerDashboardScreen.kt's stat trays.
-    @GET("api/dashboard/prosumer/{nic}/summary")
-    suspend fun getProsumerDashboardSummary(@Path("nic") nic: String): ProsumerDashboardSummary
+    // Migara — Prosumer creates a new booking.
+    @POST("api/reservations")
+    suspend fun createReservation(@Body req: CreateReservationRequest): Response<CreateReservationResponse>
 
-    // Shalon — GET /reservations?nic=&stationId=&status=&from=&to=: read-only search/filter for
-    // ProsumerDashboardScreen.kt's booking lists. Pass null for any filter to omit that query
-    // param entirely (the server treats a missing param as "no filter on this field"). `status`
-    // must be a real ReservationStatus value ("Confirmed"/"Completed"/"Cancelled") or null — never
-    // the UI's "All" sentinel, which the server would reject as an invalid status.
+    // Migara — Prosumer modifies an existing booking (time/slot).
+    @PUT("api/reservations/{id}")
+    suspend fun updateReservation(@Path("id") id: String, @Body req: UpdateReservationRequest): Response<Void>
+
+    // Migara — Prosumer cancels a booking.
+    @PUT("api/reservations/{id}/cancel")
+    suspend fun cancelReservation(@Path("id") id: String, @Body req: CancelReservationRequest): Response<Void>
+
+    // Shalon/Migara — GET /api/reservations?nic=&stationId=&status=&from=&to=
+    // Updated to return List<ReservationResponse> to match backend and provide full details (including qrToken)
     @GET("api/reservations")
     suspend fun searchReservations(
         @Query("nic") nic: String?,
@@ -48,10 +46,13 @@ interface ApiService {
         @Query("status") status: String?,
         @Query("from") from: String?,
         @Query("to") to: String?,
-    ): List<ReservationListItem>
+    ): List<ReservationResponse>
 
-    // Shalon — GET /stations/nearby?lat=&lng=&radiusKm=: active stations within radiusKm, closest
-    // first, for MapScreen.kt's markers.
+    // Shalon — GET /dashboard/prosumer/{nic}/summary
+    @GET("api/dashboard/prosumer/{nic}/summary")
+    suspend fun getProsumerDashboardSummary(@Path("nic") nic: String): ProsumerDashboardSummary
+
+    // Shalon — GET /stations/nearby?lat=&lng=&radiusKm=
     @GET("api/stations/nearby")
     suspend fun getNearbyStations(
         @Query("lat") lat: Double,

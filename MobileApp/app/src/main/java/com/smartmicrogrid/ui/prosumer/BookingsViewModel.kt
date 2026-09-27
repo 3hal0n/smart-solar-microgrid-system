@@ -1,0 +1,83 @@
+// ============================================================
+// File: BookingsViewModel.kt
+// Purpose: Manages state and API calls for the Prosumer Bookings screen.
+//          Fetches reservations, handles creation, and cancellation.
+// Author: Migara
+// ============================================================
+package com.smartmicrogrid.ui.prosumer
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.smartmicrogrid.data.remote.ApiService
+import com.smartmicrogrid.data.remote.dto.CancelReservationRequest
+import com.smartmicrogrid.data.remote.dto.CreateReservationRequest
+import com.smartmicrogrid.data.remote.dto.ReservationResponse
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+sealed class BookingsUiState {
+    data object Loading : BookingsUiState()
+    data class Success(val reservations: List<ReservationResponse>) : BookingsUiState()
+    data class Error(val message: String) : BookingsUiState()
+}
+
+class BookingsViewModel(
+    private val apiService: ApiService
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow<BookingsUiState>(BookingsUiState.Loading)
+    val uiState: StateFlow<BookingsUiState> = _uiState.asStateFlow()
+
+    private val _actionResult = MutableStateFlow<String?>(null)
+    val actionResult: StateFlow<String?> = _actionResult.asStateFlow()
+
+    fun fetchReservations(nic: String) {
+        viewModelScope.launch {
+            _uiState.value = BookingsUiState.Loading
+            try {
+                val response = apiService.searchReservations(
+                    nic = nic, status = null, from = null, to = null, stationId = null
+                )
+                _uiState.value = BookingsUiState.Success(response)
+            } catch (e: Exception) {
+                _uiState.value = BookingsUiState.Error(e.message ?: "Failed to load reservations")
+            }
+        }
+    }
+
+    fun createReservation(request: CreateReservationRequest) {
+        viewModelScope.launch {
+            try {
+                val response = apiService.createReservation(request)
+                if (response.isSuccessful) {
+                    _actionResult.value = "Booking confirmed!"
+                } else {
+                    _actionResult.value = "Failed to create booking"
+                }
+            } catch (e: Exception) {
+                _actionResult.value = e.message ?: "Network error"
+            }
+        }
+    }
+
+    fun cancelReservation(id: String, reason: String? = "Cancelled by user") {
+        viewModelScope.launch {
+            try {
+                val response = apiService.cancelReservation(id, CancelReservationRequest(reason))
+                if (response.isSuccessful) {
+                    _actionResult.value = "Reservation cancelled."
+                } else {
+                    _actionResult.value = "Failed to cancel"
+                }
+            } catch (e: Exception) {
+                _actionResult.value = e.message ?: "Network error"
+            }
+        }
+    }
+
+    fun clearActionResult() {
+        _actionResult.value = null
+    }
+}
