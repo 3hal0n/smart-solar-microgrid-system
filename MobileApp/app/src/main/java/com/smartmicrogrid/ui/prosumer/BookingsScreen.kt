@@ -92,7 +92,11 @@ fun ReservationCard(reservation: ReservationResponse, onCancel: () -> Unit) {
                     Spacer(modifier = Modifier.height(8.dp))
                     val qrBitmap = remember(reservation.qrToken) { QrCodeHelper.generateQrCodeBitmap(reservation.qrToken, size = 180) }
                     if (qrBitmap != null) {
-                        Image(bitmap = qrBitmap.asImageBitmap(), contentDescription = "QR Code", modifier = Modifier.size(180.dp))
+                        Image(
+                            bitmap = qrBitmap, // <-- Just use qrBitmap directly!
+                            contentDescription = "QR Code",
+                            modifier = Modifier.size(180.dp)
+                        )
                     }
                 }
             }
