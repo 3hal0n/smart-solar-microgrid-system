@@ -166,7 +166,8 @@ fun ReservationCard(reservation: ReservationResponse, onCancel: () -> Unit) {
                     val qrBitmap = remember(reservation.qrToken) { QrCodeHelper.generateQrCodeBitmap(reservation.qrToken, size = 180) }
                     if (qrBitmap != null) {
                         androidx.compose.foundation.Image(
-                            bitmap = qrBitmap.asImageBitmap(),
+                            // CORRECT (Just pass the bitmap directly)
+                            bitmap = qrBitmap,
                             contentDescription = "QR Code",
                             modifier = Modifier.size(180.dp)
                         )
