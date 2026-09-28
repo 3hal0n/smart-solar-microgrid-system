@@ -27,14 +27,14 @@ function readStoredAuth() {
 export function AuthProvider({ children }) {
   const [auth, setAuth] = useState(readStoredAuth);
 
-  // Persists the logged-in user's token/role/fullName/userId and updates state.
-  const login = useCallback(({ token, role, fullName, userId }) => {
-    const next = { token, role, fullName, userId };
+  // Persists the logged-in user's token/role/fullName/userId/profilePicture and updates state.
+  const login = useCallback(({ token, role, fullName, userId, profilePicture }) => {
+    const next = { token, role, fullName, userId, profilePicture };
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(next));
     setAuth(next);
   }, []);
 
-  // Updates stored user profile metadata (e.g. after editing profile name)
+  // Updates stored user profile metadata (e.g. after editing profile name or picture)
   const updateUser = useCallback((updatedFields) => {
     setAuth((prev) => {
       if (!prev) return prev;
@@ -55,6 +55,7 @@ export function AuthProvider({ children }) {
     role: auth?.role ?? null,
     fullName: auth?.fullName ?? null,
     userId: auth?.userId ?? null,
+    profilePicture: auth?.profilePicture ?? null,
     isAuthenticated: Boolean(auth?.token),
     login,
     logout,

@@ -61,7 +61,7 @@ function breadcrumbsFor(pathname) {
 
 // Renders the shared shell (sidebar/top bar/content panel) around whichever page route is active.
 export default function AppShell() {
-  const { fullName, role, logout } = useAuth();
+  const { fullName, role, profilePicture, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -80,6 +80,7 @@ export default function AppShell() {
         onClose={() => setSidebarOpen(false)}
         fullName={fullName}
         role={role}
+        profilePicture={profilePicture}
         onLogout={handleLogout}
       />
       <div className="flex min-w-0 flex-1 flex-col lg:pr-3">
