@@ -10,6 +10,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace SmartMicrogrid.Api.Models
 {
+    [BsonIgnoreExtraElements]
     public class Prosumer
     {
         [BsonId]
