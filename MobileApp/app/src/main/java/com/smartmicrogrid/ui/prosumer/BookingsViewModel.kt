@@ -8,6 +8,7 @@ package com.smartmicrogrid.ui.prosumer
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.smartmicrogrid.data.remote.ApiClient
 import com.smartmicrogrid.data.remote.ApiService
 import com.smartmicrogrid.data.remote.dto.CancelReservationRequest
 import com.smartmicrogrid.data.remote.dto.CreateReservationRequest
@@ -23,8 +24,8 @@ sealed class BookingsUiState {
     data class Error(val message: String) : BookingsUiState()
 }
 
-class BookingsViewModel(
-    private val apiService: ApiService
+class BookingsViewModel @JvmOverloads constructor(
+    private val apiService: ApiService = ApiClient.service
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<BookingsUiState>(BookingsUiState.Loading)
@@ -33,7 +34,10 @@ class BookingsViewModel(
     private val _actionResult = MutableStateFlow<String?>(null)
     val actionResult: StateFlow<String?> = _actionResult.asStateFlow()
 
+    private var currentNic: String? = null
+
     fun fetchReservations(nic: String) {
+        currentNic = nic
         viewModelScope.launch {
             _uiState.value = BookingsUiState.Loading
             try {
@@ -53,6 +57,7 @@ class BookingsViewModel(
                 val response = apiService.createReservation(request)
                 if (response.isSuccessful) {
                     _actionResult.value = "Booking confirmed!"
+                    currentNic?.let { fetchReservations(it) }
                 } else {
                     _actionResult.value = "Failed to create booking"
                 }
@@ -68,6 +73,7 @@ class BookingsViewModel(
                 val response = apiService.cancelReservation(id, CancelReservationRequest(reason))
                 if (response.isSuccessful) {
                     _actionResult.value = "Reservation cancelled."
+                    currentNic?.let { fetchReservations(it) }
                 } else {
                     _actionResult.value = "Failed to cancel"
                 }

@@ -13,11 +13,11 @@ import com.google.gson.annotations.SerializedName
 data class VerifyQrRequest(val qrToken: String)
 
 data class VerifyQrResponse(
-    val reservationId: String,
-    val prosumerName: String,
-    val stationName: String,
-    val slotNumber: Int,
-    val status: String
+    @SerializedName("reservationId") val reservationId: String,
+    @SerializedName("prosumerName") val prosumerName: String,
+    @SerializedName("stationName") val stationName: String,
+    @SerializedName("slotNumber") val slotNumber: Int,
+    @SerializedName("status") val status: String
 )
 
 // ---------- Prosumer Booking Actions (Migara) ----------

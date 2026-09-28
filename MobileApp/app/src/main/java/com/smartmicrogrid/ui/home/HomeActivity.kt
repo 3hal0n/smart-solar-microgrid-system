@@ -42,16 +42,22 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
+import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.smartmicrogrid.MainActivity
 import com.smartmicrogrid.data.remote.ApiClient
 import com.smartmicrogrid.ui.components.JouleIcons
 import com.smartmicrogrid.ui.dashboard.OperatorDashboardScreen
 import com.smartmicrogrid.ui.dashboard.ProsumerDashboardScreen
+import com.smartmicrogrid.ui.auth.StaffSessionPreferences
 import com.smartmicrogrid.ui.operator.MapScreen
+import com.smartmicrogrid.ui.operator.OperatorProfileScreen
 import com.smartmicrogrid.ui.operator.ScanQrScreen
 import com.smartmicrogrid.ui.prosumer.BookingsScreen
+import com.smartmicrogrid.ui.prosumer.CreateBookingScreen
 import com.smartmicrogrid.ui.prosumer.ProfileScreen
 import com.smartmicrogrid.ui.theme.SmartMicrogridTheme
 
@@ -70,6 +76,7 @@ private val OPERATOR_DESTINATIONS = listOf(
     HomeDestination(HomeRoutes.OPERATOR_DASHBOARD, "Dashboard", JouleIcons.Grid),
     HomeDestination(HomeRoutes.OPERATOR_SCAN_QR, "Scan QR", JouleIcons.Scan),
     HomeDestination(HomeRoutes.OPERATOR_MAP, "Map", JouleIcons.MapPin),
+    HomeDestination(HomeRoutes.OPERATOR_PROFILE, "Profile", JouleIcons.User),
 )
 
 class HomeActivity : ComponentActivity() {
@@ -151,8 +158,34 @@ private fun NavGraphShell(destinations: List<HomeDestination>) {
             modifier = Modifier.padding(innerPadding),
         ) {
             composable(HomeRoutes.PROSUMER_DASHBOARD) { ProsumerDashboardScreen() }
-            composable(HomeRoutes.PROSUMER_BOOKINGS) { BookingsScreen() }
-            composable(HomeRoutes.PROSUMER_MAP) { MapScreen() }
+            composable(HomeRoutes.PROSUMER_BOOKINGS) {
+                BookingsScreen(
+                    onNavigateToCreate = { navController.navigate(HomeRoutes.PROSUMER_CREATE_BOOKING) }
+                )
+            }
+            composable(
+                route = "${HomeRoutes.PROSUMER_CREATE_BOOKING}?stationId={stationId}",
+                arguments = listOf(
+                    navArgument("stationId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val stationId = backStackEntry.arguments?.getString("stationId")
+                CreateBookingScreen(
+                    initialStationId = stationId,
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
+            composable(HomeRoutes.PROSUMER_MAP) {
+                MapScreen(
+                    onStationSelect = { stationId ->
+                        navController.navigate("${HomeRoutes.PROSUMER_CREATE_BOOKING}?stationId=$stationId")
+                    }
+                )
+            }
 
             // ============================================================
             // Rukshan's Integration: Wire the onLogout callback for ProfileScreen
@@ -162,7 +195,11 @@ private fun NavGraphShell(destinations: List<HomeDestination>) {
                 ProfileScreen(onLogout = {
                     // 1. Clear the global JWT token so subsequent API calls fail
                     ApiClient.authToken = null
-                    // 2. Finish this Activity to return to the Login/Splash screen
+                    // 2. Launch MainActivity (Sign In) and clear task stack so app doesn't exit to phone home screen
+                    val intent = Intent(context, MainActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    }
+                    context.startActivity(intent)
                     (context as? Activity)?.finish()
                 })
             }
@@ -170,6 +207,18 @@ private fun NavGraphShell(destinations: List<HomeDestination>) {
             composable(HomeRoutes.OPERATOR_DASHBOARD) { OperatorDashboardScreen() }
             composable(HomeRoutes.OPERATOR_SCAN_QR) { ScanQrScreen() }
             composable(HomeRoutes.OPERATOR_MAP) { MapScreen() }
+            composable(HomeRoutes.OPERATOR_PROFILE) {
+                val context = LocalContext.current
+                OperatorProfileScreen(onLogout = {
+                    StaffSessionPreferences.clear(context)
+                    ApiClient.authToken = null
+                    val intent = Intent(context, MainActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    }
+                    context.startActivity(intent)
+                    (context as? Activity)?.finish()
+                })
+            }
         }
     }
 }

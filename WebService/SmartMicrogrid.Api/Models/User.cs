@@ -10,7 +10,9 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace SmartMicrogrid.Api.Models
 {
-    // Represents a system user (Backoffice or Grid Operator)
+    // [BsonIgnoreExtraElements] tells MongoDB to ignore fields like 'nic' 
+    // that might exist in the database but aren't in this C# class, preventing crashes.
+    [BsonIgnoreExtraElements]
     public class User
     {
         [BsonId]
@@ -77,15 +79,15 @@ namespace SmartMicrogrid.Api.Models
     }
 
     // DTO for returning user data (excludes password hash for security)
-public class UserResponseDto
-{
-    public string Id { get; set; } = null!;
-    public string Username { get; set; } = null!;
-    public string Role { get; set; } = null!;
-    public string FullName { get; set; } = null!;
-    public string Email { get; set; } = null!;
-    public string Status { get; set; } = null!;
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
-}
+    public class UserResponseDto
+    {
+        public string Id { get; set; } = null!;
+        public string Username { get; set; } = null!;
+        public string Role { get; set; } = null!;
+        public string FullName { get; set; } = null!;
+        public string Email { get; set; } = null!;
+        public string Status { get; set; } = null!;
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+    }
 }
