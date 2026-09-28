@@ -94,6 +94,7 @@ import androidx.compose.ui.unit.dp
 import com.smartmicrogrid.data.local.AppDbHelper
 import com.smartmicrogrid.data.local.DashboardCacheDao
 import com.smartmicrogrid.data.remote.ApiClient
+import com.smartmicrogrid.data.remote.dto.ReservationResponse
 import com.smartmicrogrid.ui.components.IconTile
 import com.smartmicrogrid.ui.components.JouleIcons
 import com.smartmicrogrid.ui.components.SectionCard
@@ -124,7 +125,7 @@ fun ProsumerDashboardScreen() {
     var loadError by remember { mutableStateOf<String?>(null) }
     var refreshToken by remember { mutableIntStateOf(0) }
 
-    var reservations by remember { mutableStateOf<List<ReservationListItem>>(emptyList()) }
+    var reservations by remember { mutableStateOf<List<ReservationResponse>>(emptyList()) }
     var reservationsError by remember { mutableStateOf<String?>(null) }
 
     var statusFilter by remember { mutableStateOf("All") }
@@ -440,7 +441,7 @@ private fun FilterTextField(
 @Composable
 private fun ReservationSection(
     title: String,
-    reservations: List<ReservationListItem>,
+    reservations: List<ReservationResponse>,
     emptyMessage: String,
 ) {
     SectionCard(title = title, count = reservations.size) {
@@ -466,7 +467,7 @@ private fun ReservationSection(
 
 // One reservation: an icon tile, station + slot/time, and a status pill on the right.
 @Composable
-private fun ReservationRow(reservation: ReservationListItem) {
+private fun ReservationRow(reservation: ReservationResponse) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
