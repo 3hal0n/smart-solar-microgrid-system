@@ -54,12 +54,36 @@ const PATHS = {
     </>
   ),
   check: <path d="M4 10.5 8 14l8-8" strokeLinecap="round" strokeLinejoin="round" />,
-  grid: (
+  eye: (
     <>
-      <rect x="3" y="3" width="5.5" height="5.5" rx="1.2" />
-      <rect x="11.5" y="3" width="5.5" height="5.5" rx="1.2" />
-      <rect x="3" y="11.5" width="5.5" height="5.5" rx="1.2" />
-      <rect x="11.5" y="11.5" width="5.5" height="5.5" rx="1.2" />
+      <path d="M1.5 10s3.5-5.5 8.5-5.5 8.5 5.5 8.5 5.5-3.5 5.5-8.5 5.5S1.5 10 1.5 10Z" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="10" cy="10" r="2.5" />
+    </>
+  ),
+  eyeOff: (
+    <>
+      <path d="M2 2l16 16" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M8.5 8.6a2.5 2.5 0 0 0 3.5 3.5" strokeLinecap="round" />
+      <path d="M6.8 5.6C7.8 5.2 8.9 5 10 5c5 0 8.5 5 8.5 5a13.4 13.4 0 0 1-3.2 3.8" strokeLinecap="round" />
+      <path d="M3.3 7.8A13.4 13.4 0 0 0 1.5 10s3.5 5 8.5 5c1.4 0 2.6-.3 3.7-.8" strokeLinecap="round" />
+    </>
+  ),
+  camera: (
+    <>
+      <path d="M3 7a2 2 0 0 1 2-2h2l1.5-2h3L13 5h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="10" cy="11" r="3" />
+    </>
+  ),
+  lock: (
+    <>
+      <rect x="4" y="8" width="12" height="9" rx="1.5" />
+      <path d="M6.5 8V5.5a3.5 3.5 0 0 1 7 0V8" strokeLinecap="round" />
+    </>
+  ),
+  upload: (
+    <>
+      <path d="M3.5 14.5v1.5a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5v-1.5" strokeLinecap="round" />
+      <path d="M10 3.5v9M6.5 7 10 3.5 13.5 7" strokeLinecap="round" strokeLinejoin="round" />
     </>
   ),
 };
