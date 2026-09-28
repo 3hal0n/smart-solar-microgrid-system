@@ -1,11 +1,12 @@
 // ============================================================
 // File: ReservationsAdminPage.jsx
 // Purpose: Backoffice/GridOperator admin view of all energy
-//          reservations. Read + cancel only — creation and edit
-//          are Prosumer mobile actions per architecture.md §3.
-//          All business rules (12-hour notice, status transitions)
-//          enforced server-side; this page renders what the API
-//          returns and surfaces rejection messages verbatim.
+//          reservations. Supports read, create (on behalf of
+//          a Prosumer), and cancel. Update is done on the
+//          detail page. All business rules (7-day window,
+//          12-hour notice, status transitions) enforced
+//          server-side; this page renders API responses and
+//          surfaces rejection messages verbatim.
 // Author: Dinil
 // ============================================================
 import { useEffect, useMemo, useState } from "react";
@@ -46,6 +47,16 @@ function statusTone(status) {
   }
 }
 
+// Builds the empty form state for the create modal.
+function emptyCreateForm() {
+  return {
+    prosumerNic: "",
+    stationId: "",
+    slotId: "",
+    scheduledAt: ""
+  };
+}
+
 export default function ReservationsAdminPage() {
   const navigate = useNavigate();
 
@@ -65,6 +76,11 @@ export default function ReservationsAdminPage() {
   const [cancelTarget, setCancelTarget] = useState(null);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelBusy, setCancelBusy] = useState(false);
+
+  // Create modal state (operator-assisted booking).
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState(emptyCreateForm());
+  const [createBusy, setCreateBusy] = useState(false);
 
   // Tiny helper to fire a toast without prop-drilling.
   function show(message, tone = "error") {
@@ -102,6 +118,39 @@ export default function ReservationsAdminPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterStatus, filterNic, filterStationId]);
 
+  // Submits a create to the API. Enforces nothing client-side —
+  // the server validates the 7-day window and slot availability.
+  async function submitCreate() {
+    setCreateBusy(true);
+    try {
+      // Convert datetime-local ("2026-10-05T14:00") to ISO.
+      const payload = {
+        prosumerNic: createForm.prosumerNic.trim(),
+        stationId: createForm.stationId.trim(),
+        slotId: createForm.slotId.trim(),
+        scheduledAt: createForm.scheduledAt
+          ? new Date(createForm.scheduledAt).toISOString()
+          : null
+      };
+
+      await api.post("/reservations", payload);
+      show("Reservation created.", "success");
+      setShowCreate(false);
+      setCreateForm(emptyCreateForm());
+      await load();
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.code ||
+        e.message ||
+        "Create failed.";
+      // Surface API rejection verbatim — e.g. "must be within 7 days".
+      show(msg, "error");
+    } finally {
+      setCreateBusy(false);
+    }
+  }
+
   // Submits a cancel to the API. 12-hour rule rejections come back as 409.
   async function confirmCancel() {
     if (!cancelTarget) return;
@@ -120,7 +169,6 @@ export default function ReservationsAdminPage() {
         e?.response?.data?.code ||
         e.message ||
         "Cancel failed.";
-      // Surface the API's rejection message verbatim — a rubric expectation.
       show(msg, "error");
     } finally {
       setCancelBusy(false);
@@ -138,87 +186,61 @@ export default function ReservationsAdminPage() {
     [reservations]
   );
 
-  // Column definitions for the shared Table component.
-  // const columns = useMemo(
-  //   () => [
-  //     {
-  //       key: "id",
-  //       header: "ID",
-  //       render: (r) => (
-  //         <Link
-  //           to={`/reservations/${r.id}`}
-  //           className="font-mono text-xs text-primary hover:underline"
-  //         >
-  //           {r.id.slice(-8)}
-  //         </Link>
-  //       )
-  //     },
-  //     { key: "prosumerNic", header: "Prosumer NIC" },
-  //     {
-  //       key: "scheduledAt",
-  //       header: "Scheduled",
-  //       render: (r) => (
-  //         <span className="tnum">{formatDateTime(r.scheduledAt)}</span>
-  //       )
-  //     },
-  //     {
-  //       key: "status",
-  //       header: "Status",
-  //       render: (r) => <Badge tone={statusTone(r.status)}>{r.status}</Badge>
-  //     },
-  //     {
-  //       key: "actions",
-  //       header: "",
-  //       render: (r) => (
-  //         <div className="flex items-center gap-2 justify-end">
-  //           <Button
-  //             variant="ghost"
-  //             size="sm"
-  //             onClick={() => navigate(`/reservations/${r.id}`)}
-  //           >
-  //             View
-  //           </Button>
-  //           {r.status === "Confirmed" && (
-  //             <Button
-  //               variant="danger"
-  //               size="sm"
-  //               onClick={() => {
-  //                 setCancelTarget(r);
-  //                 setCancelReason("");
-  //               }}
-  //             >
-  //               Cancel
-  //             </Button>
-  //           )}
-  //         </div>
-  //       )
-  //     }
-  //   ],
-  //   [navigate]
-  // );
-
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       {/* Page header */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight text-ink">Reservations</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-ink">
+            Reservations
+          </h1>
           <p className="mt-1 text-[13px] text-muted">
-            All energy slot reservations across microgrid nodes. Read-only
-            oversight — creation and edits happen on the Prosumer mobile app.
+            All energy slot reservations across microgrid nodes. Operators may
+            create bookings on behalf of Prosumers (phone-in or walk-in).
           </p>
         </div>
-        <Button variant="secondary" onClick={load} disabled={loading}>
-          {loading ? "Refreshing…" : "Refresh"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="primary"
+            onClick={() => {
+              setCreateForm(emptyCreateForm());
+              setShowCreate(true);
+            }}
+          >
+            + New reservation
+          </Button>
+          <Button variant="secondary" onClick={load} disabled={loading}>
+            {loading ? "Refreshing…" : "Refresh"}
+          </Button>
+        </div>
       </div>
 
       {/* Summary row */}
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard icon="calendar" label="Total" value={counts.total} hint="All reservations" />
-        <StatCard icon="pulse" label="Confirmed" value={counts.confirmed} hint="Awaiting check-in" />
-        <StatCard icon="check" label="Completed" value={counts.completed} hint="Transfer finished" />
-        <StatCard icon="bolt" label="Cancelled" value={counts.cancelled} hint="Slot released" />
+        <StatCard
+          icon="calendar"
+          label="Total"
+          value={counts.total}
+          hint="All reservations"
+        />
+        <StatCard
+          icon="pulse"
+          label="Confirmed"
+          value={counts.confirmed}
+          hint="Awaiting check-in"
+        />
+        <StatCard
+          icon="check"
+          label="Completed"
+          value={counts.completed}
+          hint="Transfer finished"
+        />
+        <StatCard
+          icon="bolt"
+          label="Cancelled"
+          value={counts.cancelled}
+          hint="Slot released"
+        />
       </div>
 
       {/* Filters */}
@@ -255,7 +277,7 @@ export default function ReservationsAdminPage() {
         </p>
       )}
 
-      {/* Table — Shalon's shared shell, rendered with named exports */}
+      {/* Table */}
       <Table>
         <thead>
           <tr>
@@ -325,6 +347,76 @@ export default function ReservationsAdminPage() {
         </tbody>
       </Table>
 
+      {/* Create modal — operator-assisted booking */}
+      <Modal
+        open={showCreate}
+        onClose={() => !createBusy && setShowCreate(false)}
+        title="New reservation"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-muted">
+            Create a reservation on behalf of a Prosumer. The server enforces
+            the 7-day booking window and slot availability.
+          </p>
+
+          <Input
+            label="Prosumer NIC *"
+            placeholder="e.g. 199012345678"
+            value={createForm.prosumerNic}
+            onChange={(e) =>
+              setCreateForm({ ...createForm, prosumerNic: e.target.value })
+            }
+          />
+          <Input
+            label="Station ID *"
+            placeholder="Mongo ObjectId"
+            value={createForm.stationId}
+            onChange={(e) =>
+              setCreateForm({ ...createForm, stationId: e.target.value })
+            }
+          />
+          <Input
+            label="Slot ID *"
+            placeholder="Mongo ObjectId"
+            value={createForm.slotId}
+            onChange={(e) =>
+              setCreateForm({ ...createForm, slotId: e.target.value })
+            }
+          />
+          <Input
+            label="Scheduled at *"
+            type="datetime-local"
+            value={createForm.scheduledAt}
+            onChange={(e) =>
+              setCreateForm({ ...createForm, scheduledAt: e.target.value })
+            }
+          />
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Button
+              variant="secondary"
+              onClick={() => setShowCreate(false)}
+              disabled={createBusy}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={submitCreate}
+              disabled={
+                createBusy ||
+                !createForm.prosumerNic.trim() ||
+                !createForm.stationId.trim() ||
+                !createForm.slotId.trim() ||
+                !createForm.scheduledAt
+              }
+            >
+              {createBusy ? "Creating…" : "Create reservation"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       {/* Cancel confirmation modal */}
       <Modal
         open={!!cancelTarget}
@@ -370,7 +462,8 @@ export default function ReservationsAdminPage() {
           </div>
         )}
       </Modal>
-      {/* Toast — Shalon's component, parent-owned state */}
+
+      {/* Toast */}
       <Toast
         message={toast.message}
         tone={toast.tone}
