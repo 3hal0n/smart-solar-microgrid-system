@@ -26,9 +26,15 @@ import com.smartmicrogrid.util.QrCodeHelper
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookingsScreen(
-    prosumerNic: String = "TEST-NIC-123", // Replace with actual logged-in user NIC from Auth
+    prosumerNic: String? = null,
+    onNavigateToCreate: (() -> Unit)? = null,
     viewModel: BookingsViewModel = viewModel()
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val effectiveNic = remember(prosumerNic) {
+        prosumerNic ?: com.smartmicrogrid.data.local.ProsumerSessionDao(context).getSession()?.nic ?: "TEST-NIC-123"
+    }
+
     val uiState by viewModel.uiState.collectAsState()
     val actionResult by viewModel.actionResult.collectAsState()
 
@@ -37,8 +43,8 @@ fun BookingsScreen(
     var slotId by remember { mutableStateOf("") }
     var scheduledAt by remember { mutableStateOf("") }
 
-    LaunchedEffect(prosumerNic) {
-        viewModel.fetchReservations(prosumerNic)
+    LaunchedEffect(effectiveNic) {
+        viewModel.fetchReservations(effectiveNic)
     }
 
     Scaffold(
@@ -46,7 +52,13 @@ fun BookingsScreen(
             TopAppBar(
                 title = { Text("My Bookings") },
                 actions = {
-                    IconButton(onClick = { showCreateDialog = true }) {
+                    IconButton(onClick = {
+                        if (onNavigateToCreate != null) {
+                            onNavigateToCreate()
+                        } else {
+                            showCreateDialog = true
+                        }
+                    }) {
                         Text("+", fontSize = MaterialTheme.typography.headlineMedium.fontSize, fontWeight = FontWeight.Bold)
                     }
                 }
@@ -60,7 +72,7 @@ fun BookingsScreen(
                     Column(modifier = Modifier.align(Alignment.Center).padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = { viewModel.fetchReservations(prosumerNic) }) { Text("Retry") }
+                        Button(onClick = { viewModel.fetchReservations(effectiveNic) }) { Text("Retry") }
                     }
                 }
                 is BookingsUiState.Success -> {

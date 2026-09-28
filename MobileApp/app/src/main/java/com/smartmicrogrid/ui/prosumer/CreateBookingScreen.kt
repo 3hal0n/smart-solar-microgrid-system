@@ -78,11 +78,17 @@ fun CreateBookingScreen(
                 modifier = Modifier.fillMaxWidth()
             )
 
+            actionResult?.let { message ->
+                if (message != "Booking confirmed!") {
+                    Text(message, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
             Button(
                 onClick = {
                     if (stationId.isNotBlank() && slotId.isNotBlank() && scheduledAt.isNotBlank()) {
                         isLoading = true
-                        viewModel.createReservation(CreateReservationRequest(stationId, slotId, scheduledAt))
+                        viewModel.createReservation(CreateReservationRequest(stationId.trim(), slotId.trim(), scheduledAt.trim()))
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
@@ -94,6 +100,12 @@ fun CreateBookingScreen(
                     Text("Confirm Booking")
                 }
             }
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            viewModel.clearActionResult()
         }
     }
 }
