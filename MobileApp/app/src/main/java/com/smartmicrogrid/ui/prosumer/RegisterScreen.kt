@@ -99,13 +99,13 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit) {
                 }
             }
 
-            // Signup Image (specified by user)
+            // Dedicated register hero image
             Image(
-                painter = painterResource(id = R.drawable.signup),
+                painter = painterResource(id = R.drawable.auth_register_hero),
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(160.dp),
+                    .height(180.dp),
                 contentScale = ContentScale.Crop,
             )
 

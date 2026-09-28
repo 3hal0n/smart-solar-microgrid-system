@@ -117,13 +117,13 @@ fun LoginScreen(onLoginSuccess: (UserRole) -> Unit, onNavigateToRegister: () -> 
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Home Image (specified by user)
+            // Dedicated login hero image
             Image(
-                painter = painterResource(id = R.drawable.home),
+                painter = painterResource(id = R.drawable.auth_login_hero),
                 contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp),
+                    .height(200.dp),
                 contentScale = ContentScale.Crop,
             )
 

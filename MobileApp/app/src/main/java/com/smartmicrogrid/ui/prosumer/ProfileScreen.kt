@@ -162,13 +162,10 @@ fun ProfileScreen(onLogout: () -> Unit) {
                             .padding(top = 16.dp, bottom = 12.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        // Clickable Avatar with Photo Upload
+                        // Clickable Avatar with unclipped Photo Upload badge
                         Box(
                             modifier = Modifier
-                                .size(88.dp)
-                                .clip(CircleShape)
-                                .background(StripeBrandVioletSoft)
-                                .border(3.dp, StripeSurface, CircleShape)
+                                .size(96.dp)
                                 .clickable(
                                     indication = null,
                                     interactionSource = remember { MutableInteractionSource() },
@@ -176,39 +173,49 @@ fun ProfileScreen(onLogout: () -> Unit) {
                                 ),
                             contentAlignment = Alignment.Center,
                         ) {
-                            if (avatarBitmap != null) {
-                                Image(
-                                    bitmap = avatarBitmap,
-                                    contentDescription = "Profile Picture",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop,
-                                )
-                            } else {
-                                Text(
-                                    text = initials(p.fullName),
-                                    style = MaterialTheme.typography.headlineMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 28.sp,
-                                    ),
-                                    color = StripePrimary,
-                                )
+                            // Avatar circle
+                            Box(
+                                modifier = Modifier
+                                    .size(88.dp)
+                                    .clip(CircleShape)
+                                    .background(StripeBrandVioletSoft)
+                                    .border(3.dp, StripeSurface, CircleShape),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                if (avatarBitmap != null) {
+                                    Image(
+                                        bitmap = avatarBitmap,
+                                        contentDescription = "Profile Picture",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop,
+                                    )
+                                } else {
+                                    Text(
+                                        text = initials(p.fullName),
+                                        style = MaterialTheme.typography.headlineMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 28.sp,
+                                        ),
+                                        color = StripePrimary,
+                                    )
+                                }
                             }
 
-                            // Camera overlay badge
+                            // Camera badge (unclipped)
                             Box(
                                 modifier = Modifier
                                     .align(Alignment.BottomEnd)
-                                    .size(26.dp)
+                                    .size(28.dp)
                                     .clip(CircleShape)
                                     .background(StripePrimary)
-                                    .border(2.dp, StripeSurface, CircleShape),
+                                    .border(2.5.dp, StripeSurface, CircleShape),
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Icon(
                                     imageVector = JouleIcons.Camera,
                                     contentDescription = "Change photo",
                                     tint = Color.White,
-                                    modifier = Modifier.size(13.dp),
+                                    modifier = Modifier.size(14.dp),
                                 )
                             }
                         }

@@ -107,4 +107,13 @@ object JouleIcons {
         "M3 7a2 2 0 0 1 2-2h2l1.5-2h3L13 5h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z",
         "M13 11a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z",
     )
+    val Filter: ImageVector = strokeIcon(
+        "filter",
+        "M3 4.5h14M5.5 9.5h9M8.5 14.5h3",
+    )
+    val Search: ImageVector = strokeIcon(
+        "search",
+        "M9 14.5a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11Z",
+        "M13 13l4 4",
+    )
 }

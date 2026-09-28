@@ -130,12 +130,10 @@ fun OperatorProfileScreen(onLogout: () -> Unit) {
 
                     val avatarBitmap = decodeBase64ToBitmap(avatarBase64)
 
-                    // Avatar with upload trigger
+                    // Avatar with upload trigger (unclipped badge)
                     Box(
                         modifier = Modifier
-                            .size(76.dp)
-                            .clip(CircleShape)
-                            .background(StripeBrandVioletSoft)
+                            .size(86.dp)
                             .clickable(
                                 indication = null,
                                 interactionSource = remember { MutableInteractionSource() },
@@ -143,37 +141,46 @@ fun OperatorProfileScreen(onLogout: () -> Unit) {
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
-                        if (avatarBitmap != null) {
-                            Image(
-                                bitmap = avatarBitmap,
-                                contentDescription = "Avatar",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop,
-                            )
-                        } else {
-                            Text(
-                                text = if (initials.isNotEmpty()) initials else "OP",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = StripePrimary,
-                            )
+                        Box(
+                            modifier = Modifier
+                                .size(76.dp)
+                                .clip(CircleShape)
+                                .background(StripeBrandVioletSoft)
+                                .border(3.dp, StripeSurface, CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (avatarBitmap != null) {
+                                Image(
+                                    bitmap = avatarBitmap,
+                                    contentDescription = "Avatar",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop,
+                                )
+                            } else {
+                                Text(
+                                    text = if (initials.isNotEmpty()) initials else "OP",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = StripePrimary,
+                                )
+                            }
                         }
 
-                        // Camera overlay badge
+                        // Camera overlay badge (unclipped)
                         Box(
                             modifier = Modifier
                                 .align(Alignment.BottomEnd)
-                                .size(24.dp)
+                                .size(26.dp)
                                 .clip(CircleShape)
                                 .background(StripePrimary)
-                                .border(2.dp, StripeSurface, CircleShape),
+                                .border(2.5.dp, StripeSurface, CircleShape),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(
                                 imageVector = JouleIcons.Camera,
                                 contentDescription = "Upload photo",
                                 tint = Color.White,
-                                modifier = Modifier.size(12.dp),
+                                modifier = Modifier.size(13.dp),
                             )
                         }
                     }
