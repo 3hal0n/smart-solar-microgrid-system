@@ -3,7 +3,6 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.kotlin.android)
 }
 
 // Reads MAPS_API_KEY from local.properties (gitignored, per-developer — same pattern as sdk.dir
@@ -29,12 +28,14 @@ val apiBaseUrl: String = localProperties.getProperty("API_BASE_URL", "http://10.
 
 android {
     namespace = "com.smartmicrogrid"
-    compileSdk = 34
+    // Was silently downgraded from 37 to 34 alongside the agp downgrade (see libs.versions.toml) —
+    // restored, since several transitive AndroidX libraries now require compileSdk 36+.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.smartmicrogrid"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0"
 
@@ -61,9 +62,6 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
-    }
-    kotlinOptions {
-        jvmTarget = "11"
     }
 }
 
