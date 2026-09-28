@@ -35,11 +35,9 @@ export default function LoginPage() {
       // 2. Update global auth state via AuthContext (persists to localStorage)
       login({ token, role, fullName });
 
-      // 3. Role-based redirection per architecture.md §6
-      if (role === 'Backoffice') {
-        navigate('/stations');
-      } else if (role === 'GridOperator') {
-        navigate('/reservations');
+      // 3. All roles land on the Dashboard (architecture.md §6 — central overview first)
+      if (role === 'Backoffice' || role === 'GridOperator') {
+        navigate('/dashboard');
       } else {
         navigate('/');
       }
