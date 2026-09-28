@@ -7,6 +7,7 @@
 //          full-page with no sidebar. Other owners add their own
 //          routes here per architecture.md §6.
 // Author: Shalon (Updated by Migara to add Login route)
+// Author: Rukshan (Update Prosumers Pages route)
 // ============================================================
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.jsx";
@@ -21,6 +22,9 @@ import ReservationsAdminPage from "./pages/reservations/ReservationsAdminPage.js
 import ReservationDetailPage from "./pages/reservations/ReservationDetailPage.jsx";
 import UsersPage from "./pages/admin/UsersPage.jsx";
 import DashboardPage from "./pages/dashboard/DashboardPage.jsx";
+
+import ProsumersPage from './pages/admin/ProsumersPage.jsx';
+import PendingProsumersPage from './pages/admin/PendingProsumersPage.jsx';
 
 
 // Renders the app's routing shell wrapped in the shared auth/toast providers.
@@ -61,6 +65,24 @@ export default function App() {
               {/* Dinil: reservation admin oversight */}
               <Route path="/reservations" element={<ReservationsAdminPage />} />
               <Route path="/reservations/:id" element={<ReservationDetailPage />} />
+
+              {/* Rukshan: Prosumers management — Backoffice only. */}
+              <Route
+                    path="/admin/prosumers"
+                    element={
+                      <RequireAuth roles={["Backoffice"]}>
+                        <ProsumersPage />
+                      </RequireAuth>
+                    }
+                  />
+                  <Route
+                    path="/admin/prosumers/pending"
+                    element={
+                      <RequireAuth roles={["Backoffice"]}>
+                        <PendingProsumersPage />
+                      </RequireAuth>
+                    }
+                  />
             </Route>
           </Routes>
         </BrowserRouter>
