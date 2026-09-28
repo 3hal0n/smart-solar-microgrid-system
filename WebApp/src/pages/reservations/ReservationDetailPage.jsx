@@ -1,10 +1,10 @@
 // ============================================================
 // File: ReservationDetailPage.jsx
 // Purpose: Single reservation view for Backoffice/GridOperator.
-//          Shows lifecycle timestamps, QR token (as text — the
-//          web app never renders or scans the QR image, that's
-//          a mobile action), and offers Cancel for Confirmed
-//          reservations. No business rules computed here.
+//          Shows lifecycle timestamps, QR token (as text), and
+//          offers Edit + Cancel for Confirmed reservations.
+//          Server enforces 7-day and 12-hour rules; rejections
+//          are surfaced verbatim.
 // Author: Dinil
 // ============================================================
 import { useEffect, useState } from "react";
@@ -29,6 +29,17 @@ function formatDateTime(iso) {
   });
 }
 
+// Converts an ISO string to a value usable by <input type="datetime-local">.
+function toLocalDateTimeInput(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  );
+}
+
 function statusTone(status) {
   switch (status) {
     case "Confirmed":
@@ -50,19 +61,22 @@ export default function ReservationDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Parent-owned toast state, matching Shalon's Toast.jsx pattern.
+  // Parent-owned toast state.
   const [toast, setToast] = useState({ message: "", tone: "error" });
 
   const [showCancel, setShowCancel] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelBusy, setCancelBusy] = useState(false);
 
-  // Small helper so call sites stay readable: show(msg, tone).
+  // Edit modal state.
+  const [showEdit, setShowEdit] = useState(false);
+  const [editForm, setEditForm] = useState(null);
+  const [editBusy, setEditBusy] = useState(false);
+
   function show(message, tone = "error") {
     setToast({ message, tone });
   }
 
-  // Fetches the reservation by ID.
   async function load() {
     setLoading(true);
     setError(null);
@@ -104,7 +118,45 @@ export default function ReservationDetailPage() {
     };
   }, [id]);
 
-  // Cancels the reservation. The 12-hour rejection surfaces verbatim.
+  // Opens the edit modal pre-filled with current reservation data.
+  function openEdit() {
+    setEditForm({
+      stationId: reservation.stationId || "",
+      slotId: reservation.slotId || "",
+      scheduledAt: toLocalDateTimeInput(reservation.scheduledAt)
+    });
+    setShowEdit(true);
+  }
+
+  // Submits an update. 12-hour and 7-day rules come back from the server.
+  async function submitEdit() {
+    setEditBusy(true);
+    try {
+      const payload = {
+        stationId: editForm.stationId.trim(),
+        slotId: editForm.slotId.trim(),
+        scheduledAt: editForm.scheduledAt
+          ? new Date(editForm.scheduledAt).toISOString()
+          : null
+      };
+      await api.put(`/reservations/${id}`, payload);
+      show("Reservation updated.", "success");
+      setShowEdit(false);
+      await load();
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.code ||
+        e.message ||
+        "Update failed.";
+      // Surface server rejection verbatim (12-hour rule, etc.).
+      show(msg, "error");
+    } finally {
+      setEditBusy(false);
+    }
+  }
+
+  // Cancels the reservation.
   async function confirmCancel() {
     setCancelBusy(true);
     try {
@@ -128,7 +180,11 @@ export default function ReservationDetailPage() {
   }
 
   if (loading) {
-    return <div className="mx-auto max-w-6xl px-6 py-8 text-[13px] text-muted">Loading reservation…</div>;
+    return (
+      <div className="mx-auto max-w-6xl px-6 py-8 text-[13px] text-muted">
+        Loading reservation…
+      </div>
+    );
   }
 
   if (error || !reservation) {
@@ -146,6 +202,7 @@ export default function ReservationDetailPage() {
 
   const r = reservation;
   const isCancellable = r.status === "Confirmed";
+  const isEditable = r.status === "Confirmed";
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
@@ -166,8 +223,8 @@ export default function ReservationDetailPage() {
             <span className="font-mono text-lg">{r.id.slice(-8)}</span>
           </h1>
           <p className="text-sm text-muted mt-1">
-            Full lifecycle detail. Read-only — cancel is the only write action
-            available here.
+            Full lifecycle detail. Edit and cancel are available while the
+            reservation is Confirmed.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -175,6 +232,11 @@ export default function ReservationDetailPage() {
           <Button variant="secondary" onClick={load}>
             Refresh
           </Button>
+          {isEditable && (
+            <Button variant="primary" onClick={openEdit}>
+              Edit
+            </Button>
+          )}
           {isCancellable && (
             <Button variant="danger" onClick={() => setShowCancel(true)}>
               Cancel reservation
@@ -225,6 +287,65 @@ export default function ReservationDetailPage() {
         </DetailCard>
       </div>
 
+      {/* Edit modal */}
+      <Modal
+        open={showEdit}
+        onClose={() => !editBusy && setShowEdit(false)}
+        title="Edit reservation"
+      >
+        {editForm && (
+          <div className="space-y-4">
+            <p className="text-sm text-body">
+              Update the reservation details. The server enforces the 7-day
+              window and the 12-hour modification notice.
+            </p>
+            <Input
+              label="Station ID *"
+              value={editForm.stationId}
+              onChange={(e) =>
+                setEditForm({ ...editForm, stationId: e.target.value })
+              }
+            />
+            <Input
+              label="Slot ID *"
+              value={editForm.slotId}
+              onChange={(e) =>
+                setEditForm({ ...editForm, slotId: e.target.value })
+              }
+            />
+            <Input
+              label="Scheduled at *"
+              type="datetime-local"
+              value={editForm.scheduledAt}
+              onChange={(e) =>
+                setEditForm({ ...editForm, scheduledAt: e.target.value })
+              }
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="secondary"
+                onClick={() => setShowEdit(false)}
+                disabled={editBusy}
+              >
+                Discard changes
+              </Button>
+              <Button
+                variant="primary"
+                onClick={submitEdit}
+                disabled={
+                  editBusy ||
+                  !editForm.stationId.trim() ||
+                  !editForm.slotId.trim() ||
+                  !editForm.scheduledAt
+                }
+              >
+                {editBusy ? "Saving…" : "Save changes"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       {/* Cancel modal */}
       <Modal
         open={showCancel}
@@ -262,7 +383,7 @@ export default function ReservationDetailPage() {
         </div>
       </Modal>
 
-      {/* Toast — parent-owned state */}
+      {/* Toast */}
       <Toast
         message={toast.message}
         tone={toast.tone}
@@ -291,7 +412,9 @@ function DetailRow({ label, value, mono = false }) {
     <div className="flex items-start justify-between gap-4">
       <span className="text-sm text-muted">{label}</span>
       <span
-        className={`text-sm text-ink text-right break-all ${mono ? "font-mono text-xs" : ""}`}
+        className={`text-sm text-ink text-right break-all ${
+          mono ? "font-mono text-xs" : ""
+        }`}
       >
         {value}
       </span>
