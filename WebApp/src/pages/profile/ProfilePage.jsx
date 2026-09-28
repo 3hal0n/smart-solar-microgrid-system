@@ -307,6 +307,7 @@ export default function ProfilePage() {
                   value={fullNameInput}
                   onChange={(e) => setFullNameInput(e.target.value)}
                   placeholder="e.g. Migara Silva"
+                  autoComplete="name"
                   required
                 />
               </div>
@@ -318,6 +319,7 @@ export default function ProfilePage() {
                   value={emailInput}
                   onChange={(e) => setEmailInput(e.target.value)}
                   placeholder="e.g. operator@smartgrid.lk"
+                  autoComplete="email"
                   required
                 />
               </div>
@@ -359,6 +361,7 @@ export default function ProfilePage() {
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="Enter current password"
+                    autoComplete="current-password"
                     required
                   />
                   <button
@@ -379,6 +382,7 @@ export default function ProfilePage() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="At least 6 characters"
+                    autoComplete="new-password"
                     required
                   />
                   <button
@@ -397,6 +401,7 @@ export default function ProfilePage() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Repeat new password"
+                    autoComplete="new-password"
                     required
                   />
                   <button
