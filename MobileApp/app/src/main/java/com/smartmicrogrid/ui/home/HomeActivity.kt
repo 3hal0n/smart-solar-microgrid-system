@@ -42,9 +42,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
+import androidx.navigation.NavType
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.smartmicrogrid.MainActivity
 import com.smartmicrogrid.data.remote.ApiClient
 import com.smartmicrogrid.ui.components.JouleIcons
 import com.smartmicrogrid.ui.dashboard.OperatorDashboardScreen
@@ -157,12 +160,29 @@ private fun NavGraphShell(destinations: List<HomeDestination>) {
                     onNavigateToCreate = { navController.navigate(HomeRoutes.PROSUMER_CREATE_BOOKING) }
                 )
             }
-            composable(HomeRoutes.PROSUMER_CREATE_BOOKING) {
+            composable(
+                route = "${HomeRoutes.PROSUMER_CREATE_BOOKING}?stationId={stationId}",
+                arguments = listOf(
+                    navArgument("stationId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) { backStackEntry ->
+                val stationId = backStackEntry.arguments?.getString("stationId")
                 CreateBookingScreen(
+                    initialStationId = stationId,
                     onNavigateBack = { navController.popBackStack() }
                 )
             }
-            composable(HomeRoutes.PROSUMER_MAP) { MapScreen() }
+            composable(HomeRoutes.PROSUMER_MAP) {
+                MapScreen(
+                    onStationSelect = { stationId ->
+                        navController.navigate("${HomeRoutes.PROSUMER_CREATE_BOOKING}?stationId=$stationId")
+                    }
+                )
+            }
 
             // ============================================================
             // Rukshan's Integration: Wire the onLogout callback for ProfileScreen
@@ -172,7 +192,11 @@ private fun NavGraphShell(destinations: List<HomeDestination>) {
                 ProfileScreen(onLogout = {
                     // 1. Clear the global JWT token so subsequent API calls fail
                     ApiClient.authToken = null
-                    // 2. Finish this Activity to return to the Login/Splash screen
+                    // 2. Launch MainActivity (Sign In) and clear task stack so app doesn't exit to phone home screen
+                    val intent = Intent(context, MainActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    }
+                    context.startActivity(intent)
                     (context as? Activity)?.finish()
                 })
             }

@@ -7,7 +7,7 @@
 //          - Dynamic slot selection (chips) via GET /api/stations/{id}
 //          - Native Date & Time picker enforcing the 7-day scheduling window
 //          - Zero double-padding on top bar
-// Author: Migara + Antigravity
+// Author: Migara
 // ============================================================
 package com.smartmicrogrid.ui.prosumer
 

@@ -74,7 +74,9 @@ private const val SEARCH_RADIUS_KM = 25.0
 // Renders the nearby-stations map: resolves a center point (device location or the default),
 // loads stations around it, and shows loading/empty/populated states as appropriate.
 @Composable
-fun MapScreen() {
+fun MapScreen(
+    onStationSelect: ((String) -> Unit)? = null
+) {
     val context = LocalContext.current
     val api = remember { ApiClient.service }
 
@@ -150,7 +152,7 @@ fun MapScreen() {
             mapError != null -> ErrorState(message = mapError!!, onRetry = { mapRefreshToken++ })
             center == null || stations == null -> LoadingState()
             stations!!.isEmpty() -> EmptyState()
-            else -> StationsMap(center = center!!, stations = stations!!)
+            else -> StationsMap(center = center!!, stations = stations!!, onStationSelect = onStationSelect)
         }
         // Floats over the map (rather than pushing it down) so the map keeps the full screen.
         LocationSourceBanner(
@@ -328,20 +330,34 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
 
 // Renders the map itself, camera centered on `center`, with one tappable marker per station.
 @Composable
-private fun StationsMap(center: LatLng, stations: List<NearbyStation>) {
+private fun StationsMap(
+    center: LatLng,
+    stations: List<NearbyStation>,
+    onStationSelect: ((String) -> Unit)? = null
+) {
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(center, DEFAULT_ZOOM)
     }
 
-    GoogleMap(modifier = Modifier.fillMaxSize(), cameraPositionState = cameraPositionState) {
+    GoogleMap(
+        modifier = Modifier.fillMaxSize(),
+        cameraPositionState = cameraPositionState,
+        uiSettings = com.google.maps.android.compose.MapUiSettings(
+            zoomControlsEnabled = true,
+            mapToolbarEnabled = true
+        )
+    ) {
         stations.forEach { station ->
             MarkerInfoWindowContent(
                 state = com.google.maps.android.compose.rememberMarkerState(
                     position = LatLng(station.location.lat, station.location.lng),
                 ),
                 title = station.name,
+                onInfoWindowClick = {
+                    onStationSelect?.invoke(station.id)
+                }
             ) {
-                StationInfoWindow(station)
+                StationInfoWindow(station, onBookClick = { onStationSelect?.invoke(station.id) })
             }
         }
     }
@@ -350,7 +366,7 @@ private fun StationsMap(center: LatLng, stations: List<NearbyStation>) {
 // Renders the tap-to-show info window content: name + distance, then capacity and available slots
 // as two small labelled figures.
 @Composable
-private fun StationInfoWindow(station: NearbyStation) {
+private fun StationInfoWindow(station: NearbyStation, onBookClick: (() -> Unit)? = null) {
     Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
         Text(text = station.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
         Text(
@@ -361,6 +377,25 @@ private fun StationInfoWindow(station: NearbyStation) {
         Row(modifier = Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             InfoFigure(label = "Capacity", value = "${station.capacityKWh} kWh")
             InfoFigure(label = "Free slots", value = station.availableSlots.toString())
+        }
+        if (onBookClick != null) {
+            Spacer(modifier = Modifier.height(10.dp))
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onBookClick() }
+            ) {
+                Text(
+                    text = "Tap to Reserve Slot →",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
         }
     }
 }

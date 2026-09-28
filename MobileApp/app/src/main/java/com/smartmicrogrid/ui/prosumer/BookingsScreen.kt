@@ -51,6 +51,7 @@ fun BookingsScreen(
         topBar = {
             TopAppBar(
                 title = { Text("My Bookings") },
+                windowInsets = WindowInsets(0, 0, 0, 0),
                 actions = {
                     IconButton(onClick = {
                         if (onNavigateToCreate != null) {
