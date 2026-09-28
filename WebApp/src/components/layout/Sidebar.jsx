@@ -22,11 +22,10 @@ function initialsOf(name) {
     .join('');
 }
 
-// Renders one nav section (a micro-label heading plus its icon links).
+// Renders one nav section's items as icon links, no title header.
 function NavSection({ section, onNavigate }) {
   return (
-    <div className="mb-6">
-      <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted">{section.title}</p>
+    <div className="mb-1">
       <div className="flex flex-col gap-0.5">
         {section.items.map((item) => (
           <NavLink
