@@ -43,6 +43,9 @@ const NAV_SECTIONS = [
 // Builds the breadcrumb trail from the current path: the matching nav item as the root, plus a
 // "Details" crumb for anything nested under it (e.g. /stations/:id).
 function breadcrumbsFor(pathname) {
+  if (pathname === '/profile') {
+    return [{ label: 'Account Profile', to: '/profile' }];
+  }
   const item = NAV_SECTIONS.flatMap((section) => section.items).find(
     (candidate) => pathname === candidate.to || pathname.startsWith(`${candidate.to}/`),
   );

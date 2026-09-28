@@ -27,11 +27,21 @@ function readStoredAuth() {
 export function AuthProvider({ children }) {
   const [auth, setAuth] = useState(readStoredAuth);
 
-  // Persists the logged-in user's token/role/fullName and updates state.
-  const login = useCallback(({ token, role, fullName }) => {
-    const next = { token, role, fullName };
+  // Persists the logged-in user's token/role/fullName/userId and updates state.
+  const login = useCallback(({ token, role, fullName, userId }) => {
+    const next = { token, role, fullName, userId };
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(next));
     setAuth(next);
+  }, []);
+
+  // Updates stored user profile metadata (e.g. after editing profile name)
+  const updateUser = useCallback((updatedFields) => {
+    setAuth((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...updatedFields };
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
   }, []);
 
   // Clears the persisted session and resets state to logged-out.
@@ -44,9 +54,11 @@ export function AuthProvider({ children }) {
     token: auth?.token ?? null,
     role: auth?.role ?? null,
     fullName: auth?.fullName ?? null,
+    userId: auth?.userId ?? null,
     isAuthenticated: Boolean(auth?.token),
     login,
     logout,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

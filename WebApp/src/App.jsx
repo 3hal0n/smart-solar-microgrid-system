@@ -21,6 +21,7 @@ import ReservationsAdminPage from "./pages/reservations/ReservationsAdminPage.js
 import ReservationDetailPage from "./pages/reservations/ReservationDetailPage.jsx";
 import UsersPage from "./pages/admin/UsersPage.jsx";
 import DashboardPage from "./pages/dashboard/DashboardPage.jsx";
+import ProfilePage from "./pages/profile/ProfilePage.jsx";
 
 
 // Renders the app's routing shell wrapped in the shared auth/toast providers.
@@ -61,6 +62,9 @@ export default function App() {
               {/* Dinil: reservation admin oversight */}
               <Route path="/reservations" element={<ReservationsAdminPage />} />
               <Route path="/reservations/:id" element={<ReservationDetailPage />} />
+
+              {/* Self-service profile & password management */}
+              <Route path="/profile" element={<ProfilePage />} />
             </Route>
           </Routes>
         </BrowserRouter>
