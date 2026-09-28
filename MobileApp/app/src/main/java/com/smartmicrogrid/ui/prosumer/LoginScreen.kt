@@ -1,19 +1,14 @@
 // ============================================================
 // File: LoginScreen.kt
-// Purpose: Sign-in screen. Prosumer mode (NIC + password) saves the
-//          session to SQLite via ProsumerSessionDao on success — this
-//          part is Rukshan's original logic, kept as-is. Grid Operator
-//          mode (username + password) was added alongside it since
-//          both roles need one entry point: it calls the existing
-//          staff login endpoint (POST /api/auth/login, Migara's — the
-//          same one the web app's LoginPage already uses) and saves
-//          its session via StaffSessionPreferences instead.
-// Author: Rukshan (extended by Shalon: Grid Operator mode + Stripe
-//          visual design per docs/stripe.design.md, 2026-09-28)
+// Purpose: Sign-in screen styled to mirror the web app's login branding.
+//          Uses home.png as hero banner with layered gradients,
+//          brand badge, and sleek inputs for Prosumers and Grid Operators.
 // ============================================================
 package com.smartmicrogrid.ui.prosumer
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -25,11 +20,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.smartmicrogrid.R
 import com.smartmicrogrid.data.local.ProsumerSessionDao
 import com.smartmicrogrid.data.remote.ApiClient
 import com.smartmicrogrid.data.remote.dto.ProsumerLoginRequest
@@ -47,6 +47,7 @@ import com.smartmicrogrid.ui.theme.StripeError
 import com.smartmicrogrid.ui.theme.StripeInk
 import com.smartmicrogrid.ui.theme.StripeOnPrimary
 import com.smartmicrogrid.ui.theme.StripePrimary
+import com.smartmicrogrid.ui.theme.StripeSurface
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -112,73 +113,199 @@ fun LoginScreen(onLoginSuccess: (UserRole) -> Unit, onNavigateToRegister: () -> 
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(modifier = Modifier.height(48.dp))
-
-            JouleMark(modifier = Modifier.width(72.dp))
-            Spacer(modifier = Modifier.height(16.dp))
-            Text("Joule", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold, color = StripeInk)
-            Text("Power, exchanged precisely.", style = MaterialTheme.typography.bodyMedium, color = StripeBody)
-
-            Spacer(modifier = Modifier.height(32.dp))
-            Text("Sign in", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, color = StripeInk)
-            Spacer(modifier = Modifier.height(20.dp))
-
-            RoleToggle(selected = role, onSelect = { role = it; identifier = ""; errorMessage = null })
-            Spacer(modifier = Modifier.height(20.dp))
-
-            AuthTextField(
-                value = identifier,
-                onValueChange = { identifier = it },
-                label = if (role == UserRole.Prosumer) "NIC Number" else "Username",
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            AuthTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = "Password",
-                visualTransformation = PasswordVisualTransformation(),
-            )
-
-            errorMessage?.let {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(it, color = StripeError, style = MaterialTheme.typography.bodySmall)
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(
-                onClick = ::submit,
-                enabled = !isLoading,
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(containerColor = StripePrimary, contentColor = StripeOnPrimary),
-                modifier = Modifier.fillMaxWidth().height(50.dp),
+            // Hero Banner styled like web app login
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(230.dp),
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(22.dp), color = StripeOnPrimary, strokeWidth = 2.dp)
-                } else {
-                    Text("Sign In", style = MaterialTheme.typography.titleSmall)
+                // Background image: home.png
+                Image(
+                    painter = painterResource(id = R.drawable.home),
+                    contentDescription = "Solar Microgrid Hero",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+
+                // Dark gradient overlay matching webapp's slate-950 aesthetic
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color(0x660B132B),
+                                    Color(0xCC0A2540),
+                                    Color(0xF00A2540),
+                                ),
+                            ),
+                        ),
+                )
+
+                // Hero content
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 24.dp, vertical = 20.dp),
+                    verticalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    // Top brand header
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        JouleMark(modifier = Modifier.width(36.dp))
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Joule",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            letterSpacing = (-0.5).sp,
+                        )
+                    }
+
+                    // Headline and tagline
+                    Column {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(Color.White.copy(alpha = 0.12f))
+                                .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(50))
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                        ) {
+                            Text(
+                                text = "Smart Solar Microgrid",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF67E8F9), // cyan-300
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "Power, exchanged precisely.",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Coordinated battery reservations & clean microgrid dispatch.",
+                            fontSize = 12.sp,
+                            color = Color(0xFFCBD5E1), // slate-300
+                            lineHeight = 16.sp,
+                        )
+                    }
                 }
             }
 
-            if (role == UserRole.Prosumer) {
-                Spacer(modifier = Modifier.height(16.dp))
-                TextButton(onClick = onNavigateToRegister) {
-                    Text("Don't have an account? ", color = StripeBody)
-                    Text("Register Now", color = StripeAccent, fontWeight = FontWeight.SemiBold)
+            // Form container
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 20.dp, bottom = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = "Sign in to your account",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = StripeInk,
+                    modifier = Modifier.align(Alignment.Start),
+                )
+                Text(
+                    text = "Select your role to access the microgrid network.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = StripeBody,
+                    modifier = Modifier.align(Alignment.Start),
+                )
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                RoleToggle(
+                    selected = role,
+                    onSelect = {
+                        role = it
+                        identifier = ""
+                        errorMessage = null
+                    },
+                )
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                AuthTextField(
+                    value = identifier,
+                    onValueChange = { identifier = it },
+                    label = if (role == UserRole.Prosumer) "NIC Number" else "Username",
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                AuthTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = "Password",
+                    visualTransformation = PasswordVisualTransformation(),
+                )
+
+                errorMessage?.let {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(StripeError.copy(alpha = 0.1f))
+                            .border(1.dp, StripeError.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                    ) {
+                        Text(
+                            text = it,
+                            color = StripeError,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(22.dp))
+
+                Button(
+                    onClick = ::submit,
+                    enabled = !isLoading,
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(containerColor = StripePrimary, contentColor = StripeOnPrimary),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(22.dp), color = StripeOnPrimary, strokeWidth = 2.dp)
+                    } else {
+                        Text("Sign In", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+
+                if (role == UserRole.Prosumer) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    TextButton(onClick = onNavigateToRegister) {
+                        Text("Don't have an account? ", color = StripeBody)
+                        Text("Register Now", color = StripeAccent, fontWeight = FontWeight.SemiBold)
+                    }
+                } else {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Grid operator accounts are provisioned by Backoffice administrators.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = StripeBody,
+                        fontSize = 11.sp,
+                    )
                 }
             }
-            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
 
-// A pill segmented control (docs/stripe.design.md's segmented-control token) switching between
-// the two roles the mobile app serves — see UserRole.kt. Grid Operator accounts are
-// Backoffice-provisioned, not self-registered, so this is also what decides whether the
-// "Register Now" link below shows at all.
+// Segmented role switch between Prosumer and Grid Operator
 @Composable
 private fun RoleToggle(selected: UserRole, onSelect: (UserRole) -> Unit) {
     Row(
@@ -236,6 +363,8 @@ internal fun AuthTextField(
         colors = OutlinedTextFieldDefaults.colors(
             unfocusedBorderColor = StripeBorder,
             focusedBorderColor = StripePrimary,
+            unfocusedContainerColor = StripeSurface,
+            focusedContainerColor = StripeSurface,
         ),
         modifier = Modifier.fillMaxWidth(),
     )
