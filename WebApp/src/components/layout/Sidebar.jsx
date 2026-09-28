@@ -76,7 +76,17 @@ export default function Sidebar({ sections, open, onClose, fullName, role, onLog
         </nav>
 
         <div className="mt-4 border-t border-line pt-4">
-          <div className="flex items-center gap-2.5 px-2">
+          <NavLink
+            to="/profile"
+            onClick={onClose}
+            className={({ isActive }) =>
+              `flex items-center gap-2.5 rounded-xl p-2 transition-colors ${
+                isActive
+                  ? 'bg-surface text-ink ring-1 ring-line shadow-card'
+                  : 'hover:bg-surface/70'
+              }`
+            }
+          >
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-[12px] font-semibold text-primary">
               {fullName ? initialsOf(fullName) : '—'}
             </span>
@@ -84,11 +94,11 @@ export default function Sidebar({ sections, open, onClose, fullName, role, onLog
               <p className="truncate text-[13px] font-medium text-ink">{fullName ?? 'Not signed in'}</p>
               {role && <p className="truncate text-[11px] text-muted">{role}</p>}
             </div>
-          </div>
+          </NavLink>
           <button
             type="button"
             onClick={onLogout}
-            className="mt-3 flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-body transition-colors hover:bg-surface/70 hover:text-ink"
+            className="mt-2 flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium text-body transition-colors hover:bg-surface/70 hover:text-ink"
           >
             <Icon name="logout" className="h-4 w-4 text-muted" />
             Sign out
