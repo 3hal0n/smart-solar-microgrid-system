@@ -38,7 +38,7 @@ object DashboardCacheDao {
     // One cached row per prosumer NIC — a later write for the same nic replaces the row (see
     // write()'s CONFLICT_REPLACE), rather than accumulating history.
     const val CREATE_TABLE = """
-        CREATE TABLE $TABLE_NAME (
+        CREATE TABLE IF NOT EXISTS $TABLE_NAME (
             $COLUMN_NIC TEXT PRIMARY KEY,
             $COLUMN_ACTIVE_COUNT INTEGER NOT NULL,
             $COLUMN_PENDING_COUNT INTEGER NOT NULL,

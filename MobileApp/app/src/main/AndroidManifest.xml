@@ -10,6 +10,8 @@
     <!-- Dinil: camera permission for QR scanning -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- Rukshan: used to check connectivity before a network call in the Prosumer auth flow -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:allowBackup="true"
@@ -20,13 +22,16 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.SmartMicrogrid">
+        android:theme="@style/Theme.SmartMicrogrid"
+        android:usesCleartextTraffic="true"> <!-- <- ADDED THIS LINE TO ALLOW HTTP -->
 
         <!-- Sourced from local.properties' MAPS_API_KEY via the manifest placeholder in
              app/build.gradle.kts — never hardcode a real key here, this file is committed. -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${mapsApiKey}" />
+
+        <!-- SplashActivity launcher -->
         <activity
             android:name=".ui.onboarding.SplashActivity"
             android:exported="true"
@@ -34,10 +39,16 @@
             android:theme="@style/Theme.SmartMicrogrid">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- TestBookingsActivity for standalone testing if needed -->
+        <activity
+            android:name=".ui.prosumer.TestBookingsActivity"
+            android:exported="false"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.SmartMicrogrid" />
 
         <activity
             android:name=".ui.onboarding.OnboardingActivity"
@@ -64,7 +75,7 @@
             android:exported="false"
             android:label="@string/app_name"
             android:theme="@style/Theme.SmartMicrogrid" />
-            
+
     </application>
 
 </manifest>

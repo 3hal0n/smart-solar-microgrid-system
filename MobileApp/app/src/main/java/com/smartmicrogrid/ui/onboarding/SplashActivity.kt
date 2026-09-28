@@ -1,10 +1,14 @@
 // ============================================================
 // File: SplashActivity.kt
 // Purpose: App launcher activity. Shows a brief Joule-branded splash
-//          (gradient mark on navy, wordmark, tagline), then
-//          routes to OnboardingActivity on first run only (per
-//          OnboardingPreferences) or straight to MainActivity on
-//          every later launch. Pure UI routing — no business logic.
+//          (gradient mark on navy, wordmark, tagline), then routes:
+//          onboarding on first run only (per OnboardingPreferences),
+//          straight into HomeActivity if a saved session already
+//          exists (Prosumer via ProsumerSessionDao or staff via
+//          StaffSessionPreferences — added 2026-09-28 so signing in
+//          once doesn't mean signing in on every relaunch), or Sign
+//          In (MainActivity) otherwise. Pure UI routing — no business
+//          logic.
 // Author: Shalon
 // ============================================================
 package com.smartmicrogrid.ui.onboarding
@@ -31,7 +35,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.smartmicrogrid.MainActivity
+import com.smartmicrogrid.data.local.ProsumerSessionDao
+import com.smartmicrogrid.data.remote.ApiClient
+import com.smartmicrogrid.ui.auth.StaffSessionPreferences
 import com.smartmicrogrid.ui.components.JouleMark
+import com.smartmicrogrid.ui.home.HomeActivity
+import com.smartmicrogrid.ui.home.UserRole
 import com.smartmicrogrid.ui.theme.StripeInk
 import com.smartmicrogrid.ui.theme.SmartMicrogridTheme
 import kotlinx.coroutines.delay
@@ -40,7 +49,8 @@ private const val SPLASH_DELAY_MS = 900L
 
 class SplashActivity : ComponentActivity() {
 
-    // Shows the splash content, waits briefly, then routes to onboarding or straight to the app.
+    // Shows the splash content, waits briefly, then routes to onboarding, straight into the app
+    // (if a session is already saved), or Sign In.
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -51,15 +61,29 @@ class SplashActivity : ComponentActivity() {
         }
     }
 
-    // Decides the next screen based on whether onboarding has already been shown, then finishes
-    // this activity so it never sits in the back stack.
+    // Decides the next screen: onboarding first, then an existing session (skip Sign In
+    // entirely), then Sign In. Finishes this activity so it never sits in the back stack.
     private fun navigateNext() {
-        val destination = if (OnboardingPreferences.hasSeenOnboarding(this)) {
-            MainActivity::class.java
-        } else {
-            OnboardingActivity::class.java
+        if (!OnboardingPreferences.hasSeenOnboarding(this)) {
+            startActivity(Intent(this, OnboardingActivity::class.java))
+            finish()
+            return
         }
-        startActivity(Intent(this, destination))
+
+        val prosumerSession = ProsumerSessionDao(this).getSession()
+        val staffSession = StaffSessionPreferences.read(this)
+        val intent = when {
+            prosumerSession != null -> {
+                ApiClient.authToken = prosumerSession.token
+                HomeActivity.intentFor(this, UserRole.Prosumer)
+            }
+            staffSession != null -> {
+                ApiClient.authToken = staffSession.token
+                HomeActivity.intentFor(this, UserRole.fromClaimValue(staffSession.role))
+            }
+            else -> Intent(this, MainActivity::class.java)
+        }
+        startActivity(intent)
         finish()
     }
 }

@@ -4,7 +4,9 @@
 //          (operator scan); Shalon owns the dashboard/reservations-
 //          search/nearby-stations calls. Migara added the
 //          Prosumer booking lifecycle endpoints (create/update/cancel).
-// Author: Dinil + Shalon + Migara (shared infra)
+//          Rukshan added the Prosumer authentication/profile endpoints
+//          (merged from feature/prosumer-management-mobile-app).
+// Author: Dinil + Shalon + Migara + Rukshan (shared infra)
 // ============================================================
 package com.smartmicrogrid.data.remote
 
@@ -59,4 +61,44 @@ interface ApiService {
         @Query("lng") lng: Double,
         @Query("radiusKm") radiusKm: Double,
     ): List<NearbyStation>
+
+    // GET /api/stations - lists stations
+    @GET("api/stations")
+    suspend fun getStations(
+        @Query("search") search: String? = null,
+        @Query("status") status: String? = "Active"
+    ): List<StationSummaryResponse>
+
+    // GET /api/stations/{id} - station detail with battery slots
+    @GET("api/stations/{id}")
+    suspend fun getStationDetail(@Path("id") id: String): StationDetailResponse
+
+    // ============================================================
+    // PROSUMER AUTHENTICATION & PROFILE ENDPOINTS (Rukshan)
+    // Note: ApiClient.authInterceptor automatically attaches Bearer token.
+    // Author: Rukshan
+    // ============================================================
+
+    @POST("api/prosumers/register")
+    suspend fun registerProsumer(@Body request: ProsumerRegistrationRequest): Response<Any>
+
+    @POST("api/auth/prosumer/login")
+    suspend fun loginProsumer(@Body request: ProsumerLoginRequest): Response<ProsumerLoginResponse>
+
+    @GET("api/prosumers/{nic}")
+    suspend fun getProsumerProfile(@Path("nic") nic: String): Response<ProsumerProfileResponse>
+
+    @PUT("api/prosumers/{nic}")
+    suspend fun updateProsumerProfile(
+        @Path("nic") nic: String,
+        @Body request: ProsumerUpdateRequest
+    ): Response<Unit>
+
+    @PUT("api/prosumers/{nic}/request-deactivation")
+    suspend fun requestDeactivation(@Path("nic") nic: String): Response<Unit>
+
+    // Shalon — Grid Operator (staff) login, same endpoint the web app's LoginPage already uses.
+    // Username-based, not NIC-based — a separate mechanism from Rukshan's Prosumer login above.
+    @POST("api/auth/login")
+    suspend fun loginStaff(@Body request: StaffLoginRequest): Response<StaffLoginResponse>
 }

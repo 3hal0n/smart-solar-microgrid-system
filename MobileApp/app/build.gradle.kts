@@ -2,8 +2,8 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android) // <-- THIS WAS MISSING, ADDED BACK
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.kotlin.android)
 }
 
 // Reads MAPS_API_KEY from local.properties (gitignored, per-developer — same pattern as sdk.dir
@@ -29,18 +29,18 @@ val apiBaseUrl: String = localProperties.getProperty("API_BASE_URL", "http://10.
 
 android {
     namespace = "com.smartmicrogrid"
-    compileSdk = 34
+    compileSdk = 34  // <-- Changed back to 34 to match installed SDK
 
     defaultConfig {
         applicationId = "com.smartmicrogrid"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 34  // <-- Changed back to 34
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["mapsApiKey"] = mapsApiKey
-        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+        buildConfigField("String", "API_BASE_URL", "\"${apiBaseUrl.trim('\"')}\"")
     }
 
     buildTypes {
@@ -58,18 +58,20 @@ android {
         targetCompatibility = JavaVersion.VERSION_11
     }
 
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true
-    }
-    kotlinOptions {
-        jvmTarget = "11"
     }
 }
 
 dependencies {
     // ---- Migara: ZXing Core for QR Code GENERATION (Displaying to user) ----
     implementation("com.google.zxing:core:3.5.3")
+
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.foundation)
@@ -83,11 +85,13 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
+
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 

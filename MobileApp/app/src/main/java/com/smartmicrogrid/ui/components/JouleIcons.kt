@@ -83,4 +83,11 @@ object JouleIcons {
         "M16 3.5V7h-3.5",
     )
     val Check: ImageVector = strokeIcon("check", "M4 10.5 8 14l8-8")
+    val Back: ImageVector = strokeIcon("back", "M12.5 4.5 6 10l6.5 5.5")
+    val Logout: ImageVector = strokeIcon(
+        "logout",
+        "M7.5 17.5H4.5a1.5 1.5 0 0 1-1.5-1.5V4a1.5 1.5 0 0 1 1.5-1.5h3",
+        "M13 13.5l3.5-3.5L13 6.5",
+        "M16.5 10H7.5",
+    )
 }

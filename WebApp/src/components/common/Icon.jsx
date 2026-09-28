@@ -54,6 +54,14 @@ const PATHS = {
     </>
   ),
   check: <path d="M4 10.5 8 14l8-8" strokeLinecap="round" strokeLinejoin="round" />,
+  grid: (
+    <>
+      <rect x="3" y="3" width="5.5" height="5.5" rx="1.2" />
+      <rect x="11.5" y="3" width="5.5" height="5.5" rx="1.2" />
+      <rect x="3" y="11.5" width="5.5" height="5.5" rx="1.2" />
+      <rect x="11.5" y="11.5" width="5.5" height="5.5" rx="1.2" />
+    </>
+  ),
 };
 
 // Renders the named icon; decorative by default (aria-hidden), so pair it with visible text.

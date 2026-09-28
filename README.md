@@ -114,16 +114,39 @@ Runs on `http://localhost:5173`. Sign in at `/login` with the account you just c
 
 **3. Mobile Application**
 
-Open the `MobileApp` folder in Android Studio (not the repository root) and let it sync. Run it on an emulator or, for a better test of the camera/GPS features, a physical device over USB with developer mode and USB debugging enabled.
+*Via Command Line (CLI):*
 
-If you're testing on a physical device rather than an emulator, add these to `MobileApp/local.properties`:
+With an Android emulator running or a physical device connected via USB (with USB Debugging enabled):
 
+```bash
+cd MobileApp
+
+# Build and install the debug APK onto the active device / emulator:
+.\gradlew installDebug       # Windows PowerShell
+./gradlew installDebug       # macOS / Linux
+
+# Launch the application on the device via ADB:
+adb shell am start -n com.smartmicrogrid/.ui.onboarding.SplashActivity
 ```
+
+> **Tip:** To build the APK bundle without installing, run `.\gradlew assembleDebug`. The generated APK will be at `MobileApp/app/build/outputs/apk/debug/app-debug.apk`.
+
+*Via Android Studio:*
+
+1. Open the `MobileApp` directory in Android Studio (open the `MobileApp` folder specifically, not the root repository folder) and wait for Gradle to sync.
+2. Select your active emulator or connected physical device from the device dropdown.
+3. Press **Run** (`Shift + F10`) to build, install, and launch the app.
+
+**Device & Network Configuration (`local.properties`):**
+
+If testing on a physical device rather than an emulator, configure `MobileApp/local.properties`:
+
+```properties
 MAPS_API_KEY=your_google_maps_api_key
 API_BASE_URL=http://<your-computer's-LAN-IP>:5128/
 ```
 
-The emulator defaults to `10.0.2.2`, which only means anything to the emulator itself — a real phone needs your computer's actual IP address on the same Wi-Fi network.
+The emulator defaults to `http://10.0.2.2:5128/` (the Android emulator's loopback alias to your host PC). A physical device must be on the same Wi-Fi network and requires your PC's actual local IPv4 address (e.g. `http://192.168.1.7:5128/`).
 
 ## Team and individual contributions
 

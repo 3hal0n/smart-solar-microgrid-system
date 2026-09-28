@@ -20,7 +20,9 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 
 private const val DATABASE_NAME = "smart_microgrid.db"
-private const val DATABASE_VERSION = 1
+// Bumped 1 -> 2 to add ProsumerSessionDao's table via onUpgrade for devices that already have the
+// database file from before this table existed (onCreate alone only runs on a brand-new install).
+private const val DATABASE_VERSION = 2
 
 class AppDbHelper(context: Context) : SQLiteOpenHelper(
     context.applicationContext, DATABASE_NAME, null, DATABASE_VERSION
@@ -31,9 +33,7 @@ class AppDbHelper(context: Context) : SQLiteOpenHelper(
     override fun onCreate(db: SQLiteDatabase) {
         db.execSQL(DashboardCacheDao.CREATE_TABLE)
         db.execSQL(ReservationCacheDao.CREATE_TABLE)
-        // TODO(Rukshan): add `db.execSQL(ProsumerSessionDao.CREATE_TABLE)` here once
-        // ProsumerSessionDao.kt exists (architecture.md §8) — your own file, your own constant,
-        // just this one extra line in this method.
+        db.execSQL(ProsumerSessionDao.CREATE_TABLE)
     }
 
     // Handles schema upgrades. No-op beyond Dinil's local_verified_scans rebuild for now, since

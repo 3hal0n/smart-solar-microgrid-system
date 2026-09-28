@@ -13,11 +13,11 @@ import com.google.gson.annotations.SerializedName
 data class VerifyQrRequest(val qrToken: String)
 
 data class VerifyQrResponse(
-    val reservationId: String,
-    val prosumerName: String,
-    val stationName: String,
-    val slotNumber: Int,
-    val status: String
+    @SerializedName("reservationId") val reservationId: String,
+    @SerializedName("prosumerName") val prosumerName: String,
+    @SerializedName("stationName") val stationName: String,
+    @SerializedName("slotNumber") val slotNumber: Int,
+    @SerializedName("status") val status: String
 )
 
 // ---------- Prosumer Booking Actions (Migara) ----------
@@ -41,6 +41,22 @@ data class UpdateReservationRequest(
 
 data class CancelReservationRequest(
     @SerializedName("reason") val reason: String? = null
+)
+
+// GET /api/reservations row shape — mirrors ReservationsController.MapToResponse on the backend
+// exactly (Dinil's controller, the one that actually serves this route). qrToken/completedAt/
+// cancelReason are nullable because the backend DTO declares them nullable (string?/DateTime?).
+data class ReservationResponse(
+    @SerializedName("id") val id: String,
+    @SerializedName("prosumerNic") val prosumerNic: String,
+    @SerializedName("stationId") val stationId: String,
+    @SerializedName("slotId") val slotId: String,
+    @SerializedName("scheduledAt") val scheduledAt: String,
+    @SerializedName("status") val status: String,
+    @SerializedName("qrToken") val qrToken: String?,
+    @SerializedName("createdAt") val createdAt: String,
+    @SerializedName("completedAt") val completedAt: String?,
+    @SerializedName("cancelReason") val cancelReason: String?
 )
 
 // ---------- generic API error body ----------
