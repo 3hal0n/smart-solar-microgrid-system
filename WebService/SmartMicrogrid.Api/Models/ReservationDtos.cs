@@ -14,10 +14,12 @@ public class CreateReservationRequest
     public string StationId { get; set; } = null!;
     public string SlotId { get; set; } = null!;
     public DateTime ScheduledAt { get; set; }
+    public string? ProsumerNic { get; set; } // optional for Prosumer, required for Operator/Backoffice
 }
 
 public class UpdateReservationRequest
 {
+    public string? StationId { get; set; }
     public string? SlotId { get; set; }
     public DateTime? ScheduledAt { get; set; }
 }
