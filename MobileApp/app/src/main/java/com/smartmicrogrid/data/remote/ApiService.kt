@@ -18,12 +18,18 @@ import com.smartmicrogrid.data.remote.dto.VerifyQrResponse
 import com.smartmicrogrid.ui.dashboard.ProsumerDashboardSummary
 import com.smartmicrogrid.ui.dashboard.ReservationListItem
 import com.smartmicrogrid.ui.operator.NearbyStation
+import com.smartmicrogrid.data.remote.dto.ProsumerLoginRequest
+import com.smartmicrogrid.data.remote.dto.ProsumerLoginResponse
+import com.smartmicrogrid.data.remote.dto.ProsumerProfileResponse
+import com.smartmicrogrid.data.remote.dto.ProsumerRegistrationRequest
+import com.smartmicrogrid.data.remote.dto.ProsumerUpdateRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.PUT
 
 interface ApiService {
 
@@ -58,4 +64,28 @@ interface ApiService {
         @Query("lng") lng: Double,
         @Query("radiusKm") radiusKm: Double,
     ): List<NearbyStation>
+
+    // ============================================================
+    // PROSUMER AUTHENTICATION & PROFILE ENDPOINTS (Rukshan)
+    // Note: ApiClient.authInterceptor automatically attaches Bearer token.
+    // Author: Rukshan
+    // ============================================================
+
+    @POST("api/prosumers/register")
+    suspend fun registerProsumer(@Body request: ProsumerRegistrationRequest): Response<Any>
+
+    @POST("api/auth/prosumer/login")
+    suspend fun loginProsumer(@Body request: ProsumerLoginRequest): Response<ProsumerLoginResponse>
+
+    @GET("api/prosumers/{nic}")
+    suspend fun getProsumerProfile(@Path("nic") nic: String): Response<ProsumerProfileResponse>
+
+    @PUT("api/prosumers/{nic}")
+    suspend fun updateProsumerProfile(
+        @Path("nic") nic: String,
+        @Body request: ProsumerUpdateRequest
+    ): Response<Unit>
+
+    @PUT("api/prosumers/{nic}/request-deactivation")
+    suspend fun requestDeactivation(@Path("nic") nic: String): Response<Unit>
 }
