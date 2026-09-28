@@ -30,10 +30,10 @@ export default function LoginPage() {
     try {
       // 1. Call the backend API (FAT Service Pattern: server validates credentials)
       const response = await api.post('/auth/login', { username, password });
-      const { token, role, fullName } = response.data;
+      const { token, role, fullName, userId } = response.data;
 
       // 2. Update global auth state via AuthContext (persists to localStorage)
-      login({ token, role, fullName });
+      login({ token, role, fullName, userId });
 
       // 3. All roles land on the Dashboard (architecture.md §6 — central overview first)
       if (role === 'Backoffice' || role === 'GridOperator') {
