@@ -20,6 +20,7 @@ import StationDetailPage from "./pages/stations/StationDetailPage.jsx";
 import ReservationsAdminPage from "./pages/reservations/ReservationsAdminPage.jsx";
 import ReservationDetailPage from "./pages/reservations/ReservationDetailPage.jsx";
 import UsersPage from "./pages/admin/UsersPage.jsx";
+import DashboardPage from "./pages/dashboard/DashboardPage.jsx";
 
 
 // Renders the app's routing shell wrapped in the shared auth/toast providers.
@@ -43,6 +44,7 @@ export default function App() {
                 </RequireAuth>
               }
             >
+              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/stations" element={<StationsPage />} />
               <Route path="/stations/:id" element={<StationDetailPage />} />
 
