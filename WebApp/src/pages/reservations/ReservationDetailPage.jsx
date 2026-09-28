@@ -5,6 +5,10 @@
 //          offers Edit + Cancel for Confirmed reservations.
 //          Server enforces 7-day and 12-hour rules; rejections
 //          are surfaced verbatim.
+//
+//          On load, fetches the Prosumer's profile via
+//          GET /api/prosumers/{nic} so the operator sees the
+//          name and email — not just the NIC.
 // Author: Dinil
 // ============================================================
 import { useEffect, useState } from "react";
@@ -58,6 +62,7 @@ export default function ReservationDetailPage() {
   const navigate = useNavigate();
 
   const [reservation, setReservation] = useState(null);
+  const [prosumer, setProsumer] = useState(null); // Fetched by NIC
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -80,9 +85,21 @@ export default function ReservationDetailPage() {
   async function load() {
     setLoading(true);
     setError(null);
+    setProsumer(null);
     try {
       const { data } = await api.get(`/reservations/${id}`);
       setReservation(data);
+
+      // Best-effort Prosumer profile lookup — failure is not fatal.
+      if (data?.prosumerNic) {
+        try {
+          const p = await api.get(`/prosumers/${data.prosumerNic}`);
+          setProsumer(p.data);
+        } catch {
+          // 404 or 403 — just leave prosumer null; UI falls back to NIC.
+          setProsumer(null);
+        }
+      }
     } catch (e) {
       const msg =
         e?.response?.data?.message ||
@@ -93,29 +110,40 @@ export default function ReservationDetailPage() {
     }
   }
 
+  // Initial load — state is already in its "loading" defaults from useState,
+  // so the effect only needs to fetch and then set the resolved values.
   useEffect(() => {
-    let mounted = true;
+    let cancelled = false;
 
-    async function fetchData() {
-      setLoading(true);
-      setError(null);
+    (async () => {
       try {
         const { data } = await api.get(`/reservations/${id}`);
-        if (mounted) setReservation(data);
+        if (cancelled) return;
+        setReservation(data);
+
+        if (data?.prosumerNic) {
+          try {
+            const p = await api.get(`/prosumers/${data.prosumerNic}`);
+            if (!cancelled) setProsumer(p.data);
+          } catch {
+            if (!cancelled) setProsumer(null);
+          }
+        }
       } catch (e) {
+        if (cancelled) return;
         const msg =
           e?.response?.data?.message ||
           (e?.response?.status === 404 ? "Reservation not found." : e.message);
-        if (mounted) setError(msg);
+        setError(msg);
       } finally {
-        if (mounted) setLoading(false);
+        if (!cancelled) setLoading(false);
       }
-    }
+    })();
 
-    fetchData();
     return () => {
-      mounted = false;
+      cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Opens the edit modal pre-filled with current reservation data.
@@ -149,7 +177,6 @@ export default function ReservationDetailPage() {
         e?.response?.data?.code ||
         e.message ||
         "Update failed.";
-      // Surface server rejection verbatim (12-hour rule, etc.).
       show(msg, "error");
     } finally {
       setEditBusy(false);
@@ -247,8 +274,30 @@ export default function ReservationDetailPage() {
 
       {/* Detail grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Prosumer card — shows name + contact when the lookup succeeded */}
+        <DetailCard title="Prosumer">
+          <DetailRow label="NIC" value={r.prosumerNic} mono />
+          {prosumer ? (
+            <>
+              <DetailRow label="Name" value={prosumer.fullName} />
+              <DetailRow label="Email" value={prosumer.email} />
+              {prosumer.phone && (
+                <DetailRow label="Phone" value={prosumer.phone} />
+              )}
+              <DetailRow
+                label="Account status"
+                value={<Badge tone="neutral">{prosumer.status}</Badge>}
+              />
+            </>
+          ) : (
+            <p className="text-xs text-muted pt-1">
+              Profile not available (may be pending activation, deactivated, or
+              lookup restricted).
+            </p>
+          )}
+        </DetailCard>
+
         <DetailCard title="Booking">
-          <DetailRow label="Prosumer NIC" value={r.prosumerNic} mono />
           <DetailRow label="Station ID" value={r.stationId} mono />
           <DetailRow label="Slot ID" value={r.slotId} mono />
           <DetailRow
@@ -259,7 +308,7 @@ export default function ReservationDetailPage() {
           />
         </DetailCard>
 
-        <DetailCard title="Lifecycle">
+        <DetailCard title="Lifecycle" className="md:col-span-2">
           <DetailRow
             label="Created"
             value={<span className="tnum">{formatDateTime(r.createdAt)}</span>}
