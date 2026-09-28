@@ -177,7 +177,7 @@ fun CreateBookingScreen(
                 windowInsets = WindowInsets(0, 0, 0, 0), // Prevents double status bar padding!
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(JouleIcons.ArrowLeft, contentDescription = "Back")
+                        Icon(JouleIcons.Back, contentDescription = "Back")
                     }
                 }
             )
