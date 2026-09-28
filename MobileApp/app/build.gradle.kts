@@ -40,7 +40,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["mapsApiKey"] = mapsApiKey
-        buildConfigField("String", "API_BASE_URL", apiBaseUrl)
+        buildConfigField("String", "API_BASE_URL", "\"${apiBaseUrl.trim('\"')}\"")
     }
 
     buildTypes {

@@ -52,6 +52,7 @@ import com.smartmicrogrid.ui.dashboard.ProsumerDashboardScreen
 import com.smartmicrogrid.ui.operator.MapScreen
 import com.smartmicrogrid.ui.operator.ScanQrScreen
 import com.smartmicrogrid.ui.prosumer.BookingsScreen
+import com.smartmicrogrid.ui.prosumer.CreateBookingScreen
 import com.smartmicrogrid.ui.prosumer.ProfileScreen
 import com.smartmicrogrid.ui.theme.SmartMicrogridTheme
 
@@ -151,7 +152,16 @@ private fun NavGraphShell(destinations: List<HomeDestination>) {
             modifier = Modifier.padding(innerPadding),
         ) {
             composable(HomeRoutes.PROSUMER_DASHBOARD) { ProsumerDashboardScreen() }
-            composable(HomeRoutes.PROSUMER_BOOKINGS) { BookingsScreen() }
+            composable(HomeRoutes.PROSUMER_BOOKINGS) {
+                BookingsScreen(
+                    onNavigateToCreate = { navController.navigate(HomeRoutes.PROSUMER_CREATE_BOOKING) }
+                )
+            }
+            composable(HomeRoutes.PROSUMER_CREATE_BOOKING) {
+                CreateBookingScreen(
+                    onNavigateBack = { navController.popBackStack() }
+                )
+            }
             composable(HomeRoutes.PROSUMER_MAP) { MapScreen() }
 
             // ============================================================
