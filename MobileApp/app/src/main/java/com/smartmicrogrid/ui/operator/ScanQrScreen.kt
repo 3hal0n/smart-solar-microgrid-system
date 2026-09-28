@@ -179,7 +179,7 @@ fun ScanQrScreen() {
                             HorizontalDivider()
                             ResultRow("Prosumer", r.prosumerName)
                             ResultRow("Station", r.stationName)
-                            ResultRow("Slot", r.slotNumber)
+                            ResultRow("Slot", r.slotNumber.toString())
                             ResultRow("Status", r.status)
                             Spacer(modifier = Modifier.height(4.dp))
                             Button(
