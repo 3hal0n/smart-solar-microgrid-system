@@ -62,6 +62,17 @@ interface ApiService {
         @Query("radiusKm") radiusKm: Double,
     ): List<NearbyStation>
 
+    // GET /api/stations - lists stations
+    @GET("api/stations")
+    suspend fun getStations(
+        @Query("search") search: String? = null,
+        @Query("status") status: String? = "Active"
+    ): List<StationSummaryResponse>
+
+    // GET /api/stations/{id} - station detail with battery slots
+    @GET("api/stations/{id}")
+    suspend fun getStationDetail(@Path("id") id: String): StationDetailResponse
+
     // ============================================================
     // PROSUMER AUTHENTICATION & PROFILE ENDPOINTS (Rukshan)
     // Note: ApiClient.authInterceptor automatically attaches Bearer token.
