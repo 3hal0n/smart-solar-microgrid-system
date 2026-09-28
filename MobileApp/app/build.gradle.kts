@@ -114,4 +114,24 @@ dependencies {
 
     // ---- Dinil: runtime permissions (camera) ----
     implementation("com.google.accompanist:accompanist-permissions:0.36.0")
+
+    // Retrofit & Gson for REST API calls
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.11.0")
+    implementation("com.google.code.gson:gson:2.10.1")
+
+    // Coroutines for asynchronous operations
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
+
+    // Navigation Compose (if not already added)
+    implementation("androidx.navigation:navigation-compose:2.7.7")
+}
+
+android {
+    // ...
+    buildFeatures {
+        buildConfig = true
+    }
 }
