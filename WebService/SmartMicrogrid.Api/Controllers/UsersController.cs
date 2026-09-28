@@ -42,6 +42,7 @@ namespace SmartMicrogrid.Api.Controllers
                 Role = u.Role,
                 FullName = u.FullName,
                 Email = u.Email,
+                ProfilePicture = u.ProfilePicture,
                 Status = u.Status,
                 CreatedAt = u.CreatedAt,
                 UpdatedAt = u.UpdatedAt
@@ -83,6 +84,7 @@ namespace SmartMicrogrid.Api.Controllers
                 Role = dto.Role,
                 FullName = dto.FullName,
                 Email = dto.Email,
+                ProfilePicture = dto.ProfilePicture,
                 Status = "Active",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -99,6 +101,7 @@ namespace SmartMicrogrid.Api.Controllers
                 Role = newUser.Role,
                 FullName = newUser.FullName,
                 Email = newUser.Email,
+                ProfilePicture = newUser.ProfilePicture,
                 Status = newUser.Status,
                 CreatedAt = newUser.CreatedAt,
                 UpdatedAt = newUser.UpdatedAt
@@ -133,6 +136,7 @@ namespace SmartMicrogrid.Api.Controllers
                 Role = user.Role,
                 FullName = user.FullName,
                 Email = user.Email,
+                ProfilePicture = user.ProfilePicture,
                 Status = user.Status,
                 CreatedAt = user.CreatedAt,
                 UpdatedAt = user.UpdatedAt
@@ -157,6 +161,7 @@ namespace SmartMicrogrid.Api.Controllers
                 Role = user.Role,
                 FullName = user.FullName,
                 Email = user.Email,
+                ProfilePicture = user.ProfilePicture,
                 Status = user.Status,
                 CreatedAt = user.CreatedAt,
                 UpdatedAt = user.UpdatedAt
@@ -181,6 +186,7 @@ namespace SmartMicrogrid.Api.Controllers
             var update = Builders<User>.Update
                 .Set(u => u.FullName, dto.FullName)
                 .Set(u => u.Email, dto.Email)
+                .Set(u => u.ProfilePicture, dto.ProfilePicture ?? user.ProfilePicture)
                 .Set(u => u.Role, string.IsNullOrWhiteSpace(dto.Role) ? user.Role : dto.Role)
                 .Set(u => u.UpdatedAt, DateTime.UtcNow);
 

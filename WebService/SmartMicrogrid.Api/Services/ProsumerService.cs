@@ -35,6 +35,7 @@ namespace SmartMicrogrid.Api.Services
                 Email = p.Email,
                 Phone = p.Phone,
                 Address = p.Address,
+                ProfilePicture = p.ProfilePicture,
                 Status = p.Status,
                 DeactivationRequestedAt = p.DeactivationRequestedAt,
                 CreatedAt = p.CreatedAt,
@@ -61,6 +62,7 @@ namespace SmartMicrogrid.Api.Services
                 Email = prosumer.Email,
                 Phone = prosumer.Phone,
                 Address = prosumer.Address,
+                ProfilePicture = prosumer.ProfilePicture,
                 Status = prosumer.Status,
                 DeactivationRequestedAt = prosumer.DeactivationRequestedAt,
                 CreatedAt = prosumer.CreatedAt,
@@ -123,6 +125,7 @@ namespace SmartMicrogrid.Api.Services
                 .Set(p => p.Email, dto.Email)
                 .Set(p => p.Phone, dto.Phone)
                 .Set(p => p.Address, dto.Address)
+                .Set(p => p.ProfilePicture, dto.ProfilePicture)
                 .Set(p => p.UpdatedAt, DateTime.UtcNow);
 
             var result = await _prosumers.UpdateOneAsync(filter, update);

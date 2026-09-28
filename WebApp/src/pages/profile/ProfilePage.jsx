@@ -2,11 +2,11 @@
 // File: ProfilePage.jsx
 // Purpose: Self-service profile and security management for the
 //          currently authenticated staff user (Backoffice / GridOperator).
-//          Allows viewing account details, updating name & email,
-//          and changing password securely.
+//          Allows viewing account details, uploading profile pictures,
+//          updating name & email, and changing password with eye toggles.
 // ============================================================
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useToast } from '../../components/common/Toast.jsx';
 import api from '../../services/api.js';
@@ -29,6 +29,7 @@ function getInitials(name) {
 export default function ProfilePage() {
   const { fullName: authFullName, role: authRole, userId, updateUser } = useAuth();
   const { show: showToast } = useToast();
+  const fileInputRef = useRef(null);
 
   const [profile, setProfile] = useState({
     id: userId || '',
@@ -36,6 +37,7 @@ export default function ProfilePage() {
     fullName: authFullName || '',
     email: '',
     role: authRole || '',
+    profilePicture: '',
     status: 'Active',
     createdAt: '',
   });
@@ -45,6 +47,7 @@ export default function ProfilePage() {
   // Edit details form state
   const [fullNameInput, setFullNameInput] = useState('');
   const [emailInput, setEmailInput] = useState('');
+  const [avatarPreview, setAvatarPreview] = useState('');
   const [isSavingDetails, setIsSavingDetails] = useState(false);
 
   // Password change form state
@@ -64,7 +67,6 @@ export default function ProfilePage() {
     async function loadProfile() {
       setIsLoadingProfile(true);
       try {
-        // Try /users/me first, fallback to /users/{id}
         let res;
         try {
           res = await api.get('/users/me');
@@ -79,12 +81,14 @@ export default function ProfilePage() {
           setProfile(data);
           setFullNameInput(data.fullName || '');
           setEmailInput(data.email || '');
+          if (data.profilePicture) {
+            setAvatarPreview(data.profilePicture);
+          }
           if (data.fullName && data.fullName !== authFullName) {
-            updateUser({ fullName: data.fullName });
+            updateUser({ fullName: data.fullName, profilePicture: data.profilePicture });
           }
         }
       } catch {
-        // Fallback to local auth context
         if (isMounted) {
           setFullNameInput(authFullName || '');
         }
@@ -99,7 +103,51 @@ export default function ProfilePage() {
     };
   }, [userId, authFullName, updateUser]);
 
-  // Handle saving personal info (Full Name & Email)
+  // Handle image upload & base64 compression
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToast('Please select a valid image file (JPG, PNG, WebP)', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 256;
+        const MAX_HEIGHT = 256;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        setAvatarPreview(dataUrl);
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Handle saving personal info (Full Name, Email & Avatar)
   const handleSaveDetails = async (e) => {
     e.preventDefault();
     if (!fullNameInput.trim()) {
@@ -122,16 +170,18 @@ export default function ProfilePage() {
         fullName: fullNameInput.trim(),
         email: emailInput.trim(),
         role: profile.role || authRole,
+        profilePicture: avatarPreview || null,
       });
 
       setProfile((prev) => ({
         ...prev,
         fullName: fullNameInput.trim(),
         email: emailInput.trim(),
+        profilePicture: avatarPreview,
       }));
 
-      updateUser({ fullName: fullNameInput.trim() });
-      showToast('Profile information updated successfully.', 'success');
+      updateUser({ fullName: fullNameInput.trim(), profilePicture: avatarPreview });
+      showToast('Profile updated successfully.', 'success');
     } catch (err) {
       showToast(err.response?.data?.message || 'Failed to update profile.', 'error');
     } finally {
@@ -193,7 +243,7 @@ export default function ProfilePage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-ink">Account Profile</h1>
           <p className="mt-1 text-sm text-muted">
-            Manage your personal staff information, security credentials, and preferences.
+            Manage your personal staff information, security credentials, and profile picture.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -207,13 +257,50 @@ export default function ProfilePage() {
       </div>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-        {/* Left Column: Profile Card & Overview (4 cols) */}
+        {/* Left Column: Profile Card & Avatar (4 cols) */}
         <div className="lg:col-span-4 space-y-6">
           <div className="overflow-hidden rounded-2xl border border-line bg-surface p-6 shadow-card">
             <div className="flex flex-col items-center text-center">
-              {/* Avatar */}
-              <div className="relative mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-tr from-primary to-accent-indigo text-2xl font-bold text-white shadow-lg ring-4 ring-primary-soft">
-                {getInitials(profile.fullName || authFullName)}
+              {/* Avatar with Click-to-Upload */}
+              <div className="relative group mb-4">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageChange}
+                  accept="image/*"
+                  className="hidden"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-gradient-to-tr from-primary to-accent-indigo text-2xl font-bold text-white shadow-lg ring-4 ring-primary-soft focus:outline-none transition-transform group-hover:scale-105"
+                  title="Click to upload profile picture"
+                >
+                  {avatarPreview ? (
+                    <img
+                      src={avatarPreview}
+                      alt={profile.fullName || 'User Avatar'}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span>{getInitials(profile.fullName || authFullName)}</span>
+                  )}
+
+                  {/* Hover overlay with camera icon */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-ink/50 opacity-0 transition-opacity group-hover:opacity-100">
+                    <Icon name="camera" className="h-6 w-6 text-white" />
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute bottom-0 right-0 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-white shadow-md border-2 border-surface hover:bg-primary-hover transition-colors"
+                  title="Upload picture"
+                >
+                  <Icon name="camera" className="h-3.5 w-3.5 text-white" />
+                </button>
               </div>
 
               <h2 className="text-lg font-bold text-ink">
@@ -270,7 +357,7 @@ export default function ProfilePage() {
             <div className="mb-6">
               <h2 className="text-lg font-bold text-ink">Personal Information</h2>
               <p className="mt-0.5 text-xs text-muted">
-                Update your name and primary communication email.
+                Update your name, profile picture, and primary communication email.
               </p>
             </div>
 
@@ -367,9 +454,10 @@ export default function ProfilePage() {
                   <button
                     type="button"
                     onClick={() => setShowCurrentPass(!showCurrentPass)}
-                    className="absolute right-3 top-8 text-xs font-medium text-muted hover:text-ink transition-colors"
+                    className="absolute right-3 top-8 text-muted hover:text-ink transition-colors p-1"
+                    aria-label={showCurrentPass ? 'Hide password' : 'Show password'}
                   >
-                    {showCurrentPass ? 'Hide' : 'Show'}
+                    <Icon name={showCurrentPass ? 'eyeOff' : 'eye'} className="h-4 w-4" />
                   </button>
                 </div>
               </div>
@@ -388,9 +476,10 @@ export default function ProfilePage() {
                   <button
                     type="button"
                     onClick={() => setShowNewPass(!showNewPass)}
-                    className="absolute right-3 top-8 text-xs font-medium text-muted hover:text-ink transition-colors"
+                    className="absolute right-3 top-8 text-muted hover:text-ink transition-colors p-1"
+                    aria-label={showNewPass ? 'Hide password' : 'Show password'}
                   >
-                    {showNewPass ? 'Hide' : 'Show'}
+                    <Icon name={showNewPass ? 'eyeOff' : 'eye'} className="h-4 w-4" />
                   </button>
                 </div>
 
@@ -407,9 +496,10 @@ export default function ProfilePage() {
                   <button
                     type="button"
                     onClick={() => setShowConfirmPass(!showConfirmPass)}
-                    className="absolute right-3 top-8 text-xs font-medium text-muted hover:text-ink transition-colors"
+                    className="absolute right-3 top-8 text-muted hover:text-ink transition-colors p-1"
+                    aria-label={showConfirmPass ? 'Hide password' : 'Show password'}
                   >
-                    {showConfirmPass ? 'Hide' : 'Show'}
+                    <Icon name={showConfirmPass ? 'eyeOff' : 'eye'} className="h-4 w-4" />
                   </button>
                 </div>
               </div>
