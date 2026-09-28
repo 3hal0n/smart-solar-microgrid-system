@@ -43,7 +43,9 @@ data class CancelReservationRequest(
     @SerializedName("reason") val reason: String? = null
 )
 
-// ---------- ADDED: Reservation Response (Matches C# Backend) ----------
+// GET /api/reservations row shape — mirrors ReservationsController.MapToResponse on the backend
+// exactly (Dinil's controller, the one that actually serves this route). qrToken/completedAt/
+// cancelReason are nullable because the backend DTO declares them nullable (string?/DateTime?).
 data class ReservationResponse(
     @SerializedName("id") val id: String,
     @SerializedName("prosumerNic") val prosumerNic: String,

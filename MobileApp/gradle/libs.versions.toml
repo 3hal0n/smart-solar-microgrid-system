@@ -1,4 +1,5 @@
 [versions]
+# Using AGP 8.8.0 for compatibility with current Android Studio version
 agp = "8.8.0"
 kotlin = "2.0.21"
 coreKtx = "1.13.1"
@@ -36,5 +37,5 @@ maps-compose = { group = "com.google.maps.android", name = "maps-compose", versi
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" } # <-- ADDED THIS LINE
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
