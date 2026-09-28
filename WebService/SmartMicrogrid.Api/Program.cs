@@ -63,6 +63,10 @@ builder.Services.AddControllers()
 builder.Services.AddSingleton<MongoDbContext>();
 builder.Services.AddScoped<StationService>();
 builder.Services.AddScoped<SlotService>();
+// Was silently dropped from this file by the feature/prosumer-management-web merge (PR #18,
+// commit 1c2c509) — restored, since DashboardController depends on it and every mobile
+// dashboard/reservations-list call was 500ing with "Unable to resolve service" without it.
+builder.Services.AddScoped<DashboardService>();
 
 // Add Dinil's services:
 builder.Services.AddSingleton<QrTokenService>(); // singleton: holds HMAC secret

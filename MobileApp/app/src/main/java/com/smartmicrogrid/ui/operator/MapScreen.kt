@@ -336,7 +336,7 @@ private fun StationsMap(center: LatLng, stations: List<NearbyStation>) {
     GoogleMap(modifier = Modifier.fillMaxSize(), cameraPositionState = cameraPositionState) {
         stations.forEach { station ->
             MarkerInfoWindowContent(
-                state = com.google.maps.android.compose.rememberUpdatedMarkerState(
+                state = com.google.maps.android.compose.rememberMarkerState(
                     position = LatLng(station.location.lat, station.location.lng),
                 ),
                 title = station.name,

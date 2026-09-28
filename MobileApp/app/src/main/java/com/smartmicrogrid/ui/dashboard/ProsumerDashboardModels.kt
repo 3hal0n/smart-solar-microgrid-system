@@ -31,22 +31,7 @@ data class ReservationHistoryItem(
     val status: String,
 )
 
-// One row of GET /reservations's "[{ ...reservation }]" response — every field from
-// architecture.md §2.4's Reservations schema. scheduledAt/createdAt/updatedAt/etc. are kept as
-// ISO-8601 strings here rather than a parsed date type, since this is fixture/display data only
-// for now; a real Retrofit client would add a Gson date adapter when it replaces the fixture.
-data class ReservationListItem(
-    val id: String,
-    val prosumerNic: String,
-    val stationId: String,
-    val slotId: String,
-    val scheduledAt: String,
-    val status: String,
-    val qrToken: String,
-    val qrTokenExpiresAt: String,
-    val createdAt: String,
-    val updatedAt: String,
-    val completedAt: String?,
-    val completedByUserId: String?,
-    val cancelReason: String?,
-)
+// GET /reservations's row shape now lives as ReservationResponse in
+// data/remote/dto/ReservationDtos.kt (added 2026-09-27 for Migara's booking screens) — it mirrors
+// ReservationsController.MapToResponse on the backend exactly, so ProsumerDashboardScreen.kt uses
+// that same class rather than a second, slightly-stale duplicate of the same wire shape.

@@ -2,8 +2,8 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
-//    alias(libs.plugins.kotlin.android)     // ✅ needed
-    alias(libs.plugins.kotlin.compose)     // ✅ compose compiler
+    alias(libs.plugins.kotlin.android) // <-- THIS WAS MISSING, ADDED BACK
+    alias(libs.plugins.kotlin.compose)
 }
 
 // Reads MAPS_API_KEY from local.properties (gitignored, per-developer — same pattern as sdk.dir
@@ -29,31 +29,21 @@ val apiBaseUrl: String = localProperties.getProperty("API_BASE_URL", "http://10.
 
 android {
     namespace = "com.smartmicrogrid"
-    compileSdk {
-        version = release(37)
-    }
-
-//    compileSdk = 35
+    compileSdk = 34  // <-- Changed back to 34 to match installed SDK
 
     defaultConfig {
         applicationId = "com.smartmicrogrid"
         minSdk = 26
-        targetSdk = 37
-//        targetSdk = 35
+        targetSdk = 34  // <-- Changed back to 34
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["mapsApiKey"] = mapsApiKey
-        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+        buildConfigField("String", "API_BASE_URL", apiBaseUrl)
     }
 
     buildTypes {
-//        release {
-//            optimization {
-//                enable = false
-//            }
-//        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -61,12 +51,17 @@ android {
                 "proguard-rules.pro"
             )
         }
-
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
+    kotlinOptions {
+        jvmTarget = "11"
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true
@@ -74,6 +69,9 @@ android {
 }
 
 dependencies {
+    // ---- Migara: ZXing Core for QR Code GENERATION (Displaying to user) ----
+    implementation("com.google.zxing:core:3.5.3")
+
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.foundation)
@@ -87,31 +85,33 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
+
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
-    // ---- Dinil: networking (verify-qr call) ----
+    // ---- Networking (verify-qr call) ----
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
-    // ---- Dinil: coroutines (network calls off the main thread) ----
+    // ---- Coroutines (network calls off the main thread) ----
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
-    // ---- Dinil: CameraX (camera preview + frame analysis) ----
+    // ---- CameraX (camera preview + frame analysis) ----
     implementation("androidx.camera:camera-core:1.4.0")
     implementation("androidx.camera:camera-camera2:1.4.0")
     implementation("androidx.camera:camera-lifecycle:1.4.0")
     implementation("androidx.camera:camera-view:1.4.0")
 
-    // ---- Dinil: ML Kit barcode scanning (QR decode) ----
+    // ---- ML Kit barcode scanning (QR decode) ----
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
 
-    // ---- Dinil: runtime permissions (camera) ----
+    // ---- Runtime permissions (camera) ----
     implementation("com.google.accompanist:accompanist-permissions:0.36.0")
 }

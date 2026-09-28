@@ -4,10 +4,8 @@
 //          design system already applied to WebApp) so the mobile app
 //          reads as the same product, not a separate Material default
 //          theme. Names mirror the doc's {colors.*} tokens directly.
-//          Stripe's doc only specifies a light system; the Dark*
-//          tokens below are a reasonable extrapolation (ink-based
-//          surfaces, same violet action color) for Android's
-//          system-dark-mode support, not something pulled from the doc.
+//          Light-mode only per 2026-09-28 direction (Theme.kt always
+//          builds LightColorScheme) — no Dark* tokens here anymore.
 // Author: Shalon
 // ============================================================
 package com.smartmicrogrid.ui.theme
@@ -56,12 +54,3 @@ val StripeWarningContainer = Color(0xFFFBE7D6)
 val StripeOnWarningContainer = Color(0xFF5C2B02)
 val StripeErrorContainer = Color(0xFFFBE4EA)
 val StripeOnErrorContainer = Color(0xFF611026)
-
-// Dark-mode surfaces — extrapolated from {colors.superNavy}/{colors.footerBg} (the doc's own dark
-// technical surfaces) rather than inverting the light palette, so dark mode still reads as Stripe.
-val StripeDarkBackground = Color(0xFF061B31)
-val StripeDarkSurface = Color(0xFF0A2540)
-val StripeDarkSurfaceAlt = Color(0xFF102E4C)
-val StripeDarkBorder = Color(0xFF23405C)
-val StripeDarkOnSurface = Color(0xFFF6F9FC)
-val StripeDarkOnSurfaceVariant = Color(0xFFB7C2D0)
