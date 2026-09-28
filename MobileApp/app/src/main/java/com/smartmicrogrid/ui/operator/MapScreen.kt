@@ -29,14 +29,19 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -366,44 +371,119 @@ private fun StationsMap(
     }
 }
 
-// Renders the tap-to-show info window content: name + distance, then capacity and available slots
-// as two small labelled figures.
+// Renders the tap-to-show info window content: name + distance, then capacity and available slots.
+// Min-width so the card isn't squished on small displays.
 @Composable
 private fun StationInfoWindow(station: NearbyStation, onBookClick: (() -> Unit)? = null) {
-    Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
-        Text(text = station.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-        Text(
-            text = "%.1f km away".format(station.distanceKm),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(modifier = Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            InfoFigure(label = "Capacity", value = "${station.capacityKWh} kWh")
-            InfoFigure(label = "Free slots", value = station.availableSlots.toString())
-        }
-        if (onBookClick != null) {
-            Spacer(modifier = Modifier.height(10.dp))
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onBookClick() }
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 8.dp,
+        modifier = Modifier.widthIn(min = 260.dp, max = 320.dp),
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            // Header: name + distance badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
-                    text = "Tap to Reserve Slot →",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                    textAlign = TextAlign.Center
+                    text = station.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
                 )
+                Spacer(modifier = Modifier.width(8.dp))
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                ) {
+                    Text(
+                        text = "%.1f km".format(station.distanceKm),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Two info chips side by side
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                InfoChip(label = "Capacity", value = "${station.capacityKWh} kWh", modifier = Modifier.weight(1f))
+                val slotsColor = when {
+                    station.availableSlots == 0 -> MaterialTheme.colorScheme.error
+                    station.availableSlots <= 2  -> MaterialTheme.colorScheme.tertiary
+                    else                          -> MaterialTheme.colorScheme.primary
+                }
+                InfoChip(
+                    label = "Free slots",
+                    value = station.availableSlots.toString(),
+                    valueColor = slotsColor,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            if (onBookClick != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = onBookClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(vertical = 10.dp),
+                ) {
+                    Text(
+                        text = "Reserve Slot →",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
         }
     }
 }
 
-// One small label-over-value pair for the info window.
+// One small chip with label + value, used inside StationInfoWindow.
+@Composable
+private fun InfoChip(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    valueColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
+) {
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        modifier = modifier,
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = valueColor,
+            )
+        }
+    }
+}
+
+// One small label-over-value pair (kept for any callers still using it).
 @Composable
 private fun InfoFigure(label: String, value: String) {
     Column {
