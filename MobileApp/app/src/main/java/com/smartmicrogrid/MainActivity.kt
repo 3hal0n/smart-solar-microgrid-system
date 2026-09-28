@@ -1,24 +1,30 @@
+// ============================================================
+// File: MainActivity.kt
+// Purpose: The app's real logged-out entry point — hosts Sign In
+//          (Rukshan's LoginScreen, extended with Grid Operator mode)
+//          and Sign Up (Rukshan's RegisterScreen), switched with a
+//          simple in-memory state instead of a full nav graph since
+//          there are only ever these two destinations here. Replaces
+//          the old "Hello Android!" placeholder with its two
+//          "temporary" role buttons — see git history for that
+//          version if it's ever needed for reference.
+// Author: Shalon
+// ============================================================
 package com.smartmicrogrid
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import com.smartmicrogrid.ui.home.HomeActivity
-import com.smartmicrogrid.ui.home.UserRole
+import com.smartmicrogrid.ui.prosumer.LoginScreen
+import com.smartmicrogrid.ui.prosumer.RegisterScreen
 import com.smartmicrogrid.ui.theme.SmartMicrogridTheme
 
 class MainActivity : ComponentActivity() {
@@ -27,44 +33,29 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SmartMicrogridTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                AuthHost()
             }
         }
     }
 }
 
-// TODO(Rukshan/Dinil): this screen is what Splash currently lands on when there's no session
-// yet — replace it with the real logged-out landing/login screen. The two buttons below exist
-// only so HomeActivity's role-based shell is reachable and testable before a real LoginActivity
-// exists; remove them once login lands and routes into HomeActivity itself.
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    val context = LocalContext.current
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
-    ) {
-        Text(text = "Hello $name!")
-        Button(onClick = { context.startActivity(HomeActivity.intentFor(context, UserRole.Prosumer)) }) {
-            Text("Continue as Prosumer (temporary)")
-        }
-        Button(onClick = { context.startActivity(HomeActivity.intentFor(context, UserRole.GridOperator)) }) {
-            Text("Continue as Grid Operator (temporary)")
-        }
-    }
-}
+private enum class AuthScreen { SignIn, SignUp }
 
-@Preview(showBackground = true)
 @Composable
-fun GreetingPreview() {
-    SmartMicrogridTheme {
-        Greeting("Android")
+private fun AuthHost() {
+    val context = LocalContext.current
+    var screen by remember { mutableStateOf(AuthScreen.SignIn) }
+
+    when (screen) {
+        AuthScreen.SignIn -> LoginScreen(
+            onLoginSuccess = { role ->
+                context.startActivity(HomeActivity.intentFor(context, role))
+                (context as? ComponentActivity)?.finish()
+            },
+            onNavigateToRegister = { screen = AuthScreen.SignUp },
+        )
+        AuthScreen.SignUp -> RegisterScreen(
+            onNavigateToLogin = { screen = AuthScreen.SignIn },
+        )
     }
 }

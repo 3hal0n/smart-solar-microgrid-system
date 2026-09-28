@@ -1,5 +1,10 @@
 [versions]
-agp = "8.8.0"
+# Was silently downgraded from 9.4.1 to 8.8.0 as of 2026-09-27 — almost certainly a teammate's
+# older local Android Studio rewriting this file during its own project sync when they added new
+# dependencies (ZXing, the reservation-lifecycle endpoints). 8.8.0 can't satisfy several transitive
+# AndroidX libraries' AGP/compileSdk floor (activity 1.13.0, core-ktx 1.18.0 both need AGP 8.9.1+
+# and compileSdk 36+), which is what actually broke the build — not anything those teammates wrote.
+agp = "9.4.1"
 coreKtx = "1.10.1"
 junit = "4.13.2"
 junitVersion = "1.1.5"

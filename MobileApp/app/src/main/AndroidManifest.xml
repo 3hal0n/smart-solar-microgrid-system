@@ -10,6 +10,8 @@
     <!-- Dinil: camera permission for QR scanning -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- Rukshan: used to check connectivity before a network call in the Prosumer auth flow -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:allowBackup="true"
