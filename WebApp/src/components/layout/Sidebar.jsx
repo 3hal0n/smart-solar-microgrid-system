@@ -55,7 +55,7 @@ function NavSection({ section, onNavigate }) {
 
 // Renders the sidebar: brand, nav sections, and the user/sign-out footer. On small screens it's a
 // fixed drawer driven by `open`; on desktop (lg:) it's a static rail.
-export default function Sidebar({ sections, open, onClose, fullName, role, onLogout }) {
+export default function Sidebar({ sections, open, onClose, fullName, role, profilePicture, onLogout }) {
   return (
     <>
       {open && <div className="fixed inset-0 z-30 bg-ink/40 lg:hidden" onClick={onClose} aria-hidden="true" />}
@@ -87,9 +87,17 @@ export default function Sidebar({ sections, open, onClose, fullName, role, onLog
               }`
             }
           >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-[12px] font-semibold text-primary">
-              {fullName ? initialsOf(fullName) : '—'}
-            </span>
+            {profilePicture ? (
+              <img
+                src={profilePicture}
+                alt={fullName || 'Avatar'}
+                className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-line"
+              />
+            ) : (
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-[12px] font-semibold text-primary">
+                {fullName ? initialsOf(fullName) : '—'}
+              </span>
+            )}
             <div className="min-w-0 flex-1">
               <p className="truncate text-[13px] font-medium text-ink">{fullName ?? 'Not signed in'}</p>
               {role && <p className="truncate text-[11px] text-muted">{role}</p>}
