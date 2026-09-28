@@ -16,6 +16,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import Sidebar from './Sidebar.jsx';
 import TopBar from './TopBar.jsx';
+import ScrollArea from '../common/ScrollArea.jsx';
 
 // Nav sections shown in the sidebar. `icon` is a name from components/common/Icon.jsx.
 const NAV_SECTIONS = [
@@ -76,8 +77,10 @@ export default function AppShell() {
       />
       <div className="flex min-w-0 flex-1 flex-col lg:pr-3">
         <TopBar onToggleSidebar={() => setSidebarOpen((open) => !open)} crumbs={breadcrumbsFor(pathname)} />
-        <main className="flex-1 overflow-y-auto border-line bg-surface sm:mx-3 sm:mb-3 sm:rounded-2xl sm:border sm:shadow-card lg:mx-0">
-          <Outlet />
+        <main className="flex-1 min-h-0 border-line bg-surface sm:mx-3 sm:mb-3 sm:rounded-2xl sm:border sm:shadow-card lg:mx-0 overflow-hidden">
+          <ScrollArea className="h-full w-full">
+            <Outlet />
+          </ScrollArea>
         </main>
       </div>
     </div>
