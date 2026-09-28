@@ -85,4 +85,9 @@ interface ApiService {
 
     @PUT("api/prosumers/{nic}/request-deactivation")
     suspend fun requestDeactivation(@Path("nic") nic: String): Response<Unit>
+
+    // Shalon — Grid Operator (staff) login, same endpoint the web app's LoginPage already uses.
+    // Username-based, not NIC-based — a separate mechanism from Rukshan's Prosumer login above.
+    @POST("api/auth/login")
+    suspend fun loginStaff(@Body request: StaffLoginRequest): Response<StaffLoginResponse>
 }
