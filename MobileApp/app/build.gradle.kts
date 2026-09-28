@@ -2,6 +2,7 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android) // <-- THIS WAS MISSING, ADDED BACK
     alias(libs.plugins.kotlin.compose)
 }
 
@@ -28,8 +29,8 @@ val apiBaseUrl: String = localProperties.getProperty("API_BASE_URL", "http://10.
 
 android {
     namespace = "com.smartmicrogrid"
-    // Was silently downgraded from 37 to 34 alongside the agp downgrade (see libs.versions.toml) —
-    // restored, since several transitive AndroidX libraries now require compileSdk 36+.
+    // Teammate restored to 37 for transitive AndroidX libraries.
+    // If this causes an SDK download prompt in Android Studio, just click "Install".
     compileSdk = 37
 
     defaultConfig {
@@ -72,6 +73,7 @@ android {
 dependencies {
     // ---- Migara: ZXing Core for QR Code GENERATION (Displaying to user) ----
     implementation("com.google.zxing:core:3.5.3")
+
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.foundation)
@@ -85,11 +87,13 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
+
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
