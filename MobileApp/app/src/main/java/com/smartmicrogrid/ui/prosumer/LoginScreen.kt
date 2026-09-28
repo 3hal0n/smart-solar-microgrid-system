@@ -13,7 +13,6 @@
 // ============================================================
 package com.smartmicrogrid.ui.prosumer
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -26,20 +25,18 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import com.smartmicrogrid.R
 import com.smartmicrogrid.data.local.ProsumerSessionDao
 import com.smartmicrogrid.data.remote.ApiClient
 import com.smartmicrogrid.data.remote.dto.ProsumerLoginRequest
 import com.smartmicrogrid.data.remote.dto.StaffLoginRequest
 import com.smartmicrogrid.ui.auth.StaffSession
 import com.smartmicrogrid.ui.auth.StaffSessionPreferences
+import com.smartmicrogrid.ui.components.JouleMark
 import com.smartmicrogrid.ui.home.UserRole
 import com.smartmicrogrid.ui.theme.StripeAccent
 import com.smartmicrogrid.ui.theme.StripeBody
@@ -119,28 +116,15 @@ fun LoginScreen(onLoginSuccess: (UserRole) -> Unit, onNavigateToRegister: () -> 
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            Spacer(modifier = Modifier.height(48.dp))
+
+            JouleMark(modifier = Modifier.width(72.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            Text("Joule", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold, color = StripeInk)
+            Text("Power, exchanged precisely.", style = MaterialTheme.typography.bodyMedium, color = StripeBody)
+
             Spacer(modifier = Modifier.height(32.dp))
-
-            // Hero panel — stands in for a stock photo (see docs/stripe.design.md's
-            // hero-angled-panel token): a soft violet gradient card framing the app's own
-            // house-with-panels illustration rather than imagery we don't have rights to.
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Brush.linearGradient(listOf(StripeBrandVioletSoft, StripeCanvas))),
-                contentAlignment = Alignment.Center,
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.home),
-                    contentDescription = null,
-                    modifier = Modifier.size(140.dp),
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-            Text("Sign in", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold, color = StripeInk)
+            Text("Sign in", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, color = StripeInk)
             Spacer(modifier = Modifier.height(20.dp))
 
             RoleToggle(selected = role, onSelect = { role = it; identifier = ""; errorMessage = null })
