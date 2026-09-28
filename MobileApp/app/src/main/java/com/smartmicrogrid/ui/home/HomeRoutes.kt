@@ -24,6 +24,7 @@ object HomeRoutes {
     // new screen needed, just a second route to the existing one.
     const val PROSUMER_DASHBOARD = "home/prosumer/dashboard"
     const val PROSUMER_BOOKINGS = "home/prosumer/bookings"
+    const val PROSUMER_CREATE_BOOKING = "home/prosumer/bookings/create"
     const val PROSUMER_MAP = "home/prosumer/map"
     const val PROSUMER_PROFILE = "home/prosumer/profile"
 
@@ -32,4 +33,5 @@ object HomeRoutes {
     const val OPERATOR_DASHBOARD = "home/operator/dashboard"
     const val OPERATOR_SCAN_QR = "home/operator/scan-qr"
     const val OPERATOR_MAP = "home/operator/map"
+    const val OPERATOR_PROFILE = "home/operator/profile"
 }

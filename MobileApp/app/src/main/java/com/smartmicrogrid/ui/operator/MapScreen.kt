@@ -25,15 +25,23 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -74,7 +82,9 @@ private const val SEARCH_RADIUS_KM = 25.0
 // Renders the nearby-stations map: resolves a center point (device location or the default),
 // loads stations around it, and shows loading/empty/populated states as appropriate.
 @Composable
-fun MapScreen() {
+fun MapScreen(
+    onStationSelect: ((String) -> Unit)? = null
+) {
     val context = LocalContext.current
     val api = remember { ApiClient.service }
 
@@ -150,7 +160,7 @@ fun MapScreen() {
             mapError != null -> ErrorState(message = mapError!!, onRetry = { mapRefreshToken++ })
             center == null || stations == null -> LoadingState()
             stations!!.isEmpty() -> EmptyState()
-            else -> StationsMap(center = center!!, stations = stations!!)
+            else -> StationsMap(center = center!!, stations = stations!!, onStationSelect = onStationSelect)
         }
         // Floats over the map (rather than pushing it down) so the map keeps the full screen.
         LocationSourceBanner(
@@ -328,44 +338,152 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
 
 // Renders the map itself, camera centered on `center`, with one tappable marker per station.
 @Composable
-private fun StationsMap(center: LatLng, stations: List<NearbyStation>) {
+private fun StationsMap(
+    center: LatLng,
+    stations: List<NearbyStation>,
+    onStationSelect: ((String) -> Unit)? = null
+) {
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(center, DEFAULT_ZOOM)
     }
 
-    GoogleMap(modifier = Modifier.fillMaxSize(), cameraPositionState = cameraPositionState) {
+    GoogleMap(
+        modifier = Modifier.fillMaxSize(),
+        cameraPositionState = cameraPositionState,
+        uiSettings = com.google.maps.android.compose.MapUiSettings(
+            zoomControlsEnabled = true,
+            mapToolbarEnabled = true
+        )
+    ) {
         stations.forEach { station ->
             MarkerInfoWindowContent(
                 state = com.google.maps.android.compose.rememberMarkerState(
                     position = LatLng(station.location.lat, station.location.lng),
                 ),
                 title = station.name,
+                onInfoWindowClick = {
+                    onStationSelect?.invoke(station.id)
+                }
             ) {
-                StationInfoWindow(station)
+                StationInfoWindow(station, onBookClick = { onStationSelect?.invoke(station.id) })
             }
         }
     }
 }
 
-// Renders the tap-to-show info window content: name + distance, then capacity and available slots
-// as two small labelled figures.
+// Renders the tap-to-show info window content: name + distance, then capacity and available slots.
+// Min-width so the card isn't squished on small displays.
 @Composable
-private fun StationInfoWindow(station: NearbyStation) {
-    Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
-        Text(text = station.name, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-        Text(
-            text = "%.1f km away".format(station.distanceKm),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(modifier = Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            InfoFigure(label = "Capacity", value = "${station.capacityKWh} kWh")
-            InfoFigure(label = "Free slots", value = station.availableSlots.toString())
+private fun StationInfoWindow(station: NearbyStation, onBookClick: (() -> Unit)? = null) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 8.dp,
+        modifier = Modifier.widthIn(min = 260.dp, max = 320.dp),
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            // Header: name + distance badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = station.name,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                ) {
+                    Text(
+                        text = "%.1f km".format(station.distanceKm),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Two info chips side by side
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                InfoChip(label = "Capacity", value = "${station.capacityKWh} kWh", modifier = Modifier.weight(1f))
+                val slotsColor = when {
+                    station.availableSlots == 0 -> MaterialTheme.colorScheme.error
+                    station.availableSlots <= 2  -> MaterialTheme.colorScheme.tertiary
+                    else                          -> MaterialTheme.colorScheme.primary
+                }
+                InfoChip(
+                    label = "Free slots",
+                    value = station.availableSlots.toString(),
+                    valueColor = slotsColor,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+
+            if (onBookClick != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = onBookClick,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(vertical = 10.dp),
+                ) {
+                    Text(
+                        text = "Reserve Slot →",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
         }
     }
 }
 
-// One small label-over-value pair for the info window.
+// One small chip with label + value, used inside StationInfoWindow.
+@Composable
+private fun InfoChip(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    valueColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
+) {
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        modifier = modifier,
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = valueColor,
+            )
+        }
+    }
+}
+
+// One small label-over-value pair (kept for any callers still using it).
 @Composable
 private fun InfoFigure(label: String, value: String) {
     Column {

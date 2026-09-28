@@ -132,6 +132,9 @@ private val DATE_INPUT_PATTERN = Regex("""^\d{4}-\d{2}-\d{2}$""")
 fun ProsumerDashboardScreen() {
     val context = LocalContext.current
     val api = remember { ApiClient.service }
+    val prosumerNic = remember {
+        ProsumerSessionDao(context).getSession()?.nic ?: FIXTURE_PROSUMER_NIC
+    }
 
     var summary by remember { mutableStateOf<ProsumerDashboardSummary?>(null) }
     var loadError by remember { mutableStateOf<String?>(null) }
@@ -156,7 +159,7 @@ fun ProsumerDashboardScreen() {
             val cached = runCatching {
                 withContext(Dispatchers.IO) {
                     AppDbHelper(context).readableDatabase.use { db ->
-                        DashboardCacheDao.read(db, FIXTURE_PROSUMER_NIC)
+                        DashboardCacheDao.read(db, prosumerNic)
                     }
                 }
             }.getOrNull()
@@ -165,13 +168,13 @@ fun ProsumerDashboardScreen() {
             }
         }
 
-        runCatching { api.getProsumerDashboardSummary(FIXTURE_PROSUMER_NIC) }
+        runCatching { api.getProsumerDashboardSummary(prosumerNic) }
             .onSuccess { fresh ->
                 summary = fresh
                 runCatching {
                     withContext(Dispatchers.IO) {
                         AppDbHelper(context).writableDatabase.use { db ->
-                            DashboardCacheDao.write(db, FIXTURE_PROSUMER_NIC, fresh)
+                            DashboardCacheDao.write(db, prosumerNic, fresh)
                         }
                     }
                 }
@@ -193,7 +196,7 @@ fun ProsumerDashboardScreen() {
         reservationsError = null
         runCatching {
             api.searchReservations(
-                nic = FIXTURE_PROSUMER_NIC,
+                nic = prosumerNic,
                 stationId = stationFilter.ifBlank { null },
                 status = statusFilter.takeIf { it != "All" },
                 from = fromFilter.takeIf { fromDateValid && it.isNotBlank() },
