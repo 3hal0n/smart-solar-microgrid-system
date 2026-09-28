@@ -1,7 +1,7 @@
 // ============================================================
 // File: RegisterScreen.kt
-// Purpose: Prosumer registration screen styled with signup.png
-//          hero banner, layered gradient, and structured input form.
+// Purpose: Prosumer registration screen with signup.png image,
+//          Joule branding, password eye toggle, and registration form.
 // ============================================================
 package com.smartmicrogrid.ui.prosumer
 
@@ -22,7 +22,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -30,14 +29,17 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartmicrogrid.R
 import com.smartmicrogrid.data.remote.ApiClient
 import com.smartmicrogrid.data.remote.dto.ProsumerRegistrationRequest
 import com.smartmicrogrid.ui.components.JouleIcons
+import com.smartmicrogrid.ui.components.JouleMark
 import com.smartmicrogrid.ui.theme.StripeAccent
 import com.smartmicrogrid.ui.theme.StripeBody
+import com.smartmicrogrid.ui.theme.StripeBorder
 import com.smartmicrogrid.ui.theme.StripeCanvas
 import com.smartmicrogrid.ui.theme.StripeError
 import com.smartmicrogrid.ui.theme.StripeInk
@@ -57,6 +59,7 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit) {
     var phone by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -67,99 +70,77 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit) {
                 .padding(padding)
                 .verticalScroll(rememberScrollState()),
         ) {
-            // Hero Banner styled like web app with signup.png
-            Box(
+            // Top Bar with Back button
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(200.dp),
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Background image: signup.png
-                Image(
-                    painter = painterResource(id = R.drawable.signup),
-                    contentDescription = "Prosumer Registration Hero",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
-
-                // Dark gradient overlay
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color(0x660B132B),
-                                    Color(0xCC0A2540),
-                                    Color(0xF00A2540),
-                                ),
-                            ),
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(StripeSurface)
+                        .border(1.dp, StripeBorder, CircleShape)
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() },
+                            onClick = onNavigateToLogin,
                         ),
-                )
-
-                // Back button & Hero branding
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 24.dp, vertical = 16.dp),
-                    verticalArrangement = Arrangement.SpaceBetween,
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.2f))
-                            .clickable(
-                                indication = null,
-                                interactionSource = remember { MutableInteractionSource() },
-                                onClick = onNavigateToLogin,
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = JouleIcons.Back,
-                            contentDescription = "Back to sign in",
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
-
-                    Column {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .background(Color.White.copy(alpha = 0.12f))
-                                .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(50))
-                                .padding(horizontal = 10.dp, vertical = 3.dp),
-                        ) {
-                            Text(
-                                text = "Prosumer Registration",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color(0xFF67E8F9),
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Create your account",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                        )
-                        Text(
-                            text = "Your National Identity Card (NIC) is your account identifier.",
-                            fontSize = 11.sp,
-                            color = Color(0xFFCBD5E1),
-                        )
-                    }
+                    Icon(
+                        imageVector = JouleIcons.Back,
+                        contentDescription = "Back to sign in",
+                        tint = StripeInk,
+                        modifier = Modifier.size(18.dp),
+                    )
                 }
             }
+
+            // Signup Image (specified by user)
+            Image(
+                painter = painterResource(id = R.drawable.signup),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp),
+                contentScale = ContentScale.Crop,
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Logo & Title
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                JouleMark(modifier = Modifier.width(42.dp))
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Create your account",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = StripeInk,
+                )
+                Text(
+                    text = "Power, exchanged precisely.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = StripeBody,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Form container
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp)
-                    .padding(top = 16.dp, bottom = 32.dp),
+                    .padding(bottom = 32.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 AuthTextField(value = nic, onValueChange = { nic = it }, label = "NIC Number *")
@@ -167,7 +148,33 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit) {
                 AuthTextField(value = email, onValueChange = { email = it }, label = "Email Address *", keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email))
                 AuthTextField(value = phone, onValueChange = { phone = it }, label = "Phone Number", keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone))
                 AuthTextField(value = address, onValueChange = { address = it }, label = "Residential Address", singleLine = false, minLines = 2)
-                AuthTextField(value = password, onValueChange = { password = it }, label = "Password *", visualTransformation = PasswordVisualTransformation())
+
+                // Password with Eye toggle
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password *") },
+                    singleLine = true,
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(
+                                imageVector = if (passwordVisible) JouleIcons.EyeOff else JouleIcons.Eye,
+                                contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                                tint = StripeBody,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = StripeBorder,
+                        focusedBorderColor = StripePrimary,
+                        unfocusedContainerColor = StripeSurface,
+                        focusedContainerColor = StripeSurface,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
                 errorMessage?.let {
                     Box(
@@ -187,7 +194,7 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit) {
                     }
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Button(
                     onClick = {
@@ -235,7 +242,7 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit) {
                     if (isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(22.dp), color = StripeOnPrimary, strokeWidth = 2.dp)
                     } else {
-                        Text("Create Account", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                        Text("Register", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     }
                 }
 

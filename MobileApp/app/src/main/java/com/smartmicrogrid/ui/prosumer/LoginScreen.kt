@@ -1,8 +1,7 @@
 // ============================================================
 // File: LoginScreen.kt
-// Purpose: Sign-in screen styled to mirror the web app's login branding.
-//          Uses home.png as hero banner with layered gradients,
-//          brand badge, and sleek inputs for Prosumers and Grid Operators.
+// Purpose: Sign-in screen using home.png image, Joule logo,
+//          tagline, password eye toggle, and role selector.
 // ============================================================
 package com.smartmicrogrid.ui.prosumer
 
@@ -20,13 +19,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.smartmicrogrid.R
@@ -36,6 +35,7 @@ import com.smartmicrogrid.data.remote.dto.ProsumerLoginRequest
 import com.smartmicrogrid.data.remote.dto.StaffLoginRequest
 import com.smartmicrogrid.ui.auth.StaffSession
 import com.smartmicrogrid.ui.auth.StaffSessionPreferences
+import com.smartmicrogrid.ui.components.JouleIcons
 import com.smartmicrogrid.ui.components.JouleMark
 import com.smartmicrogrid.ui.home.UserRole
 import com.smartmicrogrid.ui.theme.StripeAccent
@@ -58,8 +58,9 @@ fun LoginScreen(onLoginSuccess: (UserRole) -> Unit, onNavigateToRegister: () -> 
     val sessionDao = remember { ProsumerSessionDao(context) }
 
     var role by remember { mutableStateOf(UserRole.Prosumer) }
-    var identifier by remember { mutableStateOf("") } // NIC for Prosumer, username for Grid Operator
+    var identifier by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -114,114 +115,45 @@ fun LoginScreen(onLoginSuccess: (UserRole) -> Unit, onNavigateToRegister: () -> 
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // Hero Banner styled like web app login
-            Box(
+            // Home Image (specified by user)
+            Image(
+                painter = painterResource(id = R.drawable.home),
+                contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(230.dp),
-            ) {
-                // Background image: home.png
-                Image(
-                    painter = painterResource(id = R.drawable.home),
-                    contentDescription = "Solar Microgrid Hero",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
+                    .height(180.dp),
+                contentScale = ContentScale.Crop,
+            )
 
-                // Dark gradient overlay matching webapp's slate-950 aesthetic
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color(0x660B132B),
-                                    Color(0xCC0A2540),
-                                    Color(0xF00A2540),
-                                ),
-                            ),
-                        ),
-                )
+            Spacer(modifier = Modifier.height(16.dp))
 
-                // Hero content
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 24.dp, vertical = 20.dp),
-                    verticalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    // Top brand header
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        JouleMark(modifier = Modifier.width(36.dp))
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "Joule",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            letterSpacing = (-0.5).sp,
-                        )
-                    }
+            // Joule Logo & Tagline
+            JouleMark(modifier = Modifier.width(48.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Joule",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = StripeInk,
+            )
+            Text(
+                text = "Power, exchanged precisely.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = StripeBody,
+            )
 
-                    // Headline and tagline
-                    Column {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50))
-                                .background(Color.White.copy(alpha = 0.12f))
-                                .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(50))
-                                .padding(horizontal = 10.dp, vertical = 4.dp),
-                        ) {
-                            Text(
-                                text = "Smart Solar Microgrid",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color(0xFF67E8F9), // cyan-300
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = "Power, exchanged precisely.",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = "Coordinated battery reservations & clean microgrid dispatch.",
-                            fontSize = 12.sp,
-                            color = Color(0xFFCBD5E1), // slate-300
-                            lineHeight = 16.sp,
-                        )
-                    }
-                }
-            }
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Form container
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp)
-                    .padding(top = 20.dp, bottom = 32.dp),
+                    .padding(bottom = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    text = "Sign in to your account",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = StripeInk,
-                    modifier = Modifier.align(Alignment.Start),
-                )
-                Text(
-                    text = "Select your role to access the microgrid network.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = StripeBody,
-                    modifier = Modifier.align(Alignment.Start),
-                )
-
-                Spacer(modifier = Modifier.height(18.dp))
-
                 RoleToggle(
                     selected = role,
                     onSelect = {
@@ -231,7 +163,7 @@ fun LoginScreen(onLoginSuccess: (UserRole) -> Unit, onNavigateToRegister: () -> 
                     },
                 )
 
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 AuthTextField(
                     value = identifier,
@@ -241,11 +173,31 @@ fun LoginScreen(onLoginSuccess: (UserRole) -> Unit, onNavigateToRegister: () -> 
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                AuthTextField(
+                // Password field with Eye toggle icon
+                OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = "Password",
-                    visualTransformation = PasswordVisualTransformation(),
+                    label = { Text("Password") },
+                    singleLine = true,
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(
+                                imageVector = if (passwordVisible) JouleIcons.EyeOff else JouleIcons.Eye,
+                                contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                                tint = StripeBody,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = StripeBorder,
+                        focusedBorderColor = StripePrimary,
+                        unfocusedContainerColor = StripeSurface,
+                        focusedContainerColor = StripeSurface,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
                 )
 
                 errorMessage?.let {
@@ -267,7 +219,7 @@ fun LoginScreen(onLoginSuccess: (UserRole) -> Unit, onNavigateToRegister: () -> 
                     }
                 }
 
-                Spacer(modifier = Modifier.height(22.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 Button(
                     onClick = ::submit,
@@ -291,14 +243,6 @@ fun LoginScreen(onLoginSuccess: (UserRole) -> Unit, onNavigateToRegister: () -> 
                         Text("Don't have an account? ", color = StripeBody)
                         Text("Register Now", color = StripeAccent, fontWeight = FontWeight.SemiBold)
                     }
-                } else {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Grid operator accounts are provisioned by Backoffice administrators.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = StripeBody,
-                        fontSize = 11.sp,
-                    )
                 }
             }
         }
@@ -340,13 +284,13 @@ private fun RoleToggle(selected: UserRole, onSelect: (UserRole) -> Unit) {
     }
 }
 
-// internal (not private) so RegisterScreen.kt in this same package can reuse it too.
+// Reusable text field
 @Composable
 internal fun AuthTextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    visualTransformation: androidx.compose.ui.text.input.VisualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: androidx.compose.foundation.text.KeyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default,
     singleLine: Boolean = true,
     minLines: Int = 1,

@@ -1,17 +1,22 @@
 // ============================================================
 // File: ProfileScreen.kt
-// Purpose: Prosumer profile screen — polished avatar header, editable
-//          fields, account status, and logout. No unnecessary top
-//          spacing; Scaffold has no TopAppBar so content starts right
-//          below the system status bar. All operations go through
-//          the Web API (FAT Service pattern).
-// Author: Rukshan (enhanced 2026-09-29)
+// Purpose: Prosumer profile screen — avatar with gallery photo upload,
+//          editable fields, account status, deactivation, and logout.
+//          No extra top spacing; content starts directly below insets.
 // ============================================================
 package com.smartmicrogrid.ui.prosumer
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Base64
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -22,8 +27,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -33,7 +40,9 @@ import com.smartmicrogrid.data.remote.ApiClient
 import com.smartmicrogrid.data.remote.dto.ProsumerProfileResponse
 import com.smartmicrogrid.data.remote.dto.ProsumerUpdateRequest
 import com.smartmicrogrid.ui.components.JouleIcons
+import com.smartmicrogrid.ui.theme.*
 import kotlinx.coroutines.launch
+import java.io.ByteArrayOutputStream
 
 // Generate avatar initials from name
 private fun initials(name: String?): String {
@@ -44,14 +53,16 @@ private fun initials(name: String?): String {
         .joinToString("") { it[0].uppercase() }
 }
 
-// Deterministic pastel color from initials
-private fun avatarColor(name: String?): Color {
-    val colors = listOf(
-        Color(0xFF6366F1), Color(0xFF8B5CF6), Color(0xFF0EA5E9),
-        Color(0xFF10B981), Color(0xFFF59E0B), Color(0xFFEC4899),
-    )
-    val idx = (name?.sumOf { it.code } ?: 0) % colors.size
-    return colors[idx]
+// Decode base64 data string to Compose ImageBitmap
+private fun decodeBase64ToBitmap(base64Str: String?): ImageBitmap? {
+    if (base64Str.isNullOrBlank()) return null
+    return try {
+        val clean = if (base64Str.contains(",")) base64Str.substringAfter(",") else base64Str
+        val decoded = Base64.decode(clean, Base64.DEFAULT)
+        BitmapFactory.decodeByteArray(decoded, 0, decoded.size)?.asImageBitmap()
+    } catch (_: Exception) {
+        null
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -63,6 +74,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
     val session = remember { sessionDao.getSession() }
 
     var profile by remember { mutableStateOf<ProsumerProfileResponse?>(null) }
+    var avatarBase64 by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var isEditing by remember { mutableStateOf(false) }
     var editFullName by remember { mutableStateOf("") }
@@ -71,16 +83,55 @@ fun ProfileScreen(onLogout: () -> Unit) {
     var editAddress by remember { mutableStateOf("") }
     var showDeactivateDialog by remember { mutableStateOf(false) }
 
+    // Image picker launcher for photo upload
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+    ) { uri ->
+        uri?.let {
+            try {
+                val inputStream = context.contentResolver.openInputStream(it)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                val scaled = Bitmap.createScaledBitmap(bitmap, 256, 256, true)
+                val outputStream = ByteArrayOutputStream()
+                scaled.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
+                val base64 = "data:image/jpeg;base64," + Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
+                avatarBase64 = base64
+
+                session?.let { s ->
+                    scope.launch {
+                        try {
+                            val req = ProsumerUpdateRequest(
+                                fullName = null,
+                                email = null,
+                                phone = null,
+                                address = null,
+                                profilePicture = base64,
+                            )
+                            ApiClient.service.updateProsumerProfile(s.nic, req)
+                            Toast.makeText(context, "Profile picture updated", Toast.LENGTH_SHORT).show()
+                        } catch (_: Exception) {
+                            Toast.makeText(context, "Failed to save picture", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            } catch (_: Exception) {
+                Toast.makeText(context, "Failed to load selected photo", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     LaunchedEffect(Unit) {
         session?.let {
             try {
                 val response = ApiClient.service.getProsumerProfile(it.nic)
                 if (response.isSuccessful && response.body() != null) {
-                    profile = response.body()
-                    editFullName = profile!!.fullName
-                    editEmail = profile!!.email
-                    editPhone = profile!!.phone ?: ""
-                    editAddress = profile!!.address ?: ""
+                    val p = response.body()!!
+                    profile = p
+                    avatarBase64 = p.profilePicture
+                    editFullName = p.fullName
+                    editEmail = p.email
+                    editPhone = p.phone ?: ""
+                    editAddress = p.address ?: ""
                 }
             } catch (_: Exception) {}
             isLoading = false
@@ -88,16 +139,15 @@ fun ProfileScreen(onLogout: () -> Unit) {
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        // No topBar — content starts directly below status bar insets
+        containerColor = StripeCanvas,
     ) { padding ->
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.primary, strokeWidth = 3.dp)
+                CircularProgressIndicator(color = StripePrimary, strokeWidth = 3.dp)
             }
         } else {
             profile?.let { p ->
-                val color = avatarColor(p.fullName)
+                val avatarBitmap = decodeBase64ToBitmap(avatarBase64)
 
                 Column(
                     modifier = Modifier
@@ -105,79 +155,104 @@ fun ProfileScreen(onLogout: () -> Unit) {
                         .padding(padding)
                         .verticalScroll(rememberScrollState()),
                 ) {
-                    // ── Avatar hero header ─────────────────────
-                    Box(
+                    // Header section (No extra top spacing)
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(Brush.verticalGradient(listOf(color.copy(alpha = 0.12f), MaterialTheme.colorScheme.background))),
-                        contentAlignment = Alignment.Center,
+                            .padding(top = 16.dp, bottom = 12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(top = 32.dp, bottom = 24.dp),
+                        // Clickable Avatar with Photo Upload
+                        Box(
+                            modifier = Modifier
+                                .size(88.dp)
+                                .clip(CircleShape)
+                                .background(StripeBrandVioletSoft)
+                                .border(3.dp, StripeSurface, CircleShape)
+                                .clickable(
+                                    indication = null,
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    onClick = { imagePickerLauncher.launch("image/*") },
+                                ),
+                            contentAlignment = Alignment.Center,
                         ) {
-                            // Avatar circle with initials
-                            Box(
-                                modifier = Modifier
-                                    .size(80.dp)
-                                    .clip(CircleShape)
-                                    .background(color)
-                                    .border(3.dp, MaterialTheme.colorScheme.surface, CircleShape),
-                                contentAlignment = Alignment.Center,
-                            ) {
+                            if (avatarBitmap != null) {
+                                Image(
+                                    bitmap = avatarBitmap,
+                                    contentDescription = "Profile Picture",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop,
+                                )
+                            } else {
                                 Text(
                                     text = initials(p.fullName),
                                     style = MaterialTheme.typography.headlineMedium.copy(
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 28.sp,
                                     ),
-                                    color = Color.White,
+                                    color = StripePrimary,
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Text(
-                                text = p.fullName,
-                                style = MaterialTheme.typography.titleLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = p.email,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            // Status pill
-                            Surface(
-                                shape = RoundedCornerShape(50),
-                                color = if (p.status == "Active")
-                                    MaterialTheme.colorScheme.primaryContainer
-                                else
-                                    MaterialTheme.colorScheme.errorContainer,
+                            // Camera overlay badge
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .size(26.dp)
+                                    .clip(CircleShape)
+                                    .background(StripePrimary)
+                                    .border(2.dp, StripeSurface, CircleShape),
+                                contentAlignment = Alignment.Center,
                             ) {
-                                Text(
-                                    text = p.status,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = if (p.status == "Active")
-                                        MaterialTheme.colorScheme.primary
-                                    else
-                                        MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                Icon(
+                                    imageVector = JouleIcons.Camera,
+                                    contentDescription = "Change photo",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(13.dp),
                                 )
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        Text(
+                            text = p.fullName,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = StripeInk,
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = p.email,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = StripeBody,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Status pill
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = if (p.status == "Active") StripeBrandVioletSoft else StripeErrorContainer,
+                        ) {
+                            Text(
+                                text = p.status,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (p.status == "Active") StripePrimary else StripeError,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            )
+                        }
                     }
 
-                    // ── Profile fields ─────────────────────────
-                    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-
+                    // Profile fields
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
                         if (isEditing) {
-                            Text("Edit Profile", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                            Text("Edit Profile", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = StripeInk)
                             OutlinedTextField(value = editFullName, onValueChange = { editFullName = it }, label = { Text("Full Name") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
                             OutlinedTextField(value = editEmail, onValueChange = { editEmail = it }, label = { Text("Email") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
                             OutlinedTextField(value = editPhone, onValueChange = { editPhone = it }, label = { Text("Phone") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp))
@@ -190,14 +265,16 @@ fun ProfileScreen(onLogout: () -> Unit) {
                                         scope.launch {
                                             try {
                                                 val req = ProsumerUpdateRequest(
-                                                    editFullName.ifBlank { null },
-                                                    editEmail.ifBlank { null },
-                                                    editPhone.ifBlank { null },
-                                                    editAddress.ifBlank { null },
+                                                    fullName = editFullName.ifBlank { null },
+                                                    email = editEmail.ifBlank { null },
+                                                    phone = editPhone.ifBlank { null },
+                                                    address = editAddress.ifBlank { null },
+                                                    profilePicture = avatarBase64,
                                                 )
                                                 val res = ApiClient.service.updateProsumerProfile(p.nic, req)
                                                 if (res.isSuccessful || res.code() == 204) {
                                                     isEditing = false
+                                                    profile = p.copy(fullName = editFullName, email = editEmail, phone = editPhone, address = editAddress)
                                                     Toast.makeText(context, "Profile updated", Toast.LENGTH_SHORT).show()
                                                 }
                                             } catch (_: Exception) {}
@@ -205,21 +282,23 @@ fun ProfileScreen(onLogout: () -> Unit) {
                                     },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(containerColor = StripePrimary, contentColor = StripeOnPrimary),
                                 ) { Text("Save") }
                             }
                         } else {
                             // Info card
                             Surface(
                                 shape = RoundedCornerShape(16.dp),
-                                color = MaterialTheme.colorScheme.surface,
+                                color = StripeSurface,
                                 tonalElevation = 1.dp,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, StripeBorder),
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
                                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                     ProfileRow(icon = JouleIcons.User, label = "NIC", value = p.nic)
-                                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                                    HorizontalDivider(color = StripeBorder)
                                     ProfileRow(icon = JouleIcons.MapPin, label = "Phone", value = p.phone ?: "Not provided")
-                                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                                    HorizontalDivider(color = StripeBorder)
                                     ProfileRow(icon = JouleIcons.MapPin, label = "Address", value = p.address ?: "Not provided")
                                 }
                             }
@@ -228,7 +307,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
                                 onClick = { isEditing = true },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                colors = ButtonDefaults.buttonColors(containerColor = StripePrimary, contentColor = StripeOnPrimary),
                             ) {
                                 Icon(JouleIcons.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -236,7 +315,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
 
                         // Danger zone
                         if (p.status != "Deactivated") {
@@ -244,14 +323,14 @@ fun ProfileScreen(onLogout: () -> Unit) {
                                 onClick = { showDeactivateDialog = true },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = StripeError),
                             ) { Text("Request Account Deactivation") }
                         } else {
-                            Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.errorContainer) {
+                            Surface(shape = RoundedCornerShape(12.dp), color = StripeErrorContainer) {
                                 Text(
                                     "Your account is deactivated. Contact Backoffice to reactivate.",
                                     modifier = Modifier.padding(16.dp),
-                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    color = StripeOnErrorContainer,
                                     style = MaterialTheme.typography.bodySmall,
                                 )
                             }
@@ -272,7 +351,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
                     }
                 }
             } ?: Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
-                Text("Couldn't load profile.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Couldn't load profile.", color = StripeBody)
             }
         }
     }
@@ -296,7 +375,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
                             }
                         } catch (_: Exception) {}
                     }
-                }) { Text("Deactivate", color = MaterialTheme.colorScheme.error) }
+                }) { Text("Deactivate", color = StripeError) }
             },
             dismissButton = { TextButton(onClick = { showDeactivateDialog = false }) { Text("Cancel") } },
         )
@@ -306,10 +385,10 @@ fun ProfileScreen(onLogout: () -> Unit) {
 @Composable
 private fun ProfileRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(18.dp))
+        Icon(icon, contentDescription = null, tint = StripePrimary, modifier = Modifier.size(18.dp))
         Column {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.onSurface)
+            Text(label, style = MaterialTheme.typography.labelSmall, color = StripeBody)
+            Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium, color = StripeInk)
         }
     }
 }
