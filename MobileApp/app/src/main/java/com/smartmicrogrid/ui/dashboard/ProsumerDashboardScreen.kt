@@ -217,7 +217,8 @@ fun ProsumerDashboardScreen() {
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 20.dp),
+            .padding(horizontal = 16.dp)
+            .padding(bottom = 20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         DashboardHeader(onRefresh = { refreshToken++ })
