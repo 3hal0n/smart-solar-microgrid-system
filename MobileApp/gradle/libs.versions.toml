@@ -1,21 +1,17 @@
 [versions]
 agp = "8.8.0"
-coreKtx = "1.10.1"
+kotlin = "2.0.21"
+coreKtx = "1.13.1"
 junit = "4.13.2"
-junitVersion = "1.1.5"
-espressoCore = "3.5.1"
-lifecycleRuntimeKtx = "2.6.1"
-activityCompose = "1.8.0"
-kotlin = "2.2.10"
-composeBom = "2026.02.01"
-navigationCompose = "2.10.1"
-playServicesMaps = "20.0.0"
-playServicesLocation = "21.4.0"
-# Pinned below the latest (8.6.0 as of 2026-09-24): 8.4.0+ pulls in kotlin-stdlib with 2.4.x
-# metadata, which this project's Kotlin 2.2.10 compiler can't read ("compiled with an incompatible
-# version of Kotlin" build failure). 8.3.1 is the newest release still on 2.3.x metadata. Bumping
-# this back up requires bumping `kotlin` above too — don't change one without the other.
-mapsCompose = "8.3.1"
+junitVersion = "1.2.1"
+espressoCore = "3.6.1"
+lifecycleRuntimeKtx = "2.8.4"
+activityCompose = "1.9.1"
+composeBom = "2024.08.00"
+navigationCompose = "2.7.7"
+playServicesMaps = "19.0.0"
+playServicesLocation = "21.3.0"
+mapsCompose = "6.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -40,6 +36,5 @@ maps-compose = { group = "com.google.maps.android", name = "maps-compose", versi
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" } # <-- ADDED THIS LINE
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-
