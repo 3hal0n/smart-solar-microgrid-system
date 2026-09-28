@@ -54,6 +54,7 @@
 package com.smartmicrogrid.ui.dashboard
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -63,16 +64,19 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -88,25 +92,33 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.smartmicrogrid.R
 import com.smartmicrogrid.data.local.AppDbHelper
 import com.smartmicrogrid.data.local.DashboardCacheDao
+import com.smartmicrogrid.data.local.ProsumerSessionDao
 import com.smartmicrogrid.data.remote.ApiClient
 import com.smartmicrogrid.data.remote.dto.ReservationResponse
 import com.smartmicrogrid.ui.components.IconTile
 import com.smartmicrogrid.ui.components.JouleIcons
 import com.smartmicrogrid.ui.components.SectionCard
 import com.smartmicrogrid.ui.components.StatTray
+import com.smartmicrogrid.ui.theme.StripeBody
+import com.smartmicrogrid.ui.theme.StripeBrandVioletSoft
 import com.smartmicrogrid.ui.theme.StripeCyan
 import com.smartmicrogrid.ui.theme.StripeCyanContainer
+import com.smartmicrogrid.ui.theme.StripeInk
+import com.smartmicrogrid.ui.theme.StripePrimary
 import com.smartmicrogrid.ui.theme.StripeWarning
 import com.smartmicrogrid.ui.theme.StripeWarningContainer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.time.Instant
+import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
@@ -214,6 +226,7 @@ fun ProsumerDashboardScreen() {
             ErrorBanner(message = reservationsError.orEmpty())
         }
 
+        HeroPanel(summary = summary)
         StatTraysRow(summary = summary)
 
         FilterCard(
@@ -257,29 +270,89 @@ private val ROW_DATE_FORMAT: DateTimeFormatter =
 private fun formatScheduled(iso: String): String =
     runCatching { ROW_DATE_FORMAT.format(Instant.parse(iso)) }.getOrDefault(iso)
 
-// Screen title, the prosumer's NIC, and an outlined refresh icon button.
+// Time-of-day greeting + the signed-in prosumer's name (from ProsumerSessionDao, the real
+// session — not the FIXTURE_PROSUMER_NIC this screen's data calls still use, see the file
+// header), and a filled circular refresh button. Design inspired by the "Good Morning" reference
+// the user provided, adapted rather than copied — no fake notification bell, since there's no
+// notification feature behind one yet.
 @Composable
 private fun DashboardHeader(onRefresh: () -> Unit) {
+    val context = LocalContext.current
+    val session = remember { ProsumerSessionDao(context).getSession() }
+    val greeting = remember {
+        when (LocalTime.now().hour) {
+            in 5..11 -> "Good morning"
+            in 12..16 -> "Good afternoon"
+            else -> "Good evening"
+        }
+    }
+
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "Dashboard",
+                text = greeting,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = StripeInk,
             )
             Text(
-                text = "NIC $FIXTURE_PROSUMER_NIC",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = session?.fullName ?: "NIC $FIXTURE_PROSUMER_NIC",
+                style = MaterialTheme.typography.bodyMedium,
+                color = StripeBody,
             )
         }
-        OutlinedIconButton(
-            onClick = onRefresh,
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(StripeBrandVioletSoft),
+            contentAlignment = Alignment.Center,
         ) {
-            Icon(JouleIcons.Refresh, contentDescription = "Refresh", tint = MaterialTheme.colorScheme.onSurface)
+            IconButton(onClick = onRefresh) {
+                Icon(JouleIcons.Refresh, contentDescription = "Refresh", tint = StripePrimary)
+            }
+        }
+    }
+}
+
+// A friendly summary card fronting the stat trays below — house illustration + the headline
+// "Active" count, echoing the reference design's panel/hero-card layout without copying its
+// solar-generation copy ("Daily Revenue"/"Capacity"/"Consumed" don't fit a booking system).
+@Composable
+private fun HeroPanel(summary: ProsumerDashboardSummary?) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = StripeBrandVioletSoft,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Image(
+                painter = painterResource(R.drawable.home),
+                contentDescription = null,
+                modifier = Modifier.size(72.dp),
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Active reservations",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = StripeBody,
+                )
+                Text(
+                    text = summary?.activeCount?.toString() ?: "—",
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = StripeInk,
+                )
+                Text(
+                    text = "Confirmed bookings across all your stations",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = StripeBody,
+                )
+            }
         }
     }
 }
