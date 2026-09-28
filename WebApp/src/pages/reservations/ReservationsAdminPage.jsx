@@ -7,6 +7,10 @@
 //          12-hour notice, status transitions) enforced
 //          server-side; this page renders API responses and
 //          surfaces rejection messages verbatim.
+//
+//          The Create modal looks up the Prosumer by NIC via
+//          GET /api/prosumers/{nic} so the operator can
+//          visually confirm the right person before booking.
 // Author: Dinil
 // ============================================================
 import { useEffect, useMemo, useState } from "react";
@@ -82,6 +86,14 @@ export default function ReservationsAdminPage() {
   const [createForm, setCreateForm] = useState(emptyCreateForm());
   const [createBusy, setCreateBusy] = useState(false);
 
+  // Prosumer lookup state (NIC → profile).
+  // status: "idle" | "loading" | "found" | "notfound" | "error"
+  const [lookup, setLookup] = useState({
+    status: "idle",
+    data: null,
+    message: ""
+  });
+
   // Tiny helper to fire a toast without prop-drilling.
   function show(message, tone = "error") {
     setToast({ message, tone });
@@ -118,12 +130,44 @@ export default function ReservationsAdminPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterStatus, filterNic, filterStationId]);
 
+  // Looks up a Prosumer by NIC using GET /api/prosumers/{nic}.
+  // Resets to idle when the NIC field is cleared.
+  async function lookupProsumer(nic) {
+    const trimmed = (nic || "").trim();
+    if (!trimmed) {
+      setLookup({ status: "idle", data: null, message: "" });
+      return;
+    }
+    setLookup({ status: "loading", data: null, message: "" });
+    try {
+      const { data } = await api.get(`/prosumers/${trimmed}`);
+      setLookup({
+        status: "found",
+        data,
+        message: `${data.fullName} • ${data.status}`
+      });
+    } catch (e) {
+      if (e?.response?.status === 404) {
+        setLookup({
+          status: "notfound",
+          data: null,
+          message: "No Prosumer with that NIC."
+        });
+      } else {
+        setLookup({
+          status: "error",
+          data: null,
+          message: e?.response?.data?.message || "Lookup failed."
+        });
+      }
+    }
+  }
+
   // Submits a create to the API. Enforces nothing client-side —
   // the server validates the 7-day window and slot availability.
   async function submitCreate() {
     setCreateBusy(true);
     try {
-      // Convert datetime-local ("2026-10-05T14:00") to ISO.
       const payload = {
         prosumerNic: createForm.prosumerNic.trim(),
         stationId: createForm.stationId.trim(),
@@ -137,6 +181,7 @@ export default function ReservationsAdminPage() {
       show("Reservation created.", "success");
       setShowCreate(false);
       setCreateForm(emptyCreateForm());
+      setLookup({ status: "idle", data: null, message: "" });
       await load();
     } catch (e) {
       const msg =
@@ -144,7 +189,6 @@ export default function ReservationsAdminPage() {
         e?.response?.data?.code ||
         e.message ||
         "Create failed.";
-      // Surface API rejection verbatim — e.g. "must be within 7 days".
       show(msg, "error");
     } finally {
       setCreateBusy(false);
@@ -186,6 +230,14 @@ export default function ReservationsAdminPage() {
     [reservations]
   );
 
+  // Whether the Create button should be enabled.
+  const canCreate =
+    !createBusy &&
+    createForm.prosumerNic.trim() &&
+    createForm.stationId.trim() &&
+    createForm.slotId.trim() &&
+    createForm.scheduledAt;
+
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
       {/* Page header */}
@@ -204,6 +256,7 @@ export default function ReservationsAdminPage() {
             variant="primary"
             onClick={() => {
               setCreateForm(emptyCreateForm());
+              setLookup({ status: "idle", data: null, message: "" });
               setShowCreate(true);
             }}
           >
@@ -359,14 +412,53 @@ export default function ReservationsAdminPage() {
             the 7-day booking window and slot availability.
           </p>
 
-          <Input
-            label="Prosumer NIC *"
-            placeholder="e.g. 199012345678"
-            value={createForm.prosumerNic}
-            onChange={(e) =>
-              setCreateForm({ ...createForm, prosumerNic: e.target.value })
-            }
-          />
+          {/* NIC with inline lookup */}
+          <div>
+            <div className="flex items-end gap-2">
+              <div className="flex-1">
+                <Input
+                  label="Prosumer NIC *"
+                  placeholder="e.g. 199012345678"
+                  value={createForm.prosumerNic}
+                  onChange={(e) => {
+                    const nic = e.target.value;
+                    setCreateForm({ ...createForm, prosumerNic: nic });
+                    // Reset lookup when the field changes; user must click Look up.
+                    if (lookup.status !== "idle") {
+                      setLookup({ status: "idle", data: null, message: "" });
+                    }
+                  }}
+                />
+              </div>
+              <Button
+                variant="secondary"
+                onClick={() => lookupProsumer(createForm.prosumerNic)}
+                disabled={
+                  !createForm.prosumerNic.trim() || lookup.status === "loading"
+                }
+              >
+                {lookup.status === "loading" ? "Looking…" : "Look up"}
+              </Button>
+            </div>
+
+            {/* Lookup result */}
+            {lookup.status === "found" && (
+              <p className="mt-2 text-xs font-medium text-success">
+                ✓ {lookup.message}
+              </p>
+            )}
+            {lookup.status === "notfound" && (
+              <p className="mt-2 text-xs font-medium text-error">
+                ✗ {lookup.message}
+              </p>
+            )}
+            {lookup.status === "error" && (
+              <p className="mt-2 text-xs font-medium text-error">
+                ✗ {lookup.message}
+              </p>
+            )}
+          </div>
+
           <Input
             label="Station ID *"
             placeholder="Mongo ObjectId"
@@ -403,13 +495,7 @@ export default function ReservationsAdminPage() {
             <Button
               variant="primary"
               onClick={submitCreate}
-              disabled={
-                createBusy ||
-                !createForm.prosumerNic.trim() ||
-                !createForm.stationId.trim() ||
-                !createForm.slotId.trim() ||
-                !createForm.scheduledAt
-              }
+              disabled={!canCreate}
             >
               {createBusy ? "Creating…" : "Create reservation"}
             </Button>
