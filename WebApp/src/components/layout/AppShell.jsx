@@ -21,6 +21,10 @@ import ScrollArea from '../common/ScrollArea.jsx';
 // Nav sections shown in the sidebar. `icon` is a name from components/common/Icon.jsx.
 const NAV_SECTIONS = [
   {
+    title: 'Overview',
+    items: [{ label: 'Dashboard', to: '/dashboard', icon: 'grid' }],
+  },
+  {
     title: 'Node management',
     items: [{ label: 'Microgrid hubs', to: '/stations', icon: 'hubs' }],
   },
