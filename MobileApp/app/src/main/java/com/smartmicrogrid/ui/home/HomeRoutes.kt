@@ -33,4 +33,5 @@ object HomeRoutes {
     const val OPERATOR_DASHBOARD = "home/operator/dashboard"
     const val OPERATOR_SCAN_QR = "home/operator/scan-qr"
     const val OPERATOR_MAP = "home/operator/map"
+    const val OPERATOR_PROFILE = "home/operator/profile"
 }

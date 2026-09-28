@@ -52,7 +52,9 @@ import com.smartmicrogrid.data.remote.ApiClient
 import com.smartmicrogrid.ui.components.JouleIcons
 import com.smartmicrogrid.ui.dashboard.OperatorDashboardScreen
 import com.smartmicrogrid.ui.dashboard.ProsumerDashboardScreen
+import com.smartmicrogrid.ui.auth.StaffSessionPreferences
 import com.smartmicrogrid.ui.operator.MapScreen
+import com.smartmicrogrid.ui.operator.OperatorProfileScreen
 import com.smartmicrogrid.ui.operator.ScanQrScreen
 import com.smartmicrogrid.ui.prosumer.BookingsScreen
 import com.smartmicrogrid.ui.prosumer.CreateBookingScreen
@@ -74,6 +76,7 @@ private val OPERATOR_DESTINATIONS = listOf(
     HomeDestination(HomeRoutes.OPERATOR_DASHBOARD, "Dashboard", JouleIcons.Grid),
     HomeDestination(HomeRoutes.OPERATOR_SCAN_QR, "Scan QR", JouleIcons.Scan),
     HomeDestination(HomeRoutes.OPERATOR_MAP, "Map", JouleIcons.MapPin),
+    HomeDestination(HomeRoutes.OPERATOR_PROFILE, "Profile", JouleIcons.User),
 )
 
 class HomeActivity : ComponentActivity() {
@@ -204,6 +207,18 @@ private fun NavGraphShell(destinations: List<HomeDestination>) {
             composable(HomeRoutes.OPERATOR_DASHBOARD) { OperatorDashboardScreen() }
             composable(HomeRoutes.OPERATOR_SCAN_QR) { ScanQrScreen() }
             composable(HomeRoutes.OPERATOR_MAP) { MapScreen() }
+            composable(HomeRoutes.OPERATOR_PROFILE) {
+                val context = LocalContext.current
+                OperatorProfileScreen(onLogout = {
+                    StaffSessionPreferences.clear(context)
+                    ApiClient.authToken = null
+                    val intent = Intent(context, MainActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    }
+                    context.startActivity(intent)
+                    (context as? Activity)?.finish()
+                })
+            }
         }
     }
 }
