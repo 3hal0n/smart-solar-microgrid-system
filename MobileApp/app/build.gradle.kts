@@ -29,20 +29,18 @@ val apiBaseUrl: String = localProperties.getProperty("API_BASE_URL", "http://10.
 
 android {
     namespace = "com.smartmicrogrid"
-    // Teammate restored to 37 for transitive AndroidX libraries.
-    // If this causes an SDK download prompt in Android Studio, just click "Install".
-    compileSdk = 37
+    compileSdk = 34  // <-- Changed back to 34 to match installed SDK
 
     defaultConfig {
         applicationId = "com.smartmicrogrid"
         minSdk = 26
-        targetSdk = 37
+        targetSdk = 34  // <-- Changed back to 34
         versionCode = 1
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["mapsApiKey"] = mapsApiKey
-        buildConfigField("String", "API_BASE_URL", "\"$apiBaseUrl\"")
+        buildConfigField("String", "API_BASE_URL", apiBaseUrl)
     }
 
     buildTypes {
