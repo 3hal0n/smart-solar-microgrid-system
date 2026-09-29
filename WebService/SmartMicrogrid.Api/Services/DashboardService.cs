@@ -1,11 +1,11 @@
 // ============================================================
 // File: DashboardService.cs
-// Purpose: Read-only queries over Dinil's Reservations collection —
-//          a prosumer's dashboard summary — per architecture.md §3
+// Purpose: Read-only queries over Dinil's Reservations collection -
+//          a prosumer's dashboard summary - per architecture.md §3
 //          (moved from Migara to Shalon 2026-09-21, see §3/§4/§7).
 //          Used to also own GET /reservations search/filter, but that
 //          duplicated Dinil's ReservationsController.List (added
-//          during his own merged-in work) at the exact same route —
+//          during his own merged-in work) at the exact same route -
 //          ASP.NET can't route GET /api/reservations to two
 //          controllers, so this always 500'd once both existed
 //          together, surfaced to the browser as a CORS error since
@@ -39,13 +39,13 @@ public class DashboardService
     // are past their scheduled time and awaiting operator check-in, how many are still upcoming,
     // and their most recent bookings.
     //
-    // Field semantics (architecture.md §3 only ever named these fields — nobody had implemented
+    // Field semantics (architecture.md §3 only ever named these fields - nobody had implemented
     // this endpoint before, so these definitions are set here for the first time):
     //   - activeCount: every reservation with status == Confirmed (booked, not yet completed or
     //     cancelled).
-    //   - pendingCount: Confirmed AND scheduledAt <= now — i.e. its slot time has arrived/passed
+    //   - pendingCount: Confirmed AND scheduledAt <= now - i.e. its slot time has arrived/passed
     //     but a Grid Operator hasn't scanned/completed it yet.
-    //   - approvedFutureCount: Confirmed AND scheduledAt > now — upcoming approved bookings, per
+    //   - approvedFutureCount: Confirmed AND scheduledAt > now - upcoming approved bookings, per
     //     the explicit "count of approved (Confirmed) future reservations" requirement.
     //   pendingCount + approvedFutureCount always equals activeCount, since they're a time-based
     //   partition of the same Confirmed set.

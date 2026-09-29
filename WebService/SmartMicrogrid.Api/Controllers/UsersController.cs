@@ -42,6 +42,7 @@ namespace SmartMicrogrid.Api.Controllers
                 Role = u.Role,
                 FullName = u.FullName,
                 Email = u.Email,
+                ProfilePicture = u.ProfilePicture,
                 Status = u.Status,
                 CreatedAt = u.CreatedAt,
                 UpdatedAt = u.UpdatedAt
@@ -83,6 +84,7 @@ namespace SmartMicrogrid.Api.Controllers
                 Role = dto.Role,
                 FullName = dto.FullName,
                 Email = dto.Email,
+                ProfilePicture = dto.ProfilePicture,
                 Status = "Active",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -99,12 +101,71 @@ namespace SmartMicrogrid.Api.Controllers
                 Role = newUser.Role,
                 FullName = newUser.FullName,
                 Email = newUser.Email,
+                ProfilePicture = newUser.ProfilePicture,
                 Status = newUser.Status,
                 CreatedAt = newUser.CreatedAt,
                 UpdatedAt = newUser.UpdatedAt
             };
 
             return CreatedAtAction(nameof(GetAllUsers), new { id = newUser.Id }, response);
+        }
+
+        // GET: api/users/me
+        // Retrieves the profile of the currently authenticated user.
+        [HttpGet("me")]
+        public async Task<ActionResult<UserResponseDto>> GetMyProfile()
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                         ?? User.FindFirst("sub")?.Value;
+
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new { message = "User identifier missing from token." });
+            }
+
+            var user = await _users.Find(u => u.Id == userId).FirstOrDefaultAsync();
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found." });
+            }
+
+            return Ok(new UserResponseDto
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Role = user.Role,
+                FullName = user.FullName,
+                Email = user.Email,
+                ProfilePicture = user.ProfilePicture,
+                Status = user.Status,
+                CreatedAt = user.CreatedAt,
+                UpdatedAt = user.UpdatedAt
+            });
+        }
+
+        // GET: api/users/{id}
+        // Retrieves a specific user by ID.
+        [HttpGet("{id}")]
+        public async Task<ActionResult<UserResponseDto>> GetUserById(string id)
+        {
+            var user = await _users.Find(u => u.Id == id).FirstOrDefaultAsync();
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found." });
+            }
+
+            return Ok(new UserResponseDto
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Role = user.Role,
+                FullName = user.FullName,
+                Email = user.Email,
+                ProfilePicture = user.ProfilePicture,
+                Status = user.Status,
+                CreatedAt = user.CreatedAt,
+                UpdatedAt = user.UpdatedAt
+            });
         }
 
         // PUT: api/users/{id}
@@ -121,11 +182,12 @@ namespace SmartMicrogrid.Api.Controllers
                 return NotFound(new { message = "User not found." });
             }
 
-            // Update user fields
+            // Update user fields (preserving role if not specified)
             var update = Builders<User>.Update
                 .Set(u => u.FullName, dto.FullName)
                 .Set(u => u.Email, dto.Email)
-                .Set(u => u.Role, dto.Role)
+                .Set(u => u.ProfilePicture, dto.ProfilePicture ?? user.ProfilePicture)
+                .Set(u => u.Role, string.IsNullOrWhiteSpace(dto.Role) ? user.Role : dto.Role)
                 .Set(u => u.UpdatedAt, DateTime.UtcNow);
 
             var result = await _users.UpdateOneAsync(filter, update);
@@ -136,6 +198,43 @@ namespace SmartMicrogrid.Api.Controllers
             }
 
             return NoContent(); // 204 Success
+        }
+
+        // PUT: api/users/{id}/change-password
+        // Changes user password after validating current password.
+        [HttpPut("{id}/change-password")]
+        public async Task<IActionResult> ChangePassword(string id, [FromBody] ChangePasswordDto dto)
+        {
+            var filter = Builders<User>.Filter.Eq(u => u.Id, id);
+            var user = await _users.Find(filter).FirstOrDefaultAsync();
+
+            if (user == null)
+            {
+                return NotFound(new { message = "User not found." });
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.CurrentPassword) || string.IsNullOrWhiteSpace(dto.NewPassword))
+            {
+                return BadRequest(new { message = "Current and new password are required." });
+            }
+
+            if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash))
+            {
+                return BadRequest(new { message = "Current password is incorrect." });
+            }
+
+            if (dto.NewPassword.Length < 6)
+            {
+                return BadRequest(new { message = "New password must be at least 6 characters." });
+            }
+
+            var update = Builders<User>.Update
+                .Set(u => u.PasswordHash, BCrypt.Net.BCrypt.HashPassword(dto.NewPassword))
+                .Set(u => u.UpdatedAt, DateTime.UtcNow);
+
+            await _users.UpdateOneAsync(filter, update);
+
+            return Ok(new { message = "Password updated successfully." });
         }
 
         // PUT: api/users/{id}/deactivate

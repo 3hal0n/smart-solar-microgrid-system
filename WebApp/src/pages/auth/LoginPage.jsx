@@ -12,10 +12,12 @@ import api from '../../services/api';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import JouleMark from '../../components/common/JouleMark';
+import Icon from '../../components/common/Icon';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -30,12 +32,12 @@ export default function LoginPage() {
     try {
       // 1. Call the backend API (FAT Service Pattern: server validates credentials)
       const response = await api.post('/auth/login', { username, password });
-      const { token, role, fullName } = response.data;
+      const { token, role, fullName, userId } = response.data;
 
       // 2. Update global auth state via AuthContext (persists to localStorage)
-      login({ token, role, fullName });
+      login({ token, role, fullName, userId });
 
-      // 3. All roles land on the Dashboard (architecture.md §6 — central overview first)
+      // 3. All roles land on the Dashboard (architecture.md §6 - central overview first)
       if (role === 'Backoffice' || role === 'GridOperator') {
         navigate('/dashboard');
       } else {
@@ -69,20 +71,14 @@ export default function LoginPage() {
         </div>
 
         {/* Center/Bottom Headline & Tagline */}
-        <div className="relative z-10 max-w-lg space-y-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium tracking-wide text-cyan-300 backdrop-blur-md">
-            Smart Solar Microgrid System
-          </div>
-
-          <div className="space-y-2">
-            <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-              Power, exchanged precisely.
-            </h2>
-            <p className="text-sm leading-relaxed text-slate-300">
-              Coordinated energy reservation, distributed battery slot management,
-              and real-time grid dispatch for clean microgrid communities.
-            </p>
-          </div>
+        <div className="relative z-10 max-w-lg space-y-4">
+          <h2 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+            Power, exchanged precisely.
+          </h2>
+          <p className="text-sm leading-relaxed text-slate-300">
+            Coordinated energy reservation, distributed battery slot management,
+            and real-time grid dispatch for clean microgrid communities.
+          </p>
 
           {/* Feature Highlights */}
           <div className="grid grid-cols-2 gap-3 pt-2">
@@ -98,9 +94,7 @@ export default function LoginPage() {
         </div>
 
         {/* Footer info */}
-        <div className="relative z-10 flex items-center justify-between text-xs text-slate-400 border-t border-white/10 pt-4">
-
-        </div>
+        <div className="relative z-10 flex items-center justify-between text-xs text-slate-400 border-t border-white/10 pt-4" />
       </div>
 
       {/* Right Column: Sign In Form */}
@@ -144,16 +138,28 @@ export default function LoginPage() {
               onChange={(e) => setUsername(e.target.value)}
               required
               placeholder="e.g. operator1"
+              autoComplete="username"
               autoFocus
             />
-            <Input
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              placeholder="••••••••"
-            />
+            <div className="relative">
+              <Input
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+                autoComplete="current-password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-8 text-muted hover:text-ink transition-colors p-1"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                <Icon name={showPassword ? 'eyeOff' : 'eye'} className="h-4 w-4" />
+              </button>
+            </div>
 
             <Button
               type="submit"

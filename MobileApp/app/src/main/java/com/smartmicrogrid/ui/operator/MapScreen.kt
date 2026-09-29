@@ -1,20 +1,8 @@
 // ============================================================
 // File: MapScreen.kt
-// Purpose: Nearby grid nodes map — centers on the device's location
-//          (falling back to a default center when permission is
-//          denied, never crashing), calls GET /stations/nearby, and
-//          plots a tappable marker per station with an info window
-//          showing name/capacity/available slots. Per architecture.md
-//          §6 (moved from Migara to Shalon 2026-09-24 — see §4/§7)
-//          and the endpoint Shalon built per §3.
-//
-//          Wired to the real backend (2026-09-26) via
-//          data/remote/ApiClient.kt + ApiService.kt: GET
-//          /stations/nearby?lat=&lng=&radiusKm=. A failed call shows
-//          a retry card rather than crashing or silently showing
-//          nothing — the fixture version never needed this since it
-//          could never fail.
-// Author: Shalon
+// Purpose: Microgrid nodes map for both Prosumer and Operator.
+//          Defaults to showing all stations with an expandable
+//          filter panel (name search, available slots, min capacity).
 // ============================================================
 package com.smartmicrogrid.ui.operator
 
@@ -23,46 +11,30 @@ import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.smartmicrogrid.ui.components.IconTile
-import com.smartmicrogrid.ui.components.JouleIcons
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.model.CameraPosition
@@ -71,19 +43,20 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MarkerInfoWindowContent
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.smartmicrogrid.data.remote.ApiClient
+import com.smartmicrogrid.ui.components.IconTile
+import com.smartmicrogrid.ui.components.JouleIcons
+import com.smartmicrogrid.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-// Sri Lanka — same fallback center used by the web MapPicker, for consistency across clients.
+// Sri Lanka Center default
 private val DEFAULT_CENTER = LatLng(6.9271, 79.8612)
-private const val DEFAULT_ZOOM = 12f
-private const val SEARCH_RADIUS_KM = 25.0
+private const val DEFAULT_ZOOM = 11f
+private const val SEARCH_RADIUS_ALL_KM = 500.0 // Load all stations by default
 
-// Renders the nearby-stations map: resolves a center point (device location or the default),
-// loads stations around it, and shows loading/empty/populated states as appropriate.
 @Composable
 fun MapScreen(
-    onStationSelect: ((String) -> Unit)? = null
+    onStationSelect: ((String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val api = remember { ApiClient.service }
@@ -97,13 +70,16 @@ fun MapScreen(
     var showRationaleDialog by remember { mutableStateOf(!hasLocationPermission) }
     var center by remember { mutableStateOf<LatLng?>(null) }
     var usingDeviceLocation by remember { mutableStateOf(false) }
-    var stations by remember { mutableStateOf<List<NearbyStation>?>(null) }
+    var allStations by remember { mutableStateOf<List<NearbyStation>?>(null) }
     var mapError by remember { mutableStateOf<String?>(null) }
     var mapRefreshToken by remember { mutableIntStateOf(0) }
 
-    // Registers the system runtime-permission prompt; its result decides whether we try to read
-    // a device location at all. Denial never crashes — it just leaves `center` for the effect
-    // below to fall back to DEFAULT_CENTER.
+    // Filter states
+    var isFilterExpanded by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var filterAvailableOnly by remember { mutableStateOf(false) }
+    var filterMinCapacityKWh by remember { mutableDoubleStateOf(0.0) }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -114,9 +90,6 @@ fun MapScreen(
         }
     }
 
-    // Resolves the map's center once permission has been decided: the device's last known
-    // location when granted (falling back to the default if that's unavailable), or the default
-    // immediately when denied.
     LaunchedEffect(hasLocationPermission) {
         if (!hasLocationPermission) {
             if (center == null) {
@@ -130,14 +103,12 @@ fun MapScreen(
         usingDeviceLocation = resolved != null
     }
 
-    // Loads nearby stations once a center point is known, again if the center changes, and again
-    // on retry after a failure (mapRefreshToken).
     LaunchedEffect(center, mapRefreshToken) {
         val current = center ?: return@LaunchedEffect
-        stations = null
+        allStations = null
         mapError = null
-        runCatching { api.getNearbyStations(current.latitude, current.longitude, SEARCH_RADIUS_KM) }
-            .onSuccess { stations = it }
+        runCatching { api.getNearbyStations(current.latitude, current.longitude, SEARCH_RADIUS_ALL_KM) }
+            .onSuccess { allStations = it }
             .onFailure { mapError = it.message ?: "Couldn't reach the server." }
     }
 
@@ -155,33 +126,281 @@ fun MapScreen(
         )
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    // Filter computation
+    val filteredStations = remember(allStations, searchQuery, filterAvailableOnly, filterMinCapacityKWh) {
+        allStations?.filter { s ->
+            val matchesSearch = searchQuery.isBlank() || s.name.contains(searchQuery, ignoreCase = true)
+            val matchesSlots = !filterAvailableOnly || s.availableSlots > 0
+            val matchesCapacity = filterMinCapacityKWh <= 0.0 || s.capacityKWh >= filterMinCapacityKWh
+            matchesSearch && matchesSlots && matchesCapacity
+        }
+    }
+
+    val activeFilterCount = (if (searchQuery.isNotBlank()) 1 else 0) +
+        (if (filterAvailableOnly) 1 else 0) +
+        (if (filterMinCapacityKWh > 0.0) 1 else 0)
+
+    Box(modifier = Modifier.fillMaxSize().background(StripeCanvas)) {
         when {
             mapError != null -> ErrorState(message = mapError!!, onRetry = { mapRefreshToken++ })
-            center == null || stations == null -> LoadingState()
-            stations!!.isEmpty() -> EmptyState()
-            else -> StationsMap(center = center!!, stations = stations!!, onStationSelect = onStationSelect)
+            center == null || allStations == null -> LoadingState()
+            filteredStations != null && filteredStations.isEmpty() -> {
+                StationsMap(center = center!!, stations = emptyList(), onStationSelect = onStationSelect)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 130.dp, start = 24.dp, end = 24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = StripeSurface,
+                        border = BorderStroke(1.dp, StripeBorder),
+                        shadowElevation = 6.dp,
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text("No stations match filters", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = StripeInk)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text("Try adjusting or resetting your filter criteria.", style = MaterialTheme.typography.bodySmall, color = StripeBody, textAlign = TextAlign.Center)
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedButton(
+                                onClick = {
+                                    searchQuery = ""
+                                    filterAvailableOnly = false
+                                    filterMinCapacityKWh = 0.0
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                            ) {
+                                Text("Reset Filters")
+                            }
+                        }
+                    }
+                }
+            }
+            else -> StationsMap(center = center!!, stations = filteredStations ?: allStations!!, onStationSelect = onStationSelect)
         }
-        // Floats over the map (rather than pushing it down) so the map keeps the full screen.
-        LocationSourceBanner(
-            usingDeviceLocation = usingDeviceLocation,
-            center = center,
-            stationCount = stations?.size,
+
+        // Floating Filter & Status Header
+        Column(
             modifier = Modifier
+                .fillMaxWidth()
                 .align(Alignment.TopCenter)
                 .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            // Main Top Bar Card
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = StripeSurface,
+                border = BorderStroke(1.dp, StripeBorder),
+                shadowElevation = 6.dp,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Icon(
+                            imageVector = JouleIcons.MapPin,
+                            contentDescription = null,
+                            tint = StripePrimary,
+                            modifier = Modifier.size(22.dp),
+                        )
+                        Column {
+                            Text(
+                                text = if (usingDeviceLocation) "Near Your Location" else "All Microgrid Hubs",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = StripeInk,
+                            )
+                            Text(
+                                text = if (filteredStations != null && allStations != null) {
+                                    "${filteredStations.size} of ${allStations!!.size} stations shown"
+                                } else {
+                                    "Loading stations…"
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = StripeMuted,
+                                fontSize = 11.sp,
+                            )
+                        }
+                    }
+
+                    // Filter Expand Toggle Button
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = if (isFilterExpanded || activeFilterCount > 0) StripeBrandVioletSoft else StripeSurfaceAlt,
+                        border = BorderStroke(
+                            1.dp,
+                            if (activeFilterCount > 0) StripePrimary else StripeBorder,
+                        ),
+                        modifier = Modifier.clickable { isFilterExpanded = !isFilterExpanded },
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Icon(
+                                imageVector = JouleIcons.Filter,
+                                contentDescription = "Filter",
+                                tint = if (activeFilterCount > 0) StripePrimary else StripeInk,
+                                modifier = Modifier.size(14.dp),
+                            )
+                            Text(
+                                text = if (activeFilterCount > 0) "Filter ($activeFilterCount)" else "Filter",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (activeFilterCount > 0) StripePrimary else StripeInk,
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Expandable Filter Panel
+            AnimatedVisibility(
+                visible = isFilterExpanded,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically(),
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = StripeSurface,
+                    border = BorderStroke(1.dp, StripeBorder),
+                    shadowElevation = 8.dp,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = "Filter Stations",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = StripeInk,
+                            )
+                            if (activeFilterCount > 0) {
+                                TextButton(
+                                    onClick = {
+                                        searchQuery = ""
+                                        filterAvailableOnly = false
+                                        filterMinCapacityKWh = 0.0
+                                    },
+                                    contentPadding = PaddingValues(0.dp),
+                                ) {
+                                    Text("Reset all", style = MaterialTheme.typography.labelSmall, color = StripePrimary)
+                                }
+                            }
+                        }
+
+                        // Search by name
+                        OutlinedTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            placeholder = { Text("Search station name or city…", fontSize = 13.sp) },
+                            singleLine = true,
+                            leadingIcon = {
+                                Icon(JouleIcons.Search, contentDescription = null, tint = StripeMuted, modifier = Modifier.size(16.dp))
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                unfocusedBorderColor = StripeBorder,
+                                focusedBorderColor = StripePrimary,
+                                unfocusedContainerColor = StripeSurfaceAlt,
+                                focusedContainerColor = StripeSurfaceAlt,
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+
+                        // Availability filter chips
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("Slot Availability", style = MaterialTheme.typography.labelSmall, color = StripeMuted, fontWeight = FontWeight.Medium)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                FilterOptionChip(
+                                    label = "All Stations",
+                                    selected = !filterAvailableOnly,
+                                    onSelect = { filterAvailableOnly = false },
+                                )
+                                FilterOptionChip(
+                                    label = "Available Slots Only",
+                                    selected = filterAvailableOnly,
+                                    onSelect = { filterAvailableOnly = true },
+                                )
+                            }
+                        }
+
+                        // Minimum Capacity filter chips
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("Minimum Capacity", style = MaterialTheme.typography.labelSmall, color = StripeMuted, fontWeight = FontWeight.Medium)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf(
+                                    0.0 to "Any",
+                                    50.0 to "≥ 50 kW",
+                                    100.0 to "≥ 100 kW",
+                                    200.0 to "≥ 200 kW",
+                                ).forEach { (cap, label) ->
+                                    FilterOptionChip(
+                                        label = label,
+                                        selected = filterMinCapacityKWh == cap,
+                                        onSelect = { filterMinCapacityKWh = cap },
+                                    )
+                                }
+                            }
+                        }
+
+                        Button(
+                            onClick = { isFilterExpanded = false },
+                            colors = ButtonDefaults.buttonColors(containerColor = StripePrimary, contentColor = StripeOnPrimary),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth().height(42.dp),
+                        ) {
+                            Text("Apply Filters", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FilterOptionChip(
+    label: String,
+    selected: Boolean,
+    onSelect: () -> Unit,
+) {
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = if (selected) StripePrimary else StripeSurfaceAlt,
+        border = BorderStroke(1.dp, if (selected) StripePrimary else StripeBorder),
+        modifier = Modifier.clickable(onClick = onSelect),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            color = if (selected) Color.White else StripeInk,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
         )
     }
 }
 
-// Reads the device's last known location, or null if unavailable/denied — callers must already
-// hold ACCESS_FINE_LOCATION, which this function assumes (hence the suppression) since it's only
-// ever invoked from the branch in MapScreen that has already confirmed that.
-//
-// Tasks.await() blocks the calling thread until the task resolves. It's pushed onto
-// Dispatchers.IO here because the caller runs it from a LaunchedEffect, which defaults to the
-// Main dispatcher — blocking that thread would freeze the whole UI (and risk an ANR) until the
-// location lookup completes.
 @SuppressLint("MissingPermission")
 private suspend fun readLastKnownLocation(context: android.content.Context): LatLng? =
     withContext(Dispatchers.IO) {
@@ -194,14 +413,12 @@ private suspend fun readLastKnownLocation(context: android.content.Context): Lat
         }
     }
 
-// Explains why the app wants location access before the system permission prompt appears, per
-// "handle the location permission request properly with a runtime dialog".
 @Composable
 private fun LocationRationaleDialog(onAllow: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Use your location?") },
-        text = { Text("Allow location access to center the map on grid nodes near you. You can still browse stations near Colombo without it.") },
+        text = { Text("Allow location access to center the map on grid nodes near you. You can still browse all microgrid stations without it.") },
         confirmButton = {
             TextButton(onClick = onAllow) { Text("Allow") }
         },
@@ -211,102 +428,20 @@ private fun LocationRationaleDialog(onAllow: () -> Unit, onDismiss: () -> Unit) 
     )
 }
 
-// Floating card naming which center point is active (so a denied/unavailable location is visible to
-// the user rather than silently substituted), plus how many stations were found.
-@Composable
-private fun LocationSourceBanner(
-    usingDeviceLocation: Boolean,
-    center: LatLng?,
-    stationCount: Int?,
-    modifier: Modifier = Modifier,
-) {
-    if (center == null) return
-    val title = if (usingDeviceLocation) "Near your location" else "Near Colombo"
-    val subtitle = when {
-        stationCount == null -> "Finding stations…"
-        !usingDeviceLocation -> "Enable location for stations near you"
-        else -> "$stationCount station${if (stationCount == 1) "" else "s"} within ${SEARCH_RADIUS_KM.toInt()} km"
-    }
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        shadowElevation = 6.dp,
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            IconTile(icon = JouleIcons.MapPin, size = 36.dp)
-            Column {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-    }
-}
-
-// Renders a centered spinner while the center point or the station list is still loading.
 @Composable
 private fun LoadingState() {
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary, strokeWidth = 3.dp)
+        CircularProgressIndicator(color = StripePrimary, strokeWidth = 3.dp)
     }
 }
 
-// Renders the "no stations nearby" empty state as a centered card.
-@Composable
-private fun EmptyState() {
-    Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-        Surface(
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                IconTile(icon = JouleIcons.Hubs, size = 48.dp)
-                Text(
-                    text = "No stations nearby",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(top = 16.dp),
-                )
-                Text(
-                    text = "No active grid nodes within ${SEARCH_RADIUS_KM.toInt()} km of this point.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 6.dp),
-                )
-            }
-        }
-    }
-}
-
-// Renders a centered "couldn't load stations" card with a retry button — shown when
-// GET /stations/nearby fails (backend unreachable, wrong API_BASE_URL, etc.).
 @Composable
 private fun ErrorState(message: String, onRetry: () -> Unit) {
     Box(modifier = Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
         Surface(
             shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            color = StripeSurface,
+            border = BorderStroke(1.dp, StripeBorder),
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(
@@ -318,13 +453,13 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
                     text = "Couldn't load stations",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = StripeInk,
                     modifier = Modifier.padding(top = 16.dp),
                 )
                 Text(
                     text = message,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = StripeBody,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 6.dp),
                 )
@@ -336,12 +471,11 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
     }
 }
 
-// Renders the map itself, camera centered on `center`, with one tappable marker per station.
 @Composable
 private fun StationsMap(
     center: LatLng,
     stations: List<NearbyStation>,
-    onStationSelect: ((String) -> Unit)? = null
+    onStationSelect: ((String) -> Unit)? = null,
 ) {
     val cameraPositionState = rememberCameraPositionState {
         position = CameraPosition.fromLatLngZoom(center, DEFAULT_ZOOM)
@@ -352,8 +486,8 @@ private fun StationsMap(
         cameraPositionState = cameraPositionState,
         uiSettings = com.google.maps.android.compose.MapUiSettings(
             zoomControlsEnabled = true,
-            mapToolbarEnabled = true
-        )
+            mapToolbarEnabled = true,
+        ),
     ) {
         stations.forEach { station ->
             MarkerInfoWindowContent(
@@ -363,7 +497,7 @@ private fun StationsMap(
                 title = station.name,
                 onInfoWindowClick = {
                     onStationSelect?.invoke(station.id)
-                }
+                },
             ) {
                 StationInfoWindow(station, onBookClick = { onStationSelect?.invoke(station.id) })
             }
@@ -371,18 +505,16 @@ private fun StationsMap(
     }
 }
 
-// Renders the tap-to-show info window content: name + distance, then capacity and available slots.
-// Min-width so the card isn't squished on small displays.
 @Composable
 private fun StationInfoWindow(station: NearbyStation, onBookClick: (() -> Unit)? = null) {
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = StripeSurface,
         shadowElevation = 8.dp,
+        border = BorderStroke(1.dp, StripeBorder),
         modifier = Modifier.widthIn(min = 260.dp, max = 320.dp),
     ) {
         Column(modifier = Modifier.padding(14.dp)) {
-            // Header: name + distance badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -392,18 +524,18 @@ private fun StationInfoWindow(station: NearbyStation, onBookClick: (() -> Unit)?
                     text = station.name,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = StripeInk,
                     modifier = Modifier.weight(1f),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Surface(
                     shape = RoundedCornerShape(50),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    color = StripeBrandVioletSoft,
                 ) {
                     Text(
                         text = "%.1f km".format(station.distanceKm),
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = StripePrimary,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                     )
                 }
@@ -411,16 +543,15 @@ private fun StationInfoWindow(station: NearbyStation, onBookClick: (() -> Unit)?
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Two info chips side by side
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 InfoChip(label = "Capacity", value = "${station.capacityKWh} kWh", modifier = Modifier.weight(1f))
                 val slotsColor = when {
-                    station.availableSlots == 0 -> MaterialTheme.colorScheme.error
-                    station.availableSlots <= 2  -> MaterialTheme.colorScheme.tertiary
-                    else                          -> MaterialTheme.colorScheme.primary
+                    station.availableSlots == 0 -> StripeError
+                    station.availableSlots <= 2  -> StripeAccent
+                    else                          -> StripeSuccess
                 }
                 InfoChip(
                     label = "Free slots",
@@ -435,8 +566,8 @@ private fun StationInfoWindow(station: NearbyStation, onBookClick: (() -> Unit)?
                 Button(
                     onClick = onBookClick,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        containerColor = StripePrimary,
+                        contentColor = StripeOnPrimary,
                     ),
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.fillMaxWidth(),
@@ -453,24 +584,23 @@ private fun StationInfoWindow(station: NearbyStation, onBookClick: (() -> Unit)?
     }
 }
 
-// One small chip with label + value, used inside StationInfoWindow.
 @Composable
 private fun InfoChip(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
-    valueColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onSurface,
+    valueColor: Color = StripeInk,
 ) {
     Surface(
         shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        color = StripeSurfaceAlt,
         modifier = modifier,
     ) {
         Column(modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = StripeMuted,
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
@@ -480,14 +610,5 @@ private fun InfoChip(
                 color = valueColor,
             )
         }
-    }
-}
-
-// One small label-over-value pair (kept for any callers still using it).
-@Composable
-private fun InfoFigure(label: String, value: String) {
-    Column {
-        Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(text = value, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
     }
 }

@@ -6,7 +6,7 @@
 //          Rukshan's ProsumerSessionDao (SQLite) since staff accounts
 //          are a different login mechanism entirely (username-based,
 //          no NIC) and a single-row SharedPreferences store is enough
-//          — no need to pull staff sessions into the SQLite schema
+//          - no need to pull staff sessions into the SQLite schema
 //          Rukshan owns for Prosumer data.
 // Author: Shalon
 // ============================================================

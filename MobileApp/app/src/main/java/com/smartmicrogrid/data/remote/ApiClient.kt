@@ -7,7 +7,7 @@
 //          independently (Dinil first, for the operator QR scanner)
 //          before coordinating. Kept from Dinil's version: the
 //          `authToken`/interceptor (now filled in by Migara's real
-//          LoginPage, not just "Rukshan's screen" — ownership moved
+//          LoginPage, not just "Rukshan's screen" - ownership moved
 //          per architecture.md's v3 restructuring) and the `.service`
 //          property his ScanQrScreen.kt already calls. Kept from
 //          Shalon's version: BuildConfig-driven base URL (so a
@@ -15,7 +15,7 @@
 //          change, just local.properties) and the generic `create<T>`
 //          factory, since ApiService.kt now holds every screen's
 //          endpoints per Dinil's "append here" convention below.
-// Author: Dinil + Shalon (shared infra — coordinate before editing)
+// Author: Dinil + Shalon (shared infra - coordinate before editing)
 // ============================================================
 package com.smartmicrogrid.data.remote
 
@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit
 
 object ApiClient {
 
-    // Filled in by LoginPage's role-based session (Migara) — screens that don't require auth
+    // Filled in by LoginPage's role-based session (Migara) - screens that don't require auth
     // (e.g. the mobile Prosumer flows, still pre-login) simply never set this.
     @Volatile
     var authToken: String? = null
@@ -64,7 +64,7 @@ object ApiClient {
         .addConverterFactory(GsonConverterFactory.create())
         .build()
 
-    // The one shared endpoint interface — see ApiService.kt. Every screen calls ApiClient.service.
+    // The one shared endpoint interface - see ApiService.kt. Every screen calls ApiClient.service.
     val service: ApiService by lazy { retrofit.create(ApiService::class.java) }
 
     // Escape hatch for a second interface if one's ever genuinely needed; unused today now that

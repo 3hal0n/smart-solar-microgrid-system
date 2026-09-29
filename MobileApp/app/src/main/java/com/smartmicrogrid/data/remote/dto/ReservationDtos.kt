@@ -1,7 +1,7 @@
 // ============================================================
 // File: ReservationDtos.kt
 // Purpose: Wire shapes for the reservation + verify-qr endpoints
-//          (architecture.md §3). Server-side validation only —
+//          (architecture.md §3). Server-side validation only -
 //          the client never computes business rules.
 // Author: Dinil + Migara (Added Prosumer booking DTOs)
 // ============================================================
@@ -43,7 +43,7 @@ data class CancelReservationRequest(
     @SerializedName("reason") val reason: String? = null
 )
 
-// GET /api/reservations row shape — mirrors ReservationsController.MapToResponse on the backend
+// GET /api/reservations row shape - mirrors ReservationsController.MapToResponse on the backend
 // exactly (Dinil's controller, the one that actually serves this route). qrToken/completedAt/
 // cancelReason are nullable because the backend DTO declares them nullable (string?/DateTime?).
 data class ReservationResponse(

@@ -3,7 +3,7 @@
 // Purpose: HMAC-SHA256 signed QR tokens for reservation
 //          verification. Issued by Dinil at reservation
 //          creation, verified by Migara at operator scan.
-//          Pair-built Day 2 — do not edit independently.
+//          Pair-built Day 2 - do not edit independently.
 // Author: Dinil + Migara
 // ============================================================
 

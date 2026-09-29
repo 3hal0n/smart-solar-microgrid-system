@@ -5,9 +5,9 @@
 //          onboarding on first run only (per OnboardingPreferences),
 //          straight into HomeActivity if a saved session already
 //          exists (Prosumer via ProsumerSessionDao or staff via
-//          StaffSessionPreferences — added 2026-09-28 so signing in
+//          StaffSessionPreferences - added 2026-09-28 so signing in
 //          once doesn't mean signing in on every relaunch), or Sign
-//          In (MainActivity) otherwise. Pure UI routing — no business
+//          In (MainActivity) otherwise. Pure UI routing - no business
 //          logic.
 // Author: Shalon
 // ============================================================
@@ -96,7 +96,7 @@ private fun SplashScreenContent(onTimeout: () -> Unit) {
         onTimeout()
     }
     Surface(modifier = Modifier.fillMaxSize(), color = StripeInk) {
-        // enableEdgeToEdge() draws this Surface behind the system status/nav bars — safeDrawingPadding()
+        // enableEdgeToEdge() draws this Surface behind the system status/nav bars - safeDrawingPadding()
         // keeps the wordmark clear of them instead of risking it sitting under a status bar cutout.
         Box(
             modifier = Modifier

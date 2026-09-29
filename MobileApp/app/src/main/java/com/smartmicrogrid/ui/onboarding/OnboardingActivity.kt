@@ -4,12 +4,12 @@
 //          once before the user reaches MainActivity. Full-bleed
 //          photo backgrounds (solar/rooftop imagery) with a gradient
 //          scrim on the first two slides, the Joule brand gradient on
-//          the third — colorful, immersive treatment rather than
+//          the third - colorful, immersive treatment rather than
 //          plain-white-with-icon, per 2026-09-26 direction ("more
 //          colorful, great UI/UX, not full enterprise"). Marks itself
 //          as seen via OnboardingPreferences so SplashActivity skips
 //          straight past it on every later launch. Pure UI, and kept
-//          general/app-level — no prosumer- or operator-specific
+//          general/app-level - no prosumer- or operator-specific
 //          screens, since those belong to their owners' packages,
 //          not this shared flow.
 // Author: Shalon
@@ -109,10 +109,10 @@ class OnboardingActivity : ComponentActivity() {
 }
 
 // Renders the full-bleed background for the active slide, the brand row + Skip, the slide pager,
-// the pill indicator, and Next/Get started — all overlaid on top of that background rather than
+// the pill indicator, and Next/Get started - all overlaid on top of that background rather than
 // confined to a plain surface, so the photo/gradient reaches every edge of the screen. Still uses
 // SmartMicrogridTheme for the shared type scale, but every color on this screen is set explicitly
-// (white text, ink button content) rather than theme-relative — this screen is intentionally
+// (white text, ink button content) rather than theme-relative - this screen is intentionally
 // always dark-on-photo regardless of the device's light/dark setting.
 @Composable
 private fun OnboardingScreen(onFinished: () -> Unit) {
@@ -221,7 +221,7 @@ private fun SlideBackground(slide: OnboardingSlide) {
 }
 
 // Renders a single slide's eyebrow, title and body, anchored toward the bottom of the pager area
-// (over the scrim) rather than centered — a Stories-style layout that keeps the photo's upper
+// (over the scrim) rather than centered - a Stories-style layout that keeps the photo's upper
 // two-thirds uncluttered. Scrollable so long body copy on a short/landscape screen clips into a
 // scroll instead of overflowing off-screen.
 @Composable

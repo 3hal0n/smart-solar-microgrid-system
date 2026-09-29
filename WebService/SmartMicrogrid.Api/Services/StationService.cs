@@ -1,10 +1,10 @@
 // ============================================================
 // File: StationService.cs
 // Purpose: Business rules for SolarStations (microgrid hub)
-//          administration — list/search, detail-with-slots, create,
+//          administration - list/search, detail-with-slots, create,
 //          partial update, and the nearby-stations $geoNear query
 //          (moved from Migara 2026-09-21, see architecture.md §3/§4)
-//          — per architecture.md §2.2 and §3 "Owned by Shalon". All
+//          - per architecture.md §2.2 and §3 "Owned by Shalon". All
 //          validation and Mongo access lives here; StationsController
 //          stays thin.
 // Author: Shalon
@@ -235,7 +235,7 @@ public class StationService
     }
 
     // Flips a station back to Active. Unlike deactivation, reactivating never conflicts with
-    // anything — it only makes the station bookable again, so there's no equivalent check to run.
+    // anything - it only makes the station bookable again, so there's no equivalent check to run.
     public async Task ActivateAsync(string id)
     {
         if (!ObjectId.TryParse(id, out _))
@@ -255,7 +255,7 @@ public class StationService
 
     // Returns the read-only "who's booked what" overview for a station, per architecture.md §3
     // GET /stations/{id}/reservations-overview. Reads Dinil's Reservations collection (write-side
-    // owner: Dinil; Shalon reads it — see §4).
+    // owner: Dinil; Shalon reads it - see §4).
     public async Task<List<ReservationOverviewResponse>> GetReservationsOverviewAsync(string stationId)
     {
         if (!ObjectId.TryParse(stationId, out _))
@@ -285,7 +285,7 @@ public class StationService
 
     // Finds active stations within radiusKm of (lat, lng), closest first, via a $geoNear
     // aggregation against the 2dsphere index on SolarStations.location. Moved from Migara to
-    // Shalon 2026-09-21 — see architecture.md §3/§4.
+    // Shalon 2026-09-21 - see architecture.md §3/§4.
     public async Task<List<NearbyStationResponse>> GetNearbyAsync(double lat, double lng, double radiusKm)
     {
         ValidateCoordinates(lat, lng);
@@ -304,7 +304,7 @@ public class StationService
         });
         // Joins EnergyBookingSlots to count each station's Available slots in the same pipeline,
         // so the mobile map's info window (name/capacity/available slots) doesn't need a second
-        // round trip per marker tap. Added 2026-09-24 alongside capacityKWh below — both are
+        // round trip per marker tap. Added 2026-09-24 alongside capacityKWh below - both are
         // backward-compatible additions beyond architecture.md §3's original
         // { id, name, location, distanceKm } shape, documented there same as the earlier
         // totalBatterySlots addition to GET /stations.
@@ -360,7 +360,7 @@ public class StationService
             .AnyAsync();
     }
 
-    // Checks Dinil's Reservations collection (write-side owner: Dinil; Shalon reads it — see §4)
+    // Checks Dinil's Reservations collection (write-side owner: Dinil; Shalon reads it - see §4)
     // for any Confirmed reservation at this station.
     private async Task<bool> HasConfirmedReservationsAsync(string stationId)
     {
@@ -448,7 +448,7 @@ public class StationService
         }
     }
 
-    // Shape the $geoNear + $project pipeline in GetNearbyAsync projects into — kept to exactly
+    // Shape the $geoNear + $project pipeline in GetNearbyAsync projects into - kept to exactly
     // these fields so deserialization doesn't collide with Station's own class map (which has no
     // "distanceMeters" field and would otherwise reject it as an unmapped element).
     private class NearbyAggregationResult

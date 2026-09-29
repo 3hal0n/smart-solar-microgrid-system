@@ -34,6 +34,9 @@ namespace SmartMicrogrid.Api.Models
         [BsonElement("email")]
         public string Email { get; set; } = null!;
 
+        [BsonElement("profilePicture")]
+        public string? ProfilePicture { get; set; }
+
         [BsonElement("status")]
         public string Status { get; set; } = null!;
 
@@ -52,6 +55,7 @@ namespace SmartMicrogrid.Api.Models
         public string Role { get; set; } = null!;
         public string FullName { get; set; } = null!;
         public string Email { get; set; } = null!;
+        public string? ProfilePicture { get; set; }
     }
 
     // DTO for updating a user
@@ -59,7 +63,8 @@ namespace SmartMicrogrid.Api.Models
     {
         public string FullName { get; set; } = null!;
         public string Email { get; set; } = null!;
-        public string Role { get; set; } = null!;
+        public string? Role { get; set; }
+        public string? ProfilePicture { get; set; }
     }
 
     // DTO for login request
@@ -76,6 +81,7 @@ namespace SmartMicrogrid.Api.Models
         public string Role { get; set; } = null!;
         public string FullName { get; set; } = null!;
         public string UserId { get; set; } = null!;
+        public string? ProfilePicture { get; set; }
     }
 
     // DTO for returning user data (excludes password hash for security)
@@ -86,8 +92,16 @@ namespace SmartMicrogrid.Api.Models
         public string Role { get; set; } = null!;
         public string FullName { get; set; } = null!;
         public string Email { get; set; } = null!;
+        public string? ProfilePicture { get; set; }
         public string Status { get; set; } = null!;
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+    }
+
+    // DTO for changing password
+    public class ChangePasswordDto
+    {
+        public string CurrentPassword { get; set; } = null!;
+        public string NewPassword { get; set; } = null!;
     }
 }

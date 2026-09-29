@@ -1,19 +1,13 @@
 // ============================================================
 // File: LoginScreen.kt
-// Purpose: Sign-in screen. Prosumer mode (NIC + password) saves the
-//          session to SQLite via ProsumerSessionDao on success — this
-//          part is Rukshan's original logic, kept as-is. Grid Operator
-//          mode (username + password) was added alongside it since
-//          both roles need one entry point: it calls the existing
-//          staff login endpoint (POST /api/auth/login, Migara's — the
-//          same one the web app's LoginPage already uses) and saves
-//          its session via StaffSessionPreferences instead.
-// Author: Rukshan (extended by Shalon: Grid Operator mode + Stripe
-//          visual design per docs/stripe.design.md, 2026-09-28)
+// Purpose: Sign-in screen using home.png image, Joule logo,
+//          tagline, password eye toggle, and role selector.
 // ============================================================
 package com.smartmicrogrid.ui.prosumer
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -26,16 +20,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.smartmicrogrid.R
 import com.smartmicrogrid.data.local.ProsumerSessionDao
 import com.smartmicrogrid.data.remote.ApiClient
 import com.smartmicrogrid.data.remote.dto.ProsumerLoginRequest
 import com.smartmicrogrid.data.remote.dto.StaffLoginRequest
 import com.smartmicrogrid.ui.auth.StaffSession
 import com.smartmicrogrid.ui.auth.StaffSessionPreferences
+import com.smartmicrogrid.ui.components.JouleIcons
 import com.smartmicrogrid.ui.components.JouleMark
 import com.smartmicrogrid.ui.home.UserRole
 import com.smartmicrogrid.ui.theme.StripeAccent
@@ -47,6 +47,7 @@ import com.smartmicrogrid.ui.theme.StripeError
 import com.smartmicrogrid.ui.theme.StripeInk
 import com.smartmicrogrid.ui.theme.StripeOnPrimary
 import com.smartmicrogrid.ui.theme.StripePrimary
+import com.smartmicrogrid.ui.theme.StripeSurface
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,8 +58,9 @@ fun LoginScreen(onLoginSuccess: (UserRole) -> Unit, onNavigateToRegister: () -> 
     val sessionDao = remember { ProsumerSessionDao(context) }
 
     var role by remember { mutableStateOf(UserRole.Prosumer) }
-    var identifier by remember { mutableStateOf("") } // NIC for Prosumer, username for Grid Operator
+    var identifier by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -112,73 +114,142 @@ fun LoginScreen(onLoginSuccess: (UserRole) -> Unit, onNavigateToRegister: () -> 
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 24.dp)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(modifier = Modifier.height(48.dp))
+            // Dedicated login hero image
+            Image(
+                painter = painterResource(id = R.drawable.auth_login_hero),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                contentScale = ContentScale.Crop,
+            )
 
-            JouleMark(modifier = Modifier.width(72.dp))
             Spacer(modifier = Modifier.height(16.dp))
-            Text("Joule", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.SemiBold, color = StripeInk)
-            Text("Power, exchanged precisely.", style = MaterialTheme.typography.bodyMedium, color = StripeBody)
 
-            Spacer(modifier = Modifier.height(32.dp))
-            Text("Sign in", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold, color = StripeInk)
-            Spacer(modifier = Modifier.height(20.dp))
-
-            RoleToggle(selected = role, onSelect = { role = it; identifier = ""; errorMessage = null })
-            Spacer(modifier = Modifier.height(20.dp))
-
-            AuthTextField(
-                value = identifier,
-                onValueChange = { identifier = it },
-                label = if (role == UserRole.Prosumer) "NIC Number" else "Username",
+            // Joule Logo & Tagline
+            JouleMark(modifier = Modifier.width(48.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Joule",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = StripeInk,
             )
-            Spacer(modifier = Modifier.height(12.dp))
-            AuthTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = "Password",
-                visualTransformation = PasswordVisualTransformation(),
+            Text(
+                text = "Power, exchanged precisely.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = StripeBody,
             )
 
-            errorMessage?.let {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(it, color = StripeError, style = MaterialTheme.typography.bodySmall)
-            }
+            Spacer(modifier = Modifier.height(20.dp))
 
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(
-                onClick = ::submit,
-                enabled = !isLoading,
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(containerColor = StripePrimary, contentColor = StripeOnPrimary),
-                modifier = Modifier.fillMaxWidth().height(50.dp),
+            // Form container
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(22.dp), color = StripeOnPrimary, strokeWidth = 2.dp)
-                } else {
-                    Text("Sign In", style = MaterialTheme.typography.titleSmall)
-                }
-            }
+                RoleToggle(
+                    selected = role,
+                    onSelect = {
+                        role = it
+                        identifier = ""
+                        errorMessage = null
+                    },
+                )
 
-            if (role == UserRole.Prosumer) {
                 Spacer(modifier = Modifier.height(16.dp))
-                TextButton(onClick = onNavigateToRegister) {
-                    Text("Don't have an account? ", color = StripeBody)
-                    Text("Register Now", color = StripeAccent, fontWeight = FontWeight.SemiBold)
+
+                AuthTextField(
+                    value = identifier,
+                    onValueChange = { identifier = it },
+                    label = if (role == UserRole.Prosumer) "NIC Number" else "Username",
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Password field with Eye toggle icon
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") },
+                    singleLine = true,
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(
+                                imageVector = if (passwordVisible) JouleIcons.EyeOff else JouleIcons.Eye,
+                                contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                                tint = StripeBody,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = StripeBorder,
+                        focusedBorderColor = StripePrimary,
+                        unfocusedContainerColor = StripeSurface,
+                        focusedContainerColor = StripeSurface,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                errorMessage?.let {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(StripeError.copy(alpha = 0.1f))
+                            .border(1.dp, StripeError.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                    ) {
+                        Text(
+                            text = it,
+                            color = StripeError,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Button(
+                    onClick = ::submit,
+                    enabled = !isLoading,
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(containerColor = StripePrimary, contentColor = StripeOnPrimary),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(modifier = Modifier.size(22.dp), color = StripeOnPrimary, strokeWidth = 2.dp)
+                    } else {
+                        Text("Sign In", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+
+                if (role == UserRole.Prosumer) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    TextButton(onClick = onNavigateToRegister) {
+                        Text("Don't have an account? ", color = StripeBody)
+                        Text("Register Now", color = StripeAccent, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
-            Spacer(modifier = Modifier.height(24.dp))
         }
     }
 }
 
-// A pill segmented control (docs/stripe.design.md's segmented-control token) switching between
-// the two roles the mobile app serves — see UserRole.kt. Grid Operator accounts are
-// Backoffice-provisioned, not self-registered, so this is also what decides whether the
-// "Register Now" link below shows at all.
+// Segmented role switch between Prosumer and Grid Operator
 @Composable
 private fun RoleToggle(selected: UserRole, onSelect: (UserRole) -> Unit) {
     Row(
@@ -213,13 +284,13 @@ private fun RoleToggle(selected: UserRole, onSelect: (UserRole) -> Unit) {
     }
 }
 
-// internal (not private) so RegisterScreen.kt in this same package can reuse it too.
+// Reusable text field
 @Composable
 internal fun AuthTextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
-    visualTransformation: androidx.compose.ui.text.input.VisualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
+    visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: androidx.compose.foundation.text.KeyboardOptions = androidx.compose.foundation.text.KeyboardOptions.Default,
     singleLine: Boolean = true,
     minLines: Int = 1,
@@ -236,6 +307,8 @@ internal fun AuthTextField(
         colors = OutlinedTextFieldDefaults.colors(
             unfocusedBorderColor = StripeBorder,
             focusedBorderColor = StripePrimary,
+            unfocusedContainerColor = StripeSurface,
+            focusedContainerColor = StripeSurface,
         ),
         modifier = Modifier.fillMaxWidth(),
     )

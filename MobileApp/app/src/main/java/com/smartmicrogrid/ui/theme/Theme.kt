@@ -2,10 +2,10 @@
 // File: Theme.kt
 // Purpose: Builds the app's Material3 ColorScheme/Shapes from the
 //          Stripe design tokens in Color.kt, per docs/stripe.design.md
-//          — the same design system WebApp uses. Light-only: an ERP-
+//          - the same design system WebApp uses. Light-only: an ERP-
 //          style tool doesn't get a dark background, so this always
 //          builds LightColorScheme regardless of the system theme
-//          (2026-09-28, explicit user direction — see the removed
+//          (2026-09-28, explicit user direction - see the removed
 //          DarkColorScheme's former call site for history). Shapes
 //          .medium (Card's default shape) is set to 8dp per
 //          {rounded.lg} instead of M3's default 12dp.
@@ -37,7 +37,7 @@ private val LightColorScheme = lightColorScheme(
     onSurface = StripeInk,
     surfaceVariant = StripeTray,
     onSurfaceVariant = StripeBody,
-    // Material3's default surfaceContainer* roles are baseline lavender tints — they'd leak into the
+    // Material3's default surfaceContainer* roles are baseline lavender tints - they'd leak into the
     // NavigationBar, Cards and dialogs. Pinned to neutral Stripe surfaces instead.
     surfaceContainerLowest = StripeSurface,
     surfaceContainerLow = StripeSurface,
@@ -54,7 +54,7 @@ private val LightColorScheme = lightColorScheme(
     onErrorContainer = StripeOnErrorContainer,
 )
 
-// {rounded.sm}=4dp, {rounded.md}=6dp, {rounded.lg}=8dp — capped at {rounded.lg} for cards per the
+// {rounded.sm}=4dp, {rounded.md}=6dp, {rounded.lg}=8dp - capped at {rounded.lg} for cards per the
 // doc's "Do not use oversized rounded cards beyond {rounded.lg}". Buttons stay pill-shaped via
 // Material3's own default button shape, not this Shapes object.
 private val StripeShapes = Shapes(

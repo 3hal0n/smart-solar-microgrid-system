@@ -26,7 +26,7 @@
         android:usesCleartextTraffic="true"> <!-- <- ADDED THIS LINE TO ALLOW HTTP -->
 
         <!-- Sourced from local.properties' MAPS_API_KEY via the manifest placeholder in
-             app/build.gradle.kts — never hardcode a real key here, this file is committed. -->
+             app/build.gradle.kts - never hardcode a real key here, this file is committed. -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${mapsApiKey}" />

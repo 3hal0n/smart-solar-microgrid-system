@@ -1,6 +1,6 @@
 // ============================================================
 // File: HomeActivity.kt
-// Purpose: Role-based Home shell — a single Activity hosting a
+// Purpose: Role-based Home shell - a single Activity hosting a
 //          Jetpack Navigation Compose nav-graph with a bottom nav
 //          bar, meant to be launched after login. Destinations are
 //          wired by route name to each owner's real screen
@@ -9,9 +9,12 @@
 //          (ui/prosumer/*) for the Prosumer role, and Scan QR/Map are
 //          Dinil's & Migara (ui/operator/*) for the Grid Operator role.
 //          Several of those destinations are still placeholders (see
-//          their own TODO(<owner>) files) — this file never needs to
+//          their own TODO(<owner>) files) - this file never needs to
 //          change once the real screens land, since it only
 //          references them by route + function name.
+//          Bottom bar is the custom JouleBottomBar (premium revamp,
+//          2026-09); the nav graph and Rukshan's logout wiring below
+//          are unchanged.
 // Author: Shalon (Updated by Rukshan to wire ProfileScreen onLogout)
 // ============================================================
 package com.smartmicrogrid.ui.home
@@ -23,23 +26,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.NavType
@@ -48,6 +42,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.smartmicrogrid.MainActivity
+import com.smartmicrogrid.data.local.ProsumerSessionDao
 import com.smartmicrogrid.data.remote.ApiClient
 import com.smartmicrogrid.ui.components.JouleIcons
 import com.smartmicrogrid.ui.dashboard.OperatorDashboardScreen
@@ -61,7 +56,7 @@ import com.smartmicrogrid.ui.prosumer.CreateBookingScreen
 import com.smartmicrogrid.ui.prosumer.ProfileScreen
 import com.smartmicrogrid.ui.theme.SmartMicrogridTheme
 
-// One bottom-nav tab: its route, label and icon (from the shared JouleIcons set — kept
+// One bottom-nav tab: its route, label and icon (from the shared JouleIcons set - kept
 // dependency-free rather than pulling in Material Icons Extended for a handful of icons).
 private data class HomeDestination(val route: String, val label: String, val icon: ImageVector)
 
@@ -108,47 +103,36 @@ private fun HomeShell(role: UserRole) {
     NavGraphShell(destinations = destinations)
 }
 
-// Renders a Scaffold with a bottom NavigationBar and a NavHost registering every destination this
-// shell knows about. Routes are the single thing connecting this file to each owner's real
-// screen, so this graph never needs editing once a placeholder is swapped for the real one.
+// Renders a Scaffold with the custom JouleBottomBar and a NavHost registering every destination
+// this shell knows about. Routes are the single thing connecting this file to each owner's real
+// screen, so this graph never needs editing once a placeholder is swapped for the real one. The
+// bar hides on the full-screen create-booking flow so its own back/submit actions own the bottom.
 @Composable
 private fun NavGraphShell(destinations: List<HomeDestination>) {
     val navController = rememberNavController()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
+    val showBar = currentRoute?.startsWith(HomeRoutes.PROSUMER_CREATE_BOOKING) != true
+
+    // Standard "switch tabs" navigation options: don't pile up back-stack entries per tab switch,
+    // and restore each tab's own state on return.
+    fun openTab(route: String) {
+        navController.navigate(route) {
+            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            Column {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-                NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
-                    val backStackEntry by navController.currentBackStackEntryAsState()
-                    val currentRoute = backStackEntry?.destination?.route
-                    destinations.forEach { destination ->
-                        NavigationBarItem(
-                            selected = currentRoute == destination.route,
-                            onClick = {
-                                // Standard "switch tabs" navigation options: don't pile up back-stack
-                                // entries per tab switch, and restore each tab's own state on return.
-                                navController.navigate(destination.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = { Icon(destination.icon, contentDescription = null, modifier = Modifier.size(22.dp)) },
-                            label = { Text(destination.label, style = MaterialTheme.typography.labelMedium) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.primary,
-                                selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
-                        )
-                    }
-                }
+            if (showBar) {
+                JouleBottomBar(
+                    items = destinations.map { BottomBarItem(it.route, it.label, it.icon) },
+                    currentRoute = currentRoute,
+                    onSelect = { openTab(it.route) },
+                )
             }
         },
     ) { innerPadding ->
@@ -157,7 +141,23 @@ private fun NavGraphShell(destinations: List<HomeDestination>) {
             startDestination = destinations.first().route,
             modifier = Modifier.padding(innerPadding),
         ) {
-            composable(HomeRoutes.PROSUMER_DASHBOARD) { ProsumerDashboardScreen() }
+            composable(HomeRoutes.PROSUMER_DASHBOARD) {
+                val context = LocalContext.current
+                ProsumerDashboardScreen(
+                    onBookSlot = { navController.navigate(HomeRoutes.PROSUMER_CREATE_BOOKING) },
+                    onOpenBookings = { openTab(HomeRoutes.PROSUMER_BOOKINGS) },
+                    onNavigateToSignIn = {
+                        ProsumerSessionDao(context).clearSession()
+                        StaffSessionPreferences.clear(context)
+                        ApiClient.authToken = null
+                        val intent = Intent(context, MainActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        }
+                        context.startActivity(intent)
+                        (context as? Activity)?.finish()
+                    },
+                )
+            }
             composable(HomeRoutes.PROSUMER_BOOKINGS) {
                 BookingsScreen(
                     onNavigateToCreate = { navController.navigate(HomeRoutes.PROSUMER_CREATE_BOOKING) }

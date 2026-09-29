@@ -1,7 +1,7 @@
 // ============================================================
 // File: ConfirmDialog.jsx
 // Purpose: Shared "are you sure" confirmation, built on Modal instead
-//          of the native window.confirm() — keeps destructive actions
+//          of the native window.confirm() - keeps destructive actions
 //          (station deactivation, etc.) inside the app's own visual
 //          language instead of an unstyled browser dialog.
 // Author: Shalon
@@ -9,7 +9,7 @@
 import Modal from './Modal.jsx';
 import Button from './Button.jsx';
 
-// Renders a small confirm/cancel dialog. `tone` picks the confirm button's variant — "danger" for
+// Renders a small confirm/cancel dialog. `tone` picks the confirm button's variant - "danger" for
 // destructive actions, "primary" otherwise.
 export default function ConfirmDialog({
   open,

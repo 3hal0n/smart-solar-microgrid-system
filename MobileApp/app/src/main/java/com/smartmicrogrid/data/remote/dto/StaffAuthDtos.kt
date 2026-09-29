@@ -2,9 +2,9 @@
 // File: StaffAuthDtos.kt
 // Purpose: DTOs for staff (Grid Operator/Backoffice) login via the
 //          existing POST /api/auth/login (AuthController.cs, Migara)
-//          — the same endpoint the web app's LoginPage already uses.
+//          - the same endpoint the web app's LoginPage already uses.
 //          Kept separate from ProsumerDtos.kt since staff accounts are
-//          username-based, not NIC-based — a different login mechanism
+//          username-based, not NIC-based - a different login mechanism
 //          entirely from Rukshan's Prosumer auth flow.
 // Author: Shalon
 // ============================================================

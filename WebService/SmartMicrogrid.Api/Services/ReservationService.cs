@@ -1,6 +1,6 @@
 // ============================================================
 // File: ReservationService.cs
-// Purpose: Business logic for the reservation lifecycle —
+// Purpose: Business logic for the reservation lifecycle -
 //          7-day booking window, 12-hour notice rule, slot
 //          coordination through SlotService, QR issuance,
 //          and operator QR verification (flips Confirmed ->
@@ -44,7 +44,7 @@ public class ReservationService
 
     // Creates a reservation under the given prosumer's NIC, enforcing the 7-day
     // window and slot availability; issues the QR token immediately at creation.
-    // The NIC is resolved by the controller — for Prosumers it comes from the
+    // The NIC is resolved by the controller - for Prosumers it comes from the
     // JWT, for Operators/Backoffice it comes from the request body.
     public async Task<CreateReservationResponse> CreateAsync(string prosumerNic, CreateReservationRequest req)
     {
@@ -73,7 +73,7 @@ public class ReservationService
         if (station.Status != "Active")
             throw new ServiceException(409, "STATION_INACTIVE", "Station is not active.");
 
-        // Issue QR immediately — no separate approval step (see architecture.md §2.4).
+        // Issue QR immediately - no separate approval step (see architecture.md §2.4).
         var reservationId = MongoDB.Bson.ObjectId.GenerateNewId().ToString();
         var qrExpiry = scheduledUtc.AddHours(24);
         var qrToken = _qrService.Issue(reservationId, qrExpiry);
@@ -104,7 +104,7 @@ public class ReservationService
         };
     }
 
-    // Updates a reservation as the owning Prosumer — enforces ownership.
+    // Updates a reservation as the owning Prosumer - enforces ownership.
     // Delegates to the shared core after the ownership check.
     public async Task UpdateAsync(string id, string prosumerNic, UpdateReservationRequest req)
     {
@@ -120,7 +120,7 @@ public class ReservationService
         await ApplyUpdateAsync(reservation, req);
     }
 
-    // Shared update logic — used by both Prosumer and Admin paths.
+    // Shared update logic - used by both Prosumer and Admin paths.
     // Enforces status, 12-hour notice, 7-day window, and slot coordination.
     private async Task ApplyUpdateAsync(Reservation reservation, UpdateReservationRequest req)
     {
@@ -174,7 +174,7 @@ public class ReservationService
         await _db.Reservations.ReplaceOneAsync(r => r.Id == reservation.Id, reservation);
     }
 
-    // Cancels a reservation as the owning Prosumer — enforces ownership.
+    // Cancels a reservation as the owning Prosumer - enforces ownership.
     public async Task CancelAsync(string id, string prosumerNic, string? reason)
     {
         var reservation = await GetOwnedAsync(id, prosumerNic);
@@ -189,7 +189,7 @@ public class ReservationService
         await ApplyCancelAsync(reservation, reason);
     }
 
-    // Shared cancel logic — used by both Prosumer and Admin paths.
+    // Shared cancel logic - used by both Prosumer and Admin paths.
     private async Task ApplyCancelAsync(Reservation reservation, string? reason)
     {
         var now = DateTime.UtcNow;

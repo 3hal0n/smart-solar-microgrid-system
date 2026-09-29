@@ -1,6 +1,6 @@
 // ============================================================
 // File: LandingPage.jsx
-// Purpose: Public marketing/index page at "/" — explains Joule (the
+// Purpose: Public marketing/index page at "/" - explains Joule (the
 //          Smart Solar Microgrid Trading System) to both operators
 //          and prosumers, and routes staff to sign-in. Static UI
 //          only: no API calls and no auth logic live here.
@@ -34,14 +34,14 @@ const PROSUMER_STEPS = [
   'Reserve a slot and present your QR code at the node.',
 ];
 
-// Illustrative rows for the hero's product mockup — sample data, not a live query.
+// Illustrative rows for the hero's product mockup - sample data, not a live query.
 const MOCK_HUBS = [
   ['Colombo Central', '240', '12'],
   ['Kandy Ridge', '180', '8'],
   ['Galle Coastal', '120', '6'],
 ];
 
-// Small inline QR-style glyph — a placeholder artifact for the store link, not a scannable code.
+// Small inline QR-style glyph - a placeholder artifact for the store link, not a scannable code.
 function QrPlaceholder() {
   return (
     <svg viewBox="0 0 48 48" className="h-28 w-28" role="img" aria-label="App download QR code placeholder">
@@ -89,7 +89,7 @@ export default function LandingPage() {
         </nav>
       </header>
 
-      {/* Hero — full-bleed photo, dark-tinted (not washed out), copy in light text over it, per
+      {/* Hero - full-bleed photo, dark-tinted (not washed out), copy in light text over it, per
           the enterprise-energy reference (Huawei FusionSolar) rather than a faint canvas overlay. */}
       <section id="platform" className="relative overflow-hidden border-b border-line">
         <img
@@ -163,7 +163,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Infrastructure band — real photography, cropped with Stripe's angled-edge signature */}
+      {/* Infrastructure band - real photography, cropped with Stripe's angled-edge signature */}
       <section className="relative overflow-hidden bg-ink">
         <div className="relative h-55 w-full sm:h-75 lg:h-105">
           <img
@@ -195,7 +195,7 @@ export default function LandingPage() {
           One service, three operating roles.
         </h2>
         <p className="mt-3 max-w-2xl text-[17px] font-light text-body">
-          Every business rule — capacity checks, reservation windows, QR verification — is enforced centrally in the
+          Every business rule - capacity checks, reservation windows, QR verification - is enforced centrally in the
           API, so the web and mobile clients stay thin.
         </p>
 
@@ -307,7 +307,7 @@ export default function LandingPage() {
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-white/40">Institution</p>
               <ul className="mt-3 space-y-2 text-[13px] font-light text-white/60">
-                <li>SE4040 — Enterprise Application Development</li>
+                <li>SE4040 - Enterprise Application Development</li>
                 <li>BSc (Hons) in Information Technology</li>
                 <li>Faculty of Computing</li>
               </ul>
@@ -315,7 +315,7 @@ export default function LandingPage() {
           </div>
 
           <div className="mt-12 border-t border-white/10 pt-6 text-[12px] font-light text-white/40">
-            Joule — Smart Solar Microgrid Trading System, academic project, {new Date().getFullYear()}.
+            Joule - Smart Solar Microgrid Trading System, academic project, {new Date().getFullYear()}.
           </div>
         </div>
       </footer>

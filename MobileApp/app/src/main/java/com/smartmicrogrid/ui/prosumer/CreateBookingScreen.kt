@@ -219,9 +219,16 @@ fun CreateBookingScreen(
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
-                                Text("📍 Map Selected (Change)", style = MaterialTheme.typography.labelSmall, color = StripePrimary)
+                                Icon(
+                                    imageVector = JouleIcons.MapPin,
+                                    contentDescription = null,
+                                    tint = StripePrimary,
+                                    modifier = Modifier.size(12.dp),
+                                )
+                                Text("Map Selected (Change)", style = MaterialTheme.typography.labelSmall, color = StripePrimary)
                             }
                         }
                     }

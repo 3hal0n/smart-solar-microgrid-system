@@ -54,7 +54,7 @@ class QrScannerHelper(
             }
     }
 
-    // Resets the handled flag — call before restarting a new scan.
+    // Resets the handled flag - call before restarting a new scan.
     fun reset() {
         handled = false
     }

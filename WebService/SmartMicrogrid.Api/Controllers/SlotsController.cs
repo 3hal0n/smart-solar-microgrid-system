@@ -1,7 +1,7 @@
 // ============================================================
 // File: SlotsController.cs
 // Purpose: HTTP endpoints for battery slot administration under a
-//          station — create and partial update. Thin controller:
+//          station - create and partial update. Thin controller:
 //          business rules live in SlotService per the FAT service
 //          pattern; this file only maps requests/exceptions to HTTP.
 // Author: Shalon

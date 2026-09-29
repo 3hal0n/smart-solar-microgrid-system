@@ -40,7 +40,7 @@ import androidx.compose.ui.unit.dp
 val OuterShape = RoundedCornerShape(16.dp)
 val InnerShape = RoundedCornerShape(12.dp)
 
-// Quick-glance stat: tinted tray (tinted by `accent`, not a flat gray — 2026-09-26 "more colorful"
+// Quick-glance stat: tinted tray (tinted by `accent`, not a flat gray - 2026-09-26 "more colorful"
 // pass, so a row of stats reads as color-coded at a glance) with a solid icon badge + label,
 // wrapping a white card with the number and a context line. `value` null renders an em dash
 // (nothing loaded yet) rather than a misleading 0. Callers pass a semantic accent/container pair
@@ -93,7 +93,7 @@ fun StatTray(
         ) {
             Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
                 Text(
-                    text = value?.toString() ?: "—",
+                    text = value?.toString() ?: "-",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -153,7 +153,7 @@ fun SectionCard(
     }
 }
 
-// Rounded square with a centered icon on a soft brand tint — list-row leaders, empty states, etc.
+// Rounded square with a centered icon on a soft brand tint - list-row leaders, empty states, etc.
 @Composable
 fun IconTile(icon: ImageVector, modifier: Modifier = Modifier, size: Dp = 36.dp) {
     Box(

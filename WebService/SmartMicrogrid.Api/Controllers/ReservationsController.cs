@@ -1,6 +1,6 @@
 // ============================================================
 // File: ReservationsController.cs
-// Purpose: Reservation lifecycle endpoints — create, update,
+// Purpose: Reservation lifecycle endpoints - create, update,
 //          cancel, fetch, list, and QR verification. All
 //          business rules delegated to ReservationService
 //          (FAT service pattern). No validation in clients.
@@ -80,14 +80,14 @@ public class ReservationsController : ControllerBase
         }
         else
         {
-            // Operator/Backoffice cancels on behalf — no NIC ownership check.
+            // Operator/Backoffice cancels on behalf - no NIC ownership check.
             await _service.CancelAsAdminAsync(id, req.Reason);
         }
 
         return NoContent();
     }
 
-    // Fetches one reservation — owning Prosumer or GridOperator/Backoffice.
+    // Fetches one reservation - owning Prosumer or GridOperator/Backoffice.
     [HttpGet("{id}")]
     [Authorize(Roles = "Prosumer,GridOperator,Backoffice")]
     public async Task<IActionResult> Get(string id)

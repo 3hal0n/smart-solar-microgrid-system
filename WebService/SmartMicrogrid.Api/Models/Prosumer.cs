@@ -10,6 +10,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace SmartMicrogrid.Api.Models
 {
+    [BsonIgnoreExtraElements]
     public class Prosumer
     {
         [BsonId]
@@ -33,6 +34,9 @@ namespace SmartMicrogrid.Api.Models
 
         [BsonElement("address")]
         public string? Address { get; set; }
+
+        [BsonElement("profilePicture")]
+        public string? ProfilePicture { get; set; }
 
         [BsonElement("passwordHash")]
         public string PasswordHash { get; set; } = null!;

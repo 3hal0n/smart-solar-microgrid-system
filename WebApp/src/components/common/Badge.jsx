@@ -2,7 +2,7 @@
 // File: Badge.jsx
 // Purpose: Compact status badge (station/slot status, etc.). Stripe
 //          dashboard treatment: tinted fill, 1px tone border, small
-//          medium-weight label — data-like, not celebratory.
+//          medium-weight label - data-like, not celebratory.
 // Author: Shalon
 // ============================================================
 const TONE_CLASSES = {

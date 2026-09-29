@@ -1,14 +1,22 @@
 // ============================================================
 // File: OperatorProfileScreen.kt
 // Purpose: Grid Operator profile screen - displays staff session
-//          details, operator roles/permissions, and provides a
-//          secure logout button to clear credentials and return to
-//          MainActivity.
+//          details, avatar photo, privileges, and logout button.
+//          No extra top spacing; clean Stripe design styling.
 // ============================================================
 package com.smartmicrogrid.ui.operator
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.util.Base64
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -20,20 +28,56 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.smartmicrogrid.data.remote.ApiClient
 import com.smartmicrogrid.ui.auth.StaffSessionPreferences
 import com.smartmicrogrid.ui.components.JouleIcons
 import com.smartmicrogrid.ui.theme.*
+import java.io.ByteArrayOutputStream
+
+private fun decodeBase64ToBitmap(base64Str: String?): ImageBitmap? {
+    if (base64Str.isNullOrBlank()) return null
+    return try {
+        val clean = if (base64Str.contains(",")) base64Str.substringAfter(",") else base64Str
+        val decoded = Base64.decode(clean, Base64.DEFAULT)
+        BitmapFactory.decodeByteArray(decoded, 0, decoded.size)?.asImageBitmap()
+    } catch (_: Exception) {
+        null
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OperatorProfileScreen(onLogout: () -> Unit) {
     val context = LocalContext.current
     val staffSession = remember { StaffSessionPreferences.read(context) }
+    var avatarBase64 by remember { mutableStateOf<String?>(null) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+    ) { uri ->
+        uri?.let {
+            try {
+                val inputStream = context.contentResolver.openInputStream(it)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                val scaled = Bitmap.createScaledBitmap(bitmap, 256, 256, true)
+                val outputStream = ByteArrayOutputStream()
+                scaled.compress(Bitmap.CompressFormat.JPEG, 85, outputStream)
+                val base64 = "data:image/jpeg;base64," + Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
+                avatarBase64 = base64
+                Toast.makeText(context, "Profile photo updated", Toast.LENGTH_SHORT).show()
+            } catch (_: Exception) {
+                Toast.makeText(context, "Failed to load image", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -59,8 +103,8 @@ fun OperatorProfileScreen(onLogout: () -> Unit) {
                 .fillMaxSize()
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp, vertical = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .padding(horizontal = 20.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             // Operator Header Card
             Card(
@@ -74,10 +118,9 @@ fun OperatorProfileScreen(onLogout: () -> Unit) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp),
+                        .padding(18.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    // Avatar circle
                     val initials = (staffSession?.fullName ?: "GO")
                         .split(" ")
                         .mapNotNull { it.firstOrNull()?.toString() }
@@ -85,22 +128,64 @@ fun OperatorProfileScreen(onLogout: () -> Unit) {
                         .joinToString("")
                         .uppercase()
 
+                    val avatarBitmap = decodeBase64ToBitmap(avatarBase64)
+
+                    // Avatar with upload trigger (unclipped badge)
                     Box(
                         modifier = Modifier
-                            .size(72.dp)
-                            .clip(CircleShape)
-                            .background(StripeBrandVioletSoft),
+                            .size(86.dp)
+                            .clickable(
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() },
+                                onClick = { imagePickerLauncher.launch("image/*") },
+                            ),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            text = if (initials.isNotEmpty()) initials else "OP",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = StripePrimary,
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(76.dp)
+                                .clip(CircleShape)
+                                .background(StripeBrandVioletSoft)
+                                .border(3.dp, StripeSurface, CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (avatarBitmap != null) {
+                                Image(
+                                    bitmap = avatarBitmap,
+                                    contentDescription = "Avatar",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop,
+                                )
+                            } else {
+                                Text(
+                                    text = if (initials.isNotEmpty()) initials else "OP",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = StripePrimary,
+                                )
+                            }
+                        }
+
+                        // Camera overlay badge (unclipped)
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(26.dp)
+                                .clip(CircleShape)
+                                .background(StripePrimary)
+                                .border(2.5.dp, StripeSurface, CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = JouleIcons.Camera,
+                                contentDescription = "Upload photo",
+                                tint = Color.White,
+                                modifier = Modifier.size(13.dp),
+                            )
+                        }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     Text(
                         text = staffSession?.fullName ?: "Grid Operator",
@@ -109,7 +194,7 @@ fun OperatorProfileScreen(onLogout: () -> Unit) {
                         color = StripeInk,
                     )
 
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(2.dp))
 
                     Text(
                         text = "@${staffSession?.username ?: "operator"}",
@@ -117,29 +202,29 @@ fun OperatorProfileScreen(onLogout: () -> Unit) {
                         color = StripeMuted,
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    // Role Pill Badge
+                    // Role Pill Badge (Violet/Primary instead of cyan)
                     Surface(
                         shape = RoundedCornerShape(50),
-                        color = StripeCyanContainer,
+                        color = StripeBrandVioletSoft,
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp),
                         ) {
                             Box(
                                 modifier = Modifier
                                     .size(7.dp)
                                     .clip(CircleShape)
-                                    .background(StripeCyan)
+                                    .background(StripePrimary),
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 text = staffSession?.role ?: "Grid Operator",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                color = StripeOnCyanContainer,
+                                color = StripePrimary,
                             )
                         }
                     }
@@ -158,8 +243,8 @@ fun OperatorProfileScreen(onLogout: () -> Unit) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                        .padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Text(
                         "Account Information",
@@ -170,8 +255,8 @@ fun OperatorProfileScreen(onLogout: () -> Unit) {
 
                     HorizontalDivider(color = StripeBorder)
 
-                    InfoRow(label = "Username", value = staffSession?.username ?: "—")
-                    InfoRow(label = "Full Name", value = staffSession?.fullName ?: "—")
+                    InfoRow(label = "Username", value = staffSession?.username ?: "-")
+                    InfoRow(label = "Full Name", value = staffSession?.fullName ?: "-")
                     InfoRow(label = "Assigned Role", value = staffSession?.role ?: "GridOperator")
                     InfoRow(label = "Account Status", value = "Active", valueColor = StripeSuccess)
                     InfoRow(
@@ -194,7 +279,7 @@ fun OperatorProfileScreen(onLogout: () -> Unit) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Text(
                         "Operator Privileges",
@@ -214,7 +299,7 @@ fun OperatorProfileScreen(onLogout: () -> Unit) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             // Logout Button
             Button(
@@ -231,7 +316,7 @@ fun OperatorProfileScreen(onLogout: () -> Unit) {
                 Icon(
                     imageVector = JouleIcons.Logout,
                     contentDescription = null,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(18.dp),
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
