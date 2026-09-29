@@ -116,4 +116,40 @@ object JouleIcons {
         "M9 14.5a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11Z",
         "M13 13l4 4",
     )
+    val ChevronRight: ImageVector = strokeIcon("chevron-right", "M8 4.5 13.5 10 8 15.5")
+    val Sliders: ImageVector = strokeIcon(
+        "sliders",
+        "M3.5 6h8M15 6h1.5M3.5 14h2M9 14h7.5",
+        "M13.2 6a1.7 1.7 0 1 1-3.4 0 1.7 1.7 0 0 1 3.4 0ZM8.7 14a1.7 1.7 0 1 1-3.4 0 1.7 1.7 0 0 1 3.4 0Z",
+    )
+    val Plus: ImageVector = strokeIcon("plus", "M10 4v12M4 10h12")
+    val Clock: ImageVector = strokeIcon("clock", "M16.5 10a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z", "M10 6.5V10l2.5 1.5")
+    val Mail: ImageVector = strokeIcon(
+        "mail",
+        "M4 5h12a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z",
+        "M3.5 6 10 11l6.5-5",
+    )
+    val Phone: ImageVector = strokeIcon(
+        "phone",
+        "M6.5 3.5h-2a1 1 0 0 0-1 1C3.5 11 9 16.5 15.5 16.5a1 1 0 0 0 1-1v-2l-3-1.2-1.5 1.5a8 8 0 0 1-4.8-4.8L8.7 7.5 7.5 4.5Z",
+    )
+    val Home: ImageVector = strokeIcon("home", "M3.5 9 10 3.5 16.5 9v7a.5.5 0 0 1-.5.5h-4v-4.5h-4V16.5H4a.5.5 0 0 1-.5-.5Z")
+    val IdCard: ImageVector = strokeIcon(
+        "id-card",
+        "M4 5h12a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z",
+        "M9 9a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0ZM5.5 13c.4-1 1.2-1.5 2-1.5s1.6.5 2 1.5M11.5 8.5h3M11.5 11.5h3",
+    )
+    val Lock: ImageVector = strokeIcon(
+        "lock",
+        "M5.5 9h9a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1Z",
+        "M7 9V6.5a3 3 0 0 1 6 0V9",
+    )
+    val Edit: ImageVector = strokeIcon("edit", "M13.5 3.5l3 3L8 15l-4 1 1-4Z")
+    val Close: ImageVector = strokeIcon("close", "M5 5l10 10M15 5 5 15")
+    val Qr: ImageVector = strokeIcon(
+        "qr",
+        "M3.5 3.5h5v5h-5ZM11.5 3.5h5v5h-5ZM3.5 11.5h5v5h-5Z",
+        "M11.5 11.5h2v2h-2ZM14.5 14.5h2v2h-2ZM14.5 11.5h2M11.5 16.5h2",
+    )
+    val Shield: ImageVector = strokeIcon("shield", "M10 2.8 16 5v4.6c0 3.8-2.6 6.4-6 7.6-3.4-1.2-6-3.8-6-7.6V5Z")
 }
