@@ -1,8 +1,10 @@
 // ============================================================
 // File: Program.cs
-// Purpose: Application entry point. Configures services, middleware, 
+// Purpose: Application entry point. Configures services, middleware,
 //          JWT authentication, and CORS for the Smart Microgrid API.
-// Author: Shalon
+//          ExceptionHandlingMiddleware registered first so every
+//          ServiceException maps to its declared HTTP status.
+// Author: Shalon (updated by Dinil — exception middleware + claim fix)
 // ============================================================
 
 using System.Text;
@@ -10,22 +12,25 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using SmartMicrogrid.Api.Data;
+using SmartMicrogrid.Api.Middleware;
 using SmartMicrogrid.Api.Services;
 
-// Loads .env into process environment variables (e.g. ConnectionStrings__MongoDb, Jwt__Key) before the
-// config builder reads them, so a real Atlas connection string or JWT secret never has to live in appsettings.json
-// (which is committed to git). Optional — teammates without a .env fall back to appsettings.json's defaults.
+// Loads .env into process environment variables before config reads them.
 if (File.Exists(".env"))
 {
     DotNetEnv.Env.Load();
 }
 
+// ⚠️ CRITICAL: ASP.NET's JWT handler by default renames the standard "sub" claim
+// to "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier",
+// so User.FindFirst("sub") returns null. Clearing the inbound map preserves
+// the original claim names from the token. Must run BEFORE the app is built.
+System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddEndpointsApiExplorer();
 
-// Configure Swagger with JWT Bearer Authentication
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
@@ -54,8 +59,6 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// Controllers, with enums serialized as strings so the JSON contract matches architecture.md
-// (e.g. Station/Slot "status" as "Active"/"Available" rather than raw integers).
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
@@ -63,23 +66,18 @@ builder.Services.AddControllers()
 builder.Services.AddSingleton<MongoDbContext>();
 builder.Services.AddScoped<StationService>();
 builder.Services.AddScoped<SlotService>();
-// Was silently dropped from this file by the feature/prosumer-management-web merge (PR #18,
-// commit 1c2c509) — restored, since DashboardController depends on it and every mobile
-// dashboard/reservations-list call was 500ing with "Unable to resolve service" without it.
 builder.Services.AddScoped<DashboardService>();
 
-// Add Dinil's services:
-builder.Services.AddSingleton<QrTokenService>(); // singleton: holds HMAC secret
+// Dinil's services
+builder.Services.AddSingleton<QrTokenService>();
 builder.Services.AddScoped<ReservationService>();
 
-// Rukshan's Prosumer Management Service
+// Rukshan's services
 builder.Services.AddScoped<ProsumerService>();
-
-// Rukshan's Prosumer Management & Auth Services
-builder.Services.AddScoped<JwtService>(); 
+builder.Services.AddScoped<JwtService>();
 
 // ============================================================
-// ADDED: JWT Authentication Configuration (For User Management)
+// JWT Authentication Configuration
 // ============================================================
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "YourSuperSecretKeyHereAtLeast32Chars!";
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "SmartMicrogridApi";
@@ -100,11 +98,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// Enable Authorization policies (required for [Authorize] attributes)
 builder.Services.AddAuthorization();
 
-// CORS for the browser-based WebApp — without this, every fetch/axios call from the React dev
-// server is blocked by the browser. Allowed origins come from config (Cors:AllowedOrigins).
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
 builder.Services.AddCors(options =>
 {
@@ -116,34 +111,29 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// ⚠️ ORDER: Exception handler FIRST, so anything downstream (auth, controllers)
+// that throws a ServiceException gets its declared HTTP status, not a blanket 500.
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 if (app.Environment.IsDevelopment())
 {
-    // Enable Swagger UI for interactive API testing (Replaces MapOpenApi)
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// Optional: Commented out to prevent HTTPS redirect warnings during local HTTP testing
-// app.UseHttpsRedirection();
-
-// ⚠️ ORDER MATTERS: CORS must come before Auth, and Auth must come before Controllers
+// ⚠️ ORDER: CORS before Auth, Auth before Controllers
 app.UseCors("WebApp");
-
-// ADDED: Authentication and Authorization Middleware
-app.UseAuthentication(); 
-app.UseAuthorization();  
-
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapControllers();
 
-// Ensures the 2dsphere index on SolarStations.location exists before the API serves traffic.
+// Ensures the 2dsphere index on SolarStations.location exists before serving traffic.
 using (var startupScope = app.Services.CreateScope())
 {
     var stationService = startupScope.ServiceProvider.GetRequiredService<StationService>();
     await stationService.EnsureIndexesAsync();
 }
 
-// (Kept exactly as your team had it to avoid breaking anything)
 var summaries = new[]
 {
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
@@ -151,7 +141,7 @@ var summaries = new[]
 
 app.MapGet("/weatherforecast", () =>
 {
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
+    var forecast = Enumerable.Range(1, 5).Select(index =>
         new WeatherForecast
         (
             DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
