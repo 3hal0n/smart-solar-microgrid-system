@@ -1,6 +1,6 @@
 // ============================================================
 // File: StationsController.cs
-// Purpose: HTTP endpoints for microgrid hub (station) management —
+// Purpose: HTTP endpoints for microgrid hub (station) management -
 //          list/search, detail-with-slots, create, partial update,
 //          and the nearby-stations query (moved from Migara
 //          2026-09-21, see architecture.md §3/§4). Thin controller:
@@ -44,7 +44,7 @@ public class StationsController : ControllerBase
     }
 
     // GET /api/stations/nearby?lat=&lng=&radiusKm= - active stations within radiusKm, closest
-    // first. Moved from Migara to Shalon 2026-09-21 — see architecture.md §3/§4. Registered before
+    // first. Moved from Migara to Shalon 2026-09-21 - see architecture.md §3/§4. Registered before
     // "{id}" in this file only for readability; ASP.NET Core's routing always matches the literal
     // "nearby" segment ahead of the "{id}" parameter regardless of declaration order.
     [HttpGet("nearby")]
@@ -74,7 +74,7 @@ public class StationsController : ControllerBase
         return Ok(station);
     }
 
-    // POST /api/stations - creates a new station. Backoffice only — Migara's JWT auth (merged
+    // POST /api/stations - creates a new station. Backoffice only - Migara's JWT auth (merged
     // 2026-09-26) now exists, so the TODO to restore [Authorize] and read the real caller id is done.
     [Authorize(Roles = "Backoffice")]
     [HttpPost]
@@ -150,7 +150,7 @@ public class StationsController : ControllerBase
     }
 
     // GET /api/stations/{id}/reservations-overview - read-only "who's booked what" panel.
-    // Currently always returns [] — see StationService.GetReservationsOverviewAsync's TODO(Dinil).
+    // Currently always returns [] - see StationService.GetReservationsOverviewAsync's TODO(Dinil).
     [HttpGet("{id}/reservations-overview")]
     public async Task<IActionResult> GetReservationsOverview(string id)
     {
@@ -165,7 +165,7 @@ public class StationsController : ControllerBase
         }
     }
 
-    // Reads the caller's user id from the JWT "sub" claim Migara's AuthController sets — only
+    // Reads the caller's user id from the JWT "sub" claim Migara's AuthController sets - only
     // ever called from an [Authorize]-protected action, so the claim is guaranteed present.
     private string? CallerId() => User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
 }

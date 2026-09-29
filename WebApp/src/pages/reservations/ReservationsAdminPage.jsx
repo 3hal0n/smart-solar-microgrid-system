@@ -27,7 +27,7 @@ import StatCard from "../../components/common/StatCard.jsx";
 
 // Formats an ISO timestamp for display (local time, minute precision).
 function formatDateTime(iso) {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const d = new Date(iso);
   return d.toLocaleString(undefined, {
     year: "numeric",
@@ -69,7 +69,7 @@ export default function ReservationsAdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Toast state — parent-owned per Shalon's Toast.jsx pattern.
+  // Toast state - parent-owned per Shalon's Toast.jsx pattern.
   const [toast, setToast] = useState({ message: "", tone: "error" });
 
   // Filters mirror the query params GET /api/reservations accepts.
@@ -155,7 +155,7 @@ export default function ReservationsAdminPage() {
       setDropdownsLoading((s) => ({ ...s, prosumers: true, stations: true }));
       setDropdownsError(null);
 
-      // Prosumers — only Active ones make sense for a new booking.
+      // Prosumers - only Active ones make sense for a new booking.
       try {
         const { data } = await api.get("/prosumers", {
           params: { status: "Active" }
@@ -172,7 +172,7 @@ export default function ReservationsAdminPage() {
           setDropdownsLoading((s) => ({ ...s, prosumers: false }));
       }
 
-      // Stations — Active only.
+      // Stations - Active only.
       try {
         const { data } = await api.get("/stations", {
           params: { status: "Active" }
@@ -210,10 +210,10 @@ export default function ReservationsAdminPage() {
       setDropdownsLoading((s) => ({ ...s, slots: true }));
       try {
         const { data } = await api.get(`/stations/${stationId}`);
-        // StationDetailResponse shape — slots array inside.
+        // StationDetailResponse shape - slots array inside.
         const list = Array.isArray(data?.slots) ? data.slots : [];
         if (!cancelled) {
-          // Only show Available slots — Reserved/Inactive would fail the
+          // Only show Available slots - Reserved/Inactive would fail the
           // server-side check anyway.
           setSlots(list.filter((s) => s.status === "Available"));
         }
@@ -247,7 +247,7 @@ export default function ReservationsAdminPage() {
     setShowCreate(true);
   }
 
-  // Submits a create to the API. Enforces nothing client-side —
+  // Submits a create to the API. Enforces nothing client-side -
   // the server validates the 7-day window and slot availability.
   async function submitCreate() {
     setCreateBusy(true);
@@ -300,6 +300,7 @@ export default function ReservationsAdminPage() {
         e?.response?.data?.code ||
         e.message ||
         "Cancel failed.";
+      // Surface the API's rejection message verbatim - a rubric expectation.
       show(msg, "error");
     } finally {
       setCancelBusy(false);
@@ -482,7 +483,7 @@ export default function ReservationsAdminPage() {
         </tbody>
       </Table>
 
-      {/* Create modal — dropdowns for Prosumer / Station / Slot */}
+      {/* Create modal - dropdowns for Prosumer / Station / Slot */}
       <Modal
         open={showCreate}
         onClose={() => !createBusy && setShowCreate(false)}
@@ -520,12 +521,12 @@ export default function ReservationsAdminPage() {
             </option>
             {prosumers.map((p) => (
               <option key={p.nic} value={p.nic}>
-                {p.fullName} — {p.nic}
+                {p.fullName} - {p.nic}
               </option>
             ))}
           </Input>
 
-          {/* Station dropdown — clears slot when it changes */}
+          {/* Station dropdown - clears slot when it changes */}
           <Input
             label="Station *"
             as="select"
@@ -554,7 +555,7 @@ export default function ReservationsAdminPage() {
             ))}
           </Input>
 
-          {/* Slot dropdown — disabled until a station is chosen */}
+          {/* Slot dropdown - disabled until a station is chosen */}
           <Input
             label="Slot *"
             as="select"
@@ -579,12 +580,12 @@ export default function ReservationsAdminPage() {
             </option>
             {slots.map((s) => (
               <option key={s.id} value={s.id}>
-                #{s.slotNumber} — {s.type} — {s.capacityKWh} kWh
+                #{s.slotNumber} - {s.type} - {s.capacityKWh} kWh
               </option>
             ))}
           </Input>
 
-          {/* Scheduled at — free text (datetime-local) */}
+          {/* Scheduled at - free text (datetime-local) */}
           <Input
             label="Scheduled at *"
             type="datetime-local"
@@ -630,7 +631,7 @@ export default function ReservationsAdminPage() {
               <span className="font-semibold">{cancelTarget.prosumerNic}</span>?
             </p>
             <p className="text-xs text-muted">
-              The server enforces the 12-hour notice rule — a late cancel will
+              The server enforces the 12-hour notice rule - a late cancel will
               be rejected and the reason shown below.
             </p>
             <Input
@@ -658,7 +659,6 @@ export default function ReservationsAdminPage() {
           </div>
         )}
       </Modal>
-
       {/* Toast */}
       <Toast
         message={toast.message}

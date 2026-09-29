@@ -1,7 +1,7 @@
 // ============================================================
 // File: SlotService.cs
 // Purpose: Business rules for EnergyBookingSlots (battery slot
-//          administration) — create and partial update, per
+//          administration) - create and partial update, per
 //          architecture.md §2.3 and §3 "Owned by Shalon". All
 //          validation and Mongo access for slots lives here;
 //          SlotsController stays thin.

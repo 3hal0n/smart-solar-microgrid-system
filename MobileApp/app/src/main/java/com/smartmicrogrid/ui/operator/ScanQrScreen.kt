@@ -17,9 +17,14 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -49,121 +54,214 @@ import java.util.concurrent.Executors
 @Composable
 fun ScanQrScreen() {
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
 
-    // Camera permission gate.
     val cameraPermission = rememberPermissionState(Manifest.permission.CAMERA)
 
-    // UI state.
     var result by remember { mutableStateOf<VerifyQrResponse?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
-    var scanResetKey by remember { mutableStateOf(0) }  // bump to restart scanner
+    var scanResetKey by remember { mutableStateOf(0) }
 
-    // Ask for permission on first composition.
+    // FIX: launch when permission is NOT yet granted (was inverted before)
     LaunchedEffect(Unit) {
-        //if (!cameraPermission.hasPermission) cameraPermission.launchPermissionRequest()
-        if (cameraPermission.status.isGranted)  cameraPermission.launchPermissionRequest()
+        if (!cameraPermission.status.isGranted) {
+            cameraPermission.launchPermissionRequest()
+        }
     }
 
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text("Scan Prosumer QR", style = MaterialTheme.typography.headlineSmall)
-        Text(
-            "Point the camera at the prosumer's transaction QR. The server verifies " +
-                    "the token and completes the reservation.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        // Camera preview + overlay.
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-                .background(Color.Black)
-        ) {
-//            if (cameraPermission.hasPermission) {
-            if (cameraPermission.status.isGranted)  {
-                key(scanResetKey) {
-                    CameraPreview(
-                        onQrDecoded = { token ->
-                            if (busy) return@CameraPreview
-                            busy = true
-                            errorMessage = null
-                            scope.launch {
-                                try {
-                                    val resp = callVerify(context, token)
-                                    if (resp.isSuccessful && resp.body() != null) {
-                                        val body = resp.body()!!
-                                        result = body
-                                        cacheVerifiedScan(context, body)
-                                    } else {
-                                        errorMessage = parseError(resp.errorBody()?.string())
-                                            ?: "Verification failed (${resp.code()})"
-                                    }
-                                } catch (e: Exception) {
-                                    errorMessage = "Network error: ${e.message}"
-                                } finally {
-                                    busy = false
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        if (cameraPermission.status.isGranted) {
+            // Full-screen camera preview
+            key(scanResetKey) {
+                CameraPreview(
+                    onQrDecoded = { token ->
+                        if (busy) return@CameraPreview
+                        busy = true
+                        errorMessage = null
+                        scope.launch {
+                            try {
+                                val resp = callVerify(context, token)
+                                if (resp.isSuccessful && resp.body() != null) {
+                                    val body = resp.body()!!
+                                    result = body
+                                    cacheVerifiedScan(context, body)
+                                } else {
+                                    errorMessage = parseError(resp.errorBody()?.string())
+                                        ?: "Verification failed (${resp.code()})"
                                 }
+                            } catch (e: Exception) {
+                                errorMessage = "Network error: ${e.message}"
+                            } finally {
+                                busy = false
                             }
-                        },
-                        onError = { errorMessage = it }
+                        }
+                    },
+                    onError = { errorMessage = it },
+                )
+            }
+
+            // Dark overlay + viewfinder cutout hint
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                // Top instruction banner
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .padding(0.dp),
+                    color = Color.Black.copy(alpha = 0.55f),
+                    shape = RoundedCornerShape(0.dp),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            "Scan Prosumer QR",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "Point the camera at the prosumer's reservation QR code",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.75f),
+                            textAlign = TextAlign.Center,
+                        )
+                    }
+                }
+
+                // Viewfinder box
+                Box(
+                    modifier = Modifier
+                        .size(240.dp)
+                        .border(2.dp, Color.White.copy(alpha = 0.7f), RoundedCornerShape(16.dp)),
+                )
+
+                if (busy) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(40.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        strokeWidth = 3.dp,
                     )
                 }
-            } else {
+
+                // Result card
+                result?.let { r ->
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        shadowElevation = 12.dp,
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Surface(
+                                    shape = RoundedCornerShape(50),
+                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                ) {
+                                    Text(
+                                        "Verified",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                                    )
+                                }
+                            }
+                            HorizontalDivider()
+                            ResultRow("Prosumer", r.prosumerName)
+                            ResultRow("Station", r.stationName)
+                            ResultRow("Slot", r.slotNumber.toString())
+                            ResultRow("Status", r.status)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Button(
+                                onClick = { result = null; errorMessage = null; scanResetKey++ },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                            ) { Text("Scan another") }
+                        }
+                    }
+                }
+
+                // Error card
+                if (errorMessage != null) {
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        shadowElevation = 12.dp,
+                    ) {
+                        Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text(
+                                "Scan failed",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                            Text(
+                                errorMessage!!,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Button(
+                                onClick = { errorMessage = null; scanResetKey++ },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                            ) { Text("Retry") }
+                        }
+                    }
+                }
+            }
+        } else {
+            // No camera permission - centered prompt
+            Column(
+                modifier = Modifier.fillMaxSize().padding(32.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
                 Text(
-                    "Camera permission required to scan QR codes.",
-                    color = Color.White,
-                    modifier = Modifier.align(Alignment.Center).padding(16.dp)
+                    "Camera access needed",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
-            }
-
-            if (busy) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Grant camera permission to scan prosumer QR codes.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
                 )
-            }
-        }
-
-        // Result card or error.
-        result?.let { r ->
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("✓ Verified", style = MaterialTheme.typography.titleMedium)
-                    Text("Reservation: ${r.reservationId}")
-                    Text("Prosumer: ${r.prosumerName}")
-                    Text("Station: ${r.stationName}")
-                    Text("Slot: ${r.slotNumber}")
-                    Text("Status: ${r.status}")
-                    Spacer(Modifier.height(8.dp))
-                    Button(onClick = {
-                        result = null
-                        errorMessage = null
-                        scanResetKey++      // restart the scanner
-                    }) { Text("Scan another") }
-                }
-            }
-        }
-
-        if (errorMessage != null) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(12.dp)) {
-                    Text("✗ ${errorMessage!!}", color = MaterialTheme.colorScheme.error)
-                    Spacer(Modifier.height(8.dp))
-                    Button(onClick = {
-                        errorMessage = null
-                        scanResetKey++
-                    }) { Text("Retry scan") }
-                }
+                Spacer(modifier = Modifier.height(20.dp))
+                Button(
+                    onClick = { cameraPermission.launchPermissionRequest() },
+                    shape = RoundedCornerShape(10.dp),
+                ) { Text("Grant permission") }
             }
         }
     }
 }
+
+@Composable
+private fun ResultRow(label: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+    }
+}
+
 
 @Composable
 private fun CameraPreview(

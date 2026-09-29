@@ -41,6 +41,7 @@ data class ProsumerProfileResponse(
     @SerializedName("email") val email: String,
     @SerializedName("phone") val phone: String?,
     @SerializedName("address") val address: String?,
+    @SerializedName("profilePicture") val profilePicture: String?,
     @SerializedName("status") val status: String,
     @SerializedName("deactivationRequestedAt") val deactivationRequestedAt: String?,
     @SerializedName("createdAt") val createdAt: String,
@@ -52,5 +53,6 @@ data class ProsumerUpdateRequest(
     @SerializedName("fullName") val fullName: String?,
     @SerializedName("email") val email: String?,
     @SerializedName("phone") val phone: String?,
-    @SerializedName("address") val address: String?
+    @SerializedName("address") val address: String?,
+    @SerializedName("profilePicture") val profilePicture: String? = null
 )

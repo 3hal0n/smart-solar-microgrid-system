@@ -28,7 +28,7 @@ export function Table({ children }) {
   );
 }
 
-// Header cell: small, tracked, muted — reads as a column key rather than content.
+// Header cell: small, tracked, muted - reads as a column key rather than content.
 export function Th({ children, className = '', ...props }) {
   return (
     <th
@@ -50,7 +50,7 @@ export function Td({ children, className = '', ...props }) {
 }
 
 // Data-driven table: pass columns + rows, get header/body/loading/empty states for free. Each
-// column is { key, header, render?(row) } — render falls back to row[key] when omitted.
+// column is { key, header, render?(row) } - render falls back to row[key] when omitted.
 export default function DataTable({ columns, data, loading, emptyMessage = 'No data.', rowKey }) {
   return (
     <Table>

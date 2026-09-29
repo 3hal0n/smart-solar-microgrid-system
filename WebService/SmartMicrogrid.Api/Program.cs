@@ -14,7 +14,7 @@ using SmartMicrogrid.Api.Services;
 
 // Loads .env into process environment variables (e.g. ConnectionStrings__MongoDb, Jwt__Key) before the
 // config builder reads them, so a real Atlas connection string or JWT secret never has to live in appsettings.json
-// (which is committed to git). Optional — teammates without a .env fall back to appsettings.json's defaults.
+// (which is committed to git). Optional - teammates without a .env fall back to appsettings.json's defaults.
 if (File.Exists(".env"))
 {
     DotNetEnv.Env.Load();
@@ -64,7 +64,7 @@ builder.Services.AddSingleton<MongoDbContext>();
 builder.Services.AddScoped<StationService>();
 builder.Services.AddScoped<SlotService>();
 // Was silently dropped from this file by the feature/prosumer-management-web merge (PR #18,
-// commit 1c2c509) — restored, since DashboardController depends on it and every mobile
+// commit 1c2c509) - restored, since DashboardController depends on it and every mobile
 // dashboard/reservations-list call was 500ing with "Unable to resolve service" without it.
 builder.Services.AddScoped<DashboardService>();
 
@@ -103,7 +103,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 // Enable Authorization policies (required for [Authorize] attributes)
 builder.Services.AddAuthorization();
 
-// CORS for the browser-based WebApp — without this, every fetch/axios call from the React dev
+// CORS for the browser-based WebApp - without this, every fetch/axios call from the React dev
 // server is blocked by the browser. Allowed origins come from config (Cors:AllowedOrigins).
 var corsOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
 builder.Services.AddCors(options =>
@@ -127,7 +127,7 @@ if (app.Environment.IsDevelopment())
 // Optional: Commented out to prevent HTTPS redirect warnings during local HTTP testing
 // app.UseHttpsRedirection();
 
-// ⚠️ ORDER MATTERS: CORS must come before Auth, and Auth must come before Controllers
+// NOTE: ORDER MATTERS: CORS must come before Auth, and Auth must come before Controllers
 app.UseCors("WebApp");
 
 // ADDED: Authentication and Authorization Middleware

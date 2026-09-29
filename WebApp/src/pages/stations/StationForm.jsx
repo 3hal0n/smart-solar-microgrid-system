@@ -3,7 +3,7 @@
 // Purpose: Create/edit modal for a microgrid station, per
 //          architecture.md §3 POST /stations and PUT /stations/{id}.
 //          Pure UI: submits to the real endpoint and surfaces the
-//          API's validation errors verbatim — no business rule
+//          API's validation errors verbatim - no business rule
 //          (GPS range, capacity > 0, etc.) is decided here, per the
 //          FAT service pattern; that all lives in StationService.
 // Author: Shalon
@@ -14,7 +14,7 @@ import Input from '../../components/common/Input.jsx';
 import Button from '../../components/common/Button.jsx';
 import MapPicker from '../../components/common/MapPicker.jsx';
 
-// Small inline pin glyph for the "Pick on map" trigger — avoids pulling in an icon library
+// Small inline pin glyph for the "Pick on map" trigger - avoids pulling in an icon library
 // for a single icon.
 function PinIcon() {
   return (
@@ -57,7 +57,7 @@ function toFormValues(station) {
 
 // Create/edit modal for a station; renders the shared Modal shell with a form inside.
 // The parent remounts this component (via a changing `key`) each time it opens, so field
-// values are simply derived once from `station` at mount — no effect-based reset needed.
+// values are simply derived once from `station` at mount - no effect-based reset needed.
 export default function StationForm({ open, station, submitting, serverError, onClose, onSubmit }) {
   const [values, setValues] = useState(() => toFormValues(station));
   const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
@@ -71,7 +71,7 @@ export default function StationForm({ open, station, submitting, serverError, on
   };
 
   // Writes the map picker's confirmed coordinates into the same lat/lng fields manual entry
-  // uses — both paths converge on the same string-valued form state, so nothing downstream
+  // uses - both paths converge on the same string-valued form state, so nothing downstream
   // needs to know which one was used. Values arrive as plain decimal numbers (see MapPicker's
   // roundCoordinate), matching the backend's lat/lng number contract.
   const handleMapConfirm = ({ lat, lng }) => {
@@ -122,7 +122,7 @@ export default function StationForm({ open, station, submitting, serverError, on
             </Button>
           </div>
           {/* Paired inputs sit in a balanced 2-column grid, stacking on narrow screens. Values
-              typed here or written by the map picker are the exact same state — both stay
+              typed here or written by the map picker are the exact same state - both stay
               fully editable regardless of which one was used last. */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Input

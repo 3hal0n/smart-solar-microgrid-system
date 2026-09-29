@@ -5,7 +5,7 @@
 //          actual stub file (in ui/prosumer, ui/operator,
 //          ui/dashboard) to a one-line body, so swapping a
 //          placeholder for the real screen later is a small, obvious
-//          diff in that owner's own file — nothing here needs to
+//          diff in that owner's own file - nothing here needs to
 //          change when that happens.
 // Author: Shalon
 // ============================================================
@@ -58,7 +58,7 @@ fun PlaceholderScreen(title: String, owner: String) {
                     modifier = Modifier.padding(top = 16.dp),
                 )
                 Text(
-                    text = "Coming soon — owned by $owner.",
+                    text = "Coming soon - owned by $owner.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,

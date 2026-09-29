@@ -1,10 +1,10 @@
 // ============================================================
 // File: JouleMark.jsx
 // Purpose: Shared Joule brand mark (the four-bar lightning-bolt
-//          glyph) — violet-to-cyan gradient by default, or a
+//          glyph) - violet-to-cyan gradient by default, or a
 //          single-color `monochrome` variant for dark surfaces/
 //          favicons. `id` must be unique per render since it names
-//          the SVG gradient def — reused across the landing page nav,
+//          the SVG gradient def - reused across the landing page nav,
 //          footer, and the app Sidebar.
 // Author: Shalon
 // ============================================================

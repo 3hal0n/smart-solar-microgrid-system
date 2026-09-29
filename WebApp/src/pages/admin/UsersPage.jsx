@@ -187,7 +187,7 @@ export default function UsersPage() {
     return (
       <div className="mx-auto max-w-6xl px-6 py-8">
         <p className="rounded-md border border-error/30 bg-error-soft px-3 py-2 text-[13px] font-medium text-error">
-          Access denied — only Backoffice users can manage system users.
+          Access denied - only Backoffice users can manage system users.
         </p>
       </div>
     );

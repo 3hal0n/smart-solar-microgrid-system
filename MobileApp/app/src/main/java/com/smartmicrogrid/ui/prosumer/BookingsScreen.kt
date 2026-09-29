@@ -1,6 +1,6 @@
 // ============================================================
 // File: BookingsScreen.kt
-// Purpose: Enhanced Prosumer bookings list — polished cards with
+// Purpose: Enhanced Prosumer bookings list - polished cards with
 //          collapsible QR code sections, status badges, formatted
 //          timestamps, and the station name pulled from the response.
 // Author: Migara (enhanced by Shalon 2026-09-29)
@@ -39,7 +39,7 @@ import java.time.format.DateTimeFormatter
 
 // Formats "2026-10-01T14:00:00Z" → "Oct 1, 2026 · 2:00 PM"
 private fun formatScheduledAt(iso: String?): String {
-    if (iso.isNullOrBlank()) return "—"
+    if (iso.isNullOrBlank()) return "-"
     return try {
         val instant = Instant.parse(iso)
         val zdt = instant.atZone(ZoneId.systemDefault())
@@ -209,7 +209,7 @@ fun BookingsScreen(
         }
     }
 
-    // CREATE BOOKING DIALOG (legacy fallback — normal path now navigates to CreateBookingScreen)
+    // CREATE BOOKING DIALOG (legacy fallback - normal path now navigates to CreateBookingScreen)
     if (showCreateDialog) {
         Dialog(onDismissRequest = { showCreateDialog = false }) {
             Surface(
@@ -318,7 +318,7 @@ fun ReservationCard(reservation: ReservationResponse, onCancel: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 DetailChip(label = "Station", value = reservation.stationId.takeLast(8), modifier = Modifier.weight(1f))
-                DetailChip(label = "Slot", value = reservation.slotId?.takeLast(6) ?: "—", modifier = Modifier.weight(1f))
+                DetailChip(label = "Slot", value = reservation.slotId?.takeLast(6) ?: "-", modifier = Modifier.weight(1f))
             }
 
             // ── QR Code toggle (Confirmed only) ──────────────

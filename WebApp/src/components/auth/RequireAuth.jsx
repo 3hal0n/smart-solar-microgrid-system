@@ -1,7 +1,7 @@
 // ============================================================
 // File: RequireAuth.jsx
 // Purpose: Route guard for the authenticated AppShell routes
-//          (/stations, /admin/users, /reservations, ...) — redirects
+//          (/stations, /admin/users, /reservations, ...) - redirects
 //          to /login when nobody's signed in. Added 2026-09-26: these
 //          routes were reachable with no login check at all until
 //          Migara's real auth existed to gate them against. Optional

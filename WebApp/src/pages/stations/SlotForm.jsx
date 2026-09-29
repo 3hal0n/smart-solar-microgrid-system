@@ -3,7 +3,7 @@
 // Purpose: Create/edit modal for a station's battery slot, per
 //          architecture.md §3 POST /stations/{id}/slots and
 //          PUT /slots/{id}. Pure UI: submits to the real endpoint
-//          and surfaces the API's validation errors verbatim — no
+//          and surfaces the API's validation errors verbatim - no
 //          business rule (capacity > 0, duplicate slot number, etc.)
 //          is decided here, per the FAT service pattern.
 // Author: Shalon
@@ -44,7 +44,7 @@ export default function SlotForm({ open, slot, submitting, serverError, onClose,
   };
 
   // Builds the request payload from form state and hands it to the parent's submit handler.
-  // Status is only sent on edit — POST /stations/{id}/slots doesn't accept it (slots always
+  // Status is only sent on edit - POST /stations/{id}/slots doesn't accept it (slots always
   // start Available server-side).
   const handleSubmit = (event) => {
     event.preventDefault();

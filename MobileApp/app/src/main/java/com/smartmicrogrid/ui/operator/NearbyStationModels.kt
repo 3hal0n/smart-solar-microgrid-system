@@ -2,10 +2,10 @@
 // File: NearbyStationModels.kt
 // Purpose: Kotlin shapes mirroring GET /stations/nearby's response,
 //          per architecture.md §3 (moved from Migara to Shalon
-//          2026-09-21/24 — see §4/§6/§7). Field names match the JSON
+//          2026-09-21/24 - see §4/§6/§7). Field names match the JSON
 //          exactly, including capacityKWh/availableSlots which
 //          Shalon added to the endpoint 2026-09-24 specifically for
-//          this screen's info window — see StationDtos.cs's
+//          this screen's info window - see StationDtos.cs's
 //          NearbyStationResponse for the backend side.
 // Author: Shalon
 // ============================================================

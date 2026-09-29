@@ -1,11 +1,11 @@
 // ============================================================
 // File: MapPicker.jsx
 // Purpose: Shared interactive map modal for picking a lat/lng pair
-//          (Leaflet + OpenStreetMap tiles — no API key required).
+//          (Leaflet + OpenStreetMap tiles - no API key required).
 //          Used by StationForm to fill GPS coordinates visually; it
 //          only ever confirms back plain decimal numbers, matching
 //          the backend's lat/lng contract, and never overrides the
-//          form fields directly — the parent still owns that state.
+//          form fields directly - the parent still owns that state.
 // Author: Shalon
 // ============================================================
 import { useEffect, useState } from 'react';
@@ -43,7 +43,7 @@ function ClickHandler({ onPick }) {
 }
 
 // Recenters the map imperatively whenever `target` changes (e.g. after a search result is
-// picked) — MapContainer's own `center` prop only applies on first mount, not on updates.
+// picked) - MapContainer's own `center` prop only applies on first mount, not on updates.
 function Recenter({ target, zoom }) {
   const map = useMap();
   useEffect(() => {
@@ -69,7 +69,7 @@ function toStartPosition(initialLat, initialLng) {
 
 // Modal for visually picking a station's GPS position; confirms back a { lat, lng } number pair.
 // The parent (StationForm) remounts this component via a changing `key` each time it opens, so
-// state below is simply derived once from props at mount — no effect-based reset needed.
+// state below is simply derived once from props at mount - no effect-based reset needed.
 export default function MapPicker({ open, initialLat, initialLng, onClose, onConfirm }) {
   const [position, setPosition] = useState(() => toStartPosition(initialLat, initialLng));
   const [recenterTarget, setRecenterTarget] = useState(() => toStartPosition(initialLat, initialLng));

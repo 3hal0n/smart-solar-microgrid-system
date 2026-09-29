@@ -2,13 +2,13 @@
 // File: Toast.jsx
 // Purpose: Shared transient notification. Used to surface the API's
 //          exact response message (success or error, including a 409
-//          conflict) verbatim — the client never pre-guesses whether
+//          conflict) verbatim - the client never pre-guesses whether
 //          an action is allowed, per the FAT service pattern; it
 //          just relays what the server said.
 //
 //          Two ways to use it: the default-exported <Toast/> below is
 //          a plain controlled component (message/tone/onDismiss props
-//          + local useState) — see StationsPage.jsx/StationDetailPage.jsx
+//          + local useState) - see StationsPage.jsx/StationDetailPage.jsx
 //          for that pattern. `useToast()` (added 2026-09-26 while
 //          merging in Dinil's ReservationsAdminPage.jsx/
 //          ReservationDetailPage.jsx, which were already written
@@ -26,7 +26,7 @@ const TONE_CONFIG = {
   success: { accent: 'bg-success', iconBg: 'bg-success-soft text-success' },
 };
 
-// A tick and a triangle-exclamation, drawn inline rather than pulled from an icon library — this
+// A tick and a triangle-exclamation, drawn inline rather than pulled from an icon library - this
 // codebase already draws its handful of glyphs inline (see QrPlaceholder in LandingPage.jsx)
 // rather than taking on a dependency for a couple of icons.
 function ToneIcon({ tone }) {
@@ -77,7 +77,7 @@ export default function Toast({ message, tone = 'error', onDismiss, durationMs =
 const ToastContext = createContext(null);
 
 // Mounts the one global toast + the `show(message, tone)` function every useToast() caller shares
-// — wrap the app (or any subtree) in this once, per architecture.md §8 shared-infra convention.
+// - wrap the app (or any subtree) in this once, per architecture.md §8 shared-infra convention.
 export function ToastProvider({ children }) {
   const [toast, setToast] = useState({ message: '', tone: 'error' });
 
@@ -107,7 +107,7 @@ export function useToast() {
   return context;
 }
 
-// The actual animated card — a separate component so its `visible` state starts fresh on every
+// The actual animated card - a separate component so its `visible` state starts fresh on every
 // mount (i.e. every new message, via the `key` above) with no reset-in-effect needed.
 function ToastCard({ tone, message, onDismiss }) {
   const [visible, setVisible] = useState(false);

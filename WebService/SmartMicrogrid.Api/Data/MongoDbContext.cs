@@ -30,7 +30,7 @@ public class MongoDbContext
     // Exposes the raw database handle for collections that don't have a typed accessor yet.
     public IMongoDatabase Database => _database;
 
-    // Typed accessor for the Users collection (owner: Migara — Backoffice/GridOperator accounts).
+    // Typed accessor for the Users collection (owner: Migara - Backoffice/GridOperator accounts).
     public IMongoCollection<User> Users => _database.GetCollection<User>("Users");
 
     // Typed accessor for the SolarStations collection (owner: Shalon).
@@ -39,6 +39,6 @@ public class MongoDbContext
     // Typed accessor for the EnergyBookingSlots collection (owner: Shalon).
     public IMongoCollection<Slot> EnergyBookingSlots => _database.GetCollection<Slot>("EnergyBookingSlots");
 
-    // Dinil — typed accessor for the Reservations collection (owner: Dinil, architecture.md).
+    // Dinil - typed accessor for the Reservations collection (owner: Dinil, architecture.md).
     public IMongoCollection<Reservation> Reservations => _database.GetCollection<Reservation>("Reservations");
 }

@@ -23,23 +23,23 @@ import retrofit2.http.Query
 
 interface ApiService {
 
-    // Dinil — Grid Operator scans a Prosumer's QR, server flips Confirmed -> Completed.
+    // Dinil - Grid Operator scans a Prosumer's QR, server flips Confirmed -> Completed.
     @POST("api/reservations/verify-qr")
     suspend fun verifyQr(@Body req: VerifyQrRequest): Response<VerifyQrResponse>
 
-    // Migara — Prosumer creates a new booking.
+    // Migara - Prosumer creates a new booking.
     @POST("api/reservations")
     suspend fun createReservation(@Body req: CreateReservationRequest): Response<CreateReservationResponse>
 
-    // Migara — Prosumer modifies an existing booking (time/slot).
+    // Migara - Prosumer modifies an existing booking (time/slot).
     @PUT("api/reservations/{id}")
     suspend fun updateReservation(@Path("id") id: String, @Body req: UpdateReservationRequest): Response<Void>
 
-    // Migara — Prosumer cancels a booking.
+    // Migara - Prosumer cancels a booking.
     @PUT("api/reservations/{id}/cancel")
     suspend fun cancelReservation(@Path("id") id: String, @Body req: CancelReservationRequest): Response<Void>
 
-    // Shalon/Migara — GET /api/reservations?nic=&stationId=&status=&from=&to=
+    // Shalon/Migara - GET /api/reservations?nic=&stationId=&status=&from=&to=
     // Updated to return List<ReservationResponse> to match backend and provide full details (including qrToken)
     @GET("api/reservations")
     suspend fun searchReservations(
@@ -50,11 +50,11 @@ interface ApiService {
         @Query("to") to: String?,
     ): List<ReservationResponse>
 
-    // Shalon — GET /dashboard/prosumer/{nic}/summary
+    // Shalon - GET /dashboard/prosumer/{nic}/summary
     @GET("api/dashboard/prosumer/{nic}/summary")
     suspend fun getProsumerDashboardSummary(@Path("nic") nic: String): ProsumerDashboardSummary
 
-    // Shalon — GET /stations/nearby?lat=&lng=&radiusKm=
+    // Shalon - GET /stations/nearby?lat=&lng=&radiusKm=
     @GET("api/stations/nearby")
     suspend fun getNearbyStations(
         @Query("lat") lat: Double,
@@ -97,8 +97,8 @@ interface ApiService {
     @PUT("api/prosumers/{nic}/request-deactivation")
     suspend fun requestDeactivation(@Path("nic") nic: String): Response<Unit>
 
-    // Shalon — Grid Operator (staff) login, same endpoint the web app's LoginPage already uses.
-    // Username-based, not NIC-based — a separate mechanism from Rukshan's Prosumer login above.
+    // Shalon - Grid Operator (staff) login, same endpoint the web app's LoginPage already uses.
+    // Username-based, not NIC-based - a separate mechanism from Rukshan's Prosumer login above.
     @POST("api/auth/login")
     suspend fun loginStaff(@Body request: StaffLoginRequest): Response<StaffLoginResponse>
 }

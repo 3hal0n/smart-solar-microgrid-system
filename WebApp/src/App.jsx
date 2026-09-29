@@ -1,6 +1,6 @@
 // ============================================================
 // File: App.jsx
-// Purpose: App shell — routing and the shared auth provider. Pages
+// Purpose: App shell - routing and the shared auth provider. Pages
 //          that should render inside the shared AppShell (sidebar +
 //          top bar) nest under its layout route below; a route
 //          placed outside it (e.g. login screen) renders
@@ -22,6 +22,7 @@ import ReservationsAdminPage from "./pages/reservations/ReservationsAdminPage.js
 import ReservationDetailPage from "./pages/reservations/ReservationDetailPage.jsx";
 import UsersPage from "./pages/admin/UsersPage.jsx";
 import DashboardPage from "./pages/dashboard/DashboardPage.jsx";
+import ProfilePage from "./pages/profile/ProfilePage.jsx";
 
 import ProsumersPage from './pages/admin/ProsumersPage.jsx';
 import PendingProsumersPage from './pages/admin/PendingProsumersPage.jsx';
@@ -34,13 +35,13 @@ export default function App() {
       <ToastProvider>
         <BrowserRouter>
           <Routes>
-            {/* Public pages — deliberately outside AppShell (no sidebar/top bar). */}
+            {/* Public pages - deliberately outside AppShell (no sidebar/top bar). */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} /> {/* ADDED */}
 
             {/* Everything below requires a signed-in session (2026-09-26: these routes were
                 reachable with no login check at all until Migara's real auth existed to gate
-                them against) — see RequireAuth.jsx. */}
+                them against) - see RequireAuth.jsx. */}
             <Route
               element={
                 <RequireAuth>
@@ -52,7 +53,7 @@ export default function App() {
               <Route path="/stations" element={<StationsPage />} />
               <Route path="/stations/:id" element={<StationDetailPage />} />
 
-              {/* Migara: User Management — Backoffice only. */}
+              {/* Migara: User Management - Backoffice only. */}
               <Route
                 path="/admin/users"
                 element={
@@ -66,23 +67,26 @@ export default function App() {
               <Route path="/reservations" element={<ReservationsAdminPage />} />
               <Route path="/reservations/:id" element={<ReservationDetailPage />} />
 
-              {/* Rukshan: Prosumers management — Backoffice only. */}
+              {/* Self-service profile & password management */}
+              <Route path="/profile" element={<ProfilePage />} />
+
+              {/* Rukshan: Prosumers management - Backoffice only. */}
               <Route
-                    path="/admin/prosumers"
-                    element={
-                      <RequireAuth roles={["Backoffice"]}>
-                        <ProsumersPage />
-                      </RequireAuth>
-                    }
-                  />
-                  <Route
-                    path="/admin/prosumers/pending"
-                    element={
-                      <RequireAuth roles={["Backoffice"]}>
-                        <PendingProsumersPage />
-                      </RequireAuth>
-                    }
-                  />
+                path="/admin/prosumers"
+                element={
+                  <RequireAuth roles={["Backoffice"]}>
+                    <ProsumersPage />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/admin/prosumers/pending"
+                element={
+                  <RequireAuth roles={["Backoffice"]}>
+                    <PendingProsumersPage />
+                  </RequireAuth>
+                }
+              />
             </Route>
           </Routes>
         </BrowserRouter>

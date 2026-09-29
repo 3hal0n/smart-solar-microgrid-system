@@ -1,22 +1,16 @@
 // ============================================================
 // File: AppShell.jsx
-// Purpose: Shared product shell — flat sidebar on the canvas, a
-//          breadcrumb top bar, and one raised content panel — that
-//          every authenticated page renders inside, per
-//          architecture.md §6, so the web app reads as one product
-//          across owners instead of per-page layouts. Used as a React
-//          Router layout route: App.jsx nests each page's <Route>
-//          under it and this renders them via <Outlet/>. Purely a
-//          shell — it makes no business decisions, it only reads
-//          auth state to display/clear it.
+// Purpose: Shared product shell - sidebar on the left and full
+//          content panel from top to bottom - that every authenticated
+//          page renders inside.
 // Author: Shalon
 // ============================================================
 import { useState } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import Sidebar from './Sidebar.jsx';
-import TopBar from './TopBar.jsx';
 import ScrollArea from '../common/ScrollArea.jsx';
+import Icon from '../common/Icon.jsx';
 
 // Nav sections shown in the sidebar. `icon` is a name from components/common/Icon.jsx.
 const NAV_SECTIONS = [
@@ -28,48 +22,30 @@ const NAV_SECTIONS = [
     title: 'Node management',
     items: [{ label: 'Microgrid hubs', to: '/stations', icon: 'hubs' }],
   },
-  // Dinil — reservation oversight (web admin view of the reservations collection).
+  // Dinil - reservation oversight (web admin view of the reservations collection).
   {
     title: 'Reservations',
     items: [{ label: 'Reservations', to: '/reservations', icon: 'calendar' }],
   },
-
-  // Rukshan — prosumer account management (Backoffice only).
+  // Rukshan - prosumer account management (Backoffice only).
   {
     title: 'Prosumer management',
     items: [
-      { label: 'Prosumers', to: '/admin/prosumers', icon: 'prosumer' },
+      { label: 'Prosumers', to: '/admin/prosumers', icon: 'prosumer', end: true },
       { label: 'Pending Prosumers', to: '/admin/prosumers/pending', icon: 'clock' },
-    ]
+    ],
   },
-  // Migara — user management (Backoffice/GridOperator accounts).
+  // Migara - user management (Backoffice/GridOperator accounts).
   {
     title: 'Administration',
     items: [{ label: 'Users', to: '/admin/users', icon: 'user' }],
   },
 ];
 
-// Builds the breadcrumb trail from the current path: the matching nav item as the root, plus a
-// "Details" crumb for anything nested under it (e.g. /stations/:id).
-function breadcrumbsFor(pathname) {
-  const item = NAV_SECTIONS.flatMap((section) => section.items).find(
-    (candidate) => pathname === candidate.to || pathname.startsWith(`${candidate.to}/`),
-  );
-  if (!item) {
-    return [{ label: 'Joule' }];
-  }
-  const crumbs = [{ label: item.label, to: item.to }];
-  if (pathname !== item.to) {
-    crumbs.push({ label: 'Details' });
-  }
-  return crumbs;
-}
-
-// Renders the shared shell (sidebar/top bar/content panel) around whichever page route is active.
+// Renders the shared shell (sidebar/content panel) around whichever page route is active.
 export default function AppShell() {
-  const { fullName, role, logout } = useAuth();
+  const { fullName, role, profilePicture, logout } = useAuth();
   const navigate = useNavigate();
-  const { pathname } = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Clears the session and returns to the public landing page.
@@ -86,11 +62,22 @@ export default function AppShell() {
         onClose={() => setSidebarOpen(false)}
         fullName={fullName}
         role={role}
+        profilePicture={profilePicture}
         onLogout={handleLogout}
       />
-      <div className="flex min-w-0 flex-1 flex-col lg:pr-3">
-        <TopBar onToggleSidebar={() => setSidebarOpen((open) => !open)} crumbs={breadcrumbsFor(pathname)} />
-        <main className="flex-1 min-h-0 border-line bg-surface sm:mx-3 sm:mb-3 sm:rounded-2xl sm:border sm:shadow-card lg:mx-0 overflow-hidden">
+
+      {/* Mobile sidebar toggle button */}
+      <button
+        type="button"
+        onClick={() => setSidebarOpen(true)}
+        className="fixed top-3 left-3 z-20 flex h-9 w-9 items-center justify-center rounded-lg bg-surface border border-line text-body shadow-card transition-colors hover:bg-surface-alt hover:text-ink lg:hidden"
+        aria-label="Open navigation"
+      >
+        <Icon name="menu" className="h-5 w-5" />
+      </button>
+
+      <div className="flex min-w-0 flex-1 flex-col h-full">
+        <main className="flex-1 min-h-0 bg-surface border-l border-line overflow-hidden">
           <ScrollArea className="h-full w-full">
             <Outlet />
           </ScrollArea>

@@ -24,6 +24,7 @@ namespace SmartMicrogrid.Api.Models
         public string? Email { get; set; }
         public string? Phone { get; set; }
         public string? Address { get; set; }
+        public string? ProfilePicture { get; set; }
     }
 
     // DTO for API Responses (Hides password hash for security)
@@ -35,6 +36,7 @@ namespace SmartMicrogrid.Api.Models
         public string Email { get; set; } = null!;
         public string? Phone { get; set; }
         public string? Address { get; set; }
+        public string? ProfilePicture { get; set; }
         public string Status { get; set; } = null!;
         public DateTime? DeactivationRequestedAt { get; set; }
         public DateTime CreatedAt { get; set; }

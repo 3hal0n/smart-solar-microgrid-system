@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
-/* Design tokens from docs/stripe.design.md — Stripe's enterprise structure (navy ink, pale
+/* Design tokens from docs/stripe.design.md - Stripe's enterprise structure (navy ink, pale
    technical canvas, 1px keylines, compact geometric radii) with the slate/zinc neutral ramp.
    Shared by every page; change tokens here rather than hardcoding colors in components. */
 @theme {
-  /* Action — Stripe violet */
+  /* Action - Stripe violet */
   --color-primary: #635bff;
   --color-primary-hover: #4f46e5;
   --color-primary-pressed: #4032c8;
   --color-primary-soft: #eef2ff;
 
-  /* Ink & text — slate ramp */
+  /* Ink & text - slate ramp */
   --color-ink: #0f172a;
   --color-ink-soft: #1e293b;
   --color-body: #475569;
@@ -40,7 +40,7 @@
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "Helvetica Neue", Arial, sans-serif;
   --font-mono: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
 
-  /* Geometric radii — no pill shapes on actions or badges (enterprise, not consumer) */
+  /* Geometric radii - no pill shapes on actions or badges (enterprise, not consumer) */
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;

@@ -262,7 +262,7 @@ export default function ProsumersPage() {
     return (
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
         <p className="rounded-md border border-error/30 bg-error-soft px-3 py-2 text-[13px] font-medium text-error">
-          Access denied — only Backoffice users can manage prosumers.
+          Access denied - only Backoffice users can manage prosumers.
         </p>
       </div>
     );

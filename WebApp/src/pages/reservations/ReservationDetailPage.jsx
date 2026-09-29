@@ -8,7 +8,7 @@
 //
 //          On load, fetches the Prosumer's profile via
 //          GET /api/prosumers/{nic} so the operator sees the
-//          name and email — not just the NIC.
+//          name and email - not just the NIC.
 //
 //          The Edit modal loads Stations and (for the selected
 //          station) its available Slots as dropdowns. The
@@ -28,7 +28,7 @@ import Toast from "../../components/common/Toast.jsx";
 
 // Formats an ISO timestamp for display, or an em dash for null.
 function formatDateTime(iso) {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const d = new Date(iso);
   return d.toLocaleString(undefined, {
     year: "numeric",
@@ -147,7 +147,7 @@ export default function ReservationDetailPage() {
     }
   }
 
-  // Initial load — every setState runs after an await.
+  // Initial load - every setState runs after an await.
   useEffect(() => {
     let cancelled = false;
 
@@ -446,18 +446,18 @@ export default function ReservationDetailPage() {
               <span className="tnum">{formatDateTime(r.completedAt)}</span>
             }
           />
-          <DetailRow label="Cancel reason" value={r.cancelReason || "—"} />
+          <DetailRow label="Cancel reason" value={r.cancelReason || "-"} />
         </DetailCard>
 
         <DetailCard title="QR token" className="md:col-span-2">
           <p className="text-xs text-muted mb-2">
             The token is issued at creation and verified by a Grid Operator's
-            mobile scan. The web app never renders or scans it — this is a text
+            mobile scan. The web app never renders or scans it - this is a text
             view only.
           </p>
           <div className="rounded-md border border-line bg-surface-alt p-3">
             <code className="text-xs font-mono break-all text-ink">
-              {r.qrToken || "—"}
+              {r.qrToken || "-"}
             </code>
           </div>
         </DetailCard>
@@ -482,17 +482,17 @@ export default function ReservationDetailPage() {
               </p>
             )}
 
-            {/* Prosumer — read-only (ownership is not editable) */}
+            {/* Prosumer - read-only (ownership is not editable) */}
             <div className="rounded-md border border-line bg-surface-alt px-3 py-2">
               <p className="text-xs text-muted">Prosumer (not editable)</p>
               <p className="text-sm font-medium text-ink">
                 {prosumer
-                  ? `${prosumer.fullName} — ${r.prosumerNic}`
+                  ? `${prosumer.fullName} - ${r.prosumerNic}`
                   : r.prosumerNic}
               </p>
             </div>
 
-            {/* Station dropdown — clears slot when it changes */}
+            {/* Station dropdown - clears slot when it changes */}
             <Input
               label="Station *"
               as="select"
@@ -521,7 +521,7 @@ export default function ReservationDetailPage() {
               ))}
             </Input>
 
-            {/* Slot dropdown — includes the current slot even if not Available */}
+            {/* Slot dropdown - includes the current slot even if not Available */}
             <Input
               label="Slot *"
               as="select"
@@ -546,13 +546,13 @@ export default function ReservationDetailPage() {
               </option>
               {slots.map((s) => (
                 <option key={s.id} value={s.id}>
-                  #{s.slotNumber} — {s.type} — {s.capacityKWh} kWh
+                  #{s.slotNumber} - {s.type} - {s.capacityKWh} kWh
                   {s.id === r.slotId ? " (current)" : ""}
                 </option>
               ))}
             </Input>
 
-            {/* Scheduled at — bounded to the 7-day window */}
+            {/* Scheduled at - bounded to the 7-day window */}
             <Input
               label="Scheduled at *"
               type="datetime-local"
@@ -593,7 +593,7 @@ export default function ReservationDetailPage() {
         <div className="space-y-4">
           <p className="text-sm text-body">
             Cancelling this reservation will free the slot. The server enforces
-            a 12-hour notice rule — a late cancel returns a rejection message
+            a 12-hour notice rule - a late cancel returns a rejection message
             that will be shown here verbatim.
           </p>
           <Input

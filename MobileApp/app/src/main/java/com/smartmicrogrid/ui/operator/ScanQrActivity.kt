@@ -1,6 +1,6 @@
 // ============================================================
 // File: ScanQrActivity.kt
-// Purpose: Thin Activity host for ScanQrScreen — needed so the
+// Purpose: Thin Activity host for ScanQrScreen - needed so the
 //          scanner can also be launched as a standalone Intent
 //          outside the Home bottom-nav shell.
 // Author: Dinil
