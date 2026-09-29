@@ -9,6 +9,12 @@
 //          On load, fetches the Prosumer's profile via
 //          GET /api/prosumers/{nic} so the operator sees the
 //          name and email — not just the NIC.
+//
+//          The Edit modal loads Stations and (for the selected
+//          station) its available Slots as dropdowns. The
+//          reservation's own current slot is included in the
+//          list even if its status isn't Available, so the
+//          operator can leave it unchanged.
 // Author: Dinil
 // ============================================================
 import { useEffect, useState } from "react";
@@ -37,6 +43,26 @@ function formatDateTime(iso) {
 function toLocalDateTimeInput(iso) {
   if (!iso) return "";
   const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  );
+}
+
+// Minimum allowed scheduled time: now + 15 minutes.
+function minScheduledAt() {
+  const d = new Date(Date.now() + 15 * 60 * 1000);
+  const pad = (n) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  );
+}
+
+// Maximum allowed scheduled time: now + 7 days (matches server window).
+function maxScheduledAt() {
+  const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const pad = (n) => String(n).padStart(2, "0");
   return (
     `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
@@ -78,9 +104,22 @@ export default function ReservationDetailPage() {
   const [editForm, setEditForm] = useState(null);
   const [editBusy, setEditBusy] = useState(false);
 
+  // Dropdown data for the Edit modal.
+  const [stations, setStations] = useState([]);
+  const [slots, setSlots] = useState([]);
+  const [dropdownsLoading, setDropdownsLoading] = useState({
+    stations: false,
+    slots: false
+  });
+  const [dropdownsError, setDropdownsError] = useState(null);
+
   function show(message, tone = "error") {
     setToast({ message, tone });
   }
+
+  // -----------------------
+  // Data load
+  // -----------------------
 
   async function load() {
     setLoading(true);
@@ -90,13 +129,11 @@ export default function ReservationDetailPage() {
       const { data } = await api.get(`/reservations/${id}`);
       setReservation(data);
 
-      // Best-effort Prosumer profile lookup — failure is not fatal.
       if (data?.prosumerNic) {
         try {
           const p = await api.get(`/prosumers/${data.prosumerNic}`);
           setProsumer(p.data);
         } catch {
-          // 404 or 403 — just leave prosumer null; UI falls back to NIC.
           setProsumer(null);
         }
       }
@@ -110,8 +147,7 @@ export default function ReservationDetailPage() {
     }
   }
 
-  // Initial load — state is already in its "loading" defaults from useState,
-  // so the effect only needs to fetch and then set the resolved values.
+  // Initial load — every setState runs after an await.
   useEffect(() => {
     let cancelled = false;
 
@@ -146,17 +182,94 @@ export default function ReservationDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // Opens the edit modal pre-filled with current reservation data.
+  // -----------------------
+  // Dropdown loaders
+  // -----------------------
+
+  // Load Stations once (Active only).
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      setDropdownsLoading((s) => ({ ...s, stations: true }));
+      try {
+        const { data } = await api.get("/stations", {
+          params: { status: "Active" }
+        });
+        if (!cancelled) setStations(Array.isArray(data) ? data : []);
+      } catch (e) {
+        if (!cancelled) {
+          setDropdownsError(
+            e?.response?.data?.message || "Could not load Stations."
+          );
+        }
+      } finally {
+        if (!cancelled) setDropdownsLoading((s) => ({ ...s, stations: false }));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // When edit modal is open and station is chosen, load that station's slots.
+  // Include the reservation's own current slot even if it's not Available,
+  // so opening the modal and saving without changes never errors out.
+  useEffect(() => {
+    if (!showEdit || !editForm?.stationId) {
+      setSlots([]);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      setDropdownsLoading((s) => ({ ...s, slots: true }));
+      try {
+        const { data } = await api.get(`/stations/${editForm.stationId}`);
+        const all = Array.isArray(data?.slots) ? data.slots : [];
+
+        // Include Available slots + the reservation's current slot
+        // (which may be Reserved because this very reservation owns it).
+        const currentSlotId = reservation?.slotId;
+        const visible = all.filter(
+          (s) => s.status === "Available" || s.id === currentSlotId
+        );
+
+        if (!cancelled) setSlots(visible);
+      } catch (e) {
+        if (!cancelled) {
+          setSlots([]);
+          show(
+            e?.response?.data?.message || "Could not load slots for station.",
+            "error"
+          );
+        }
+      } finally {
+        if (!cancelled) setDropdownsLoading((s) => ({ ...s, slots: false }));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showEdit, editForm?.stationId]);
+
+  // -----------------------
+  // Edit
+  // -----------------------
+
   function openEdit() {
     setEditForm({
       stationId: reservation.stationId || "",
       slotId: reservation.slotId || "",
       scheduledAt: toLocalDateTimeInput(reservation.scheduledAt)
     });
+    setSlots([]);
     setShowEdit(true);
   }
 
-  // Submits an update. 12-hour and 7-day rules come back from the server.
   async function submitEdit() {
     setEditBusy(true);
     try {
@@ -183,7 +296,10 @@ export default function ReservationDetailPage() {
     }
   }
 
-  // Cancels the reservation.
+  // -----------------------
+  // Cancel
+  // -----------------------
+
   async function confirmCancel() {
     setCancelBusy(true);
     try {
@@ -205,6 +321,10 @@ export default function ReservationDetailPage() {
       setCancelBusy(false);
     }
   }
+
+  // -----------------------
+  // Render
+  // -----------------------
 
   if (loading) {
     return (
@@ -230,6 +350,13 @@ export default function ReservationDetailPage() {
   const r = reservation;
   const isCancellable = r.status === "Confirmed";
   const isEditable = r.status === "Confirmed";
+
+  const canSave =
+    editForm &&
+    !editBusy &&
+    editForm.stationId &&
+    editForm.slotId &&
+    editForm.scheduledAt;
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
@@ -274,7 +401,7 @@ export default function ReservationDetailPage() {
 
       {/* Detail grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Prosumer card — shows name + contact when the lookup succeeded */}
+        {/* Prosumer card */}
         <DetailCard title="Prosumer">
           <DetailRow label="NIC" value={r.prosumerNic} mono />
           {prosumer ? (
@@ -348,28 +475,95 @@ export default function ReservationDetailPage() {
               Update the reservation details. The server enforces the 7-day
               window and the 12-hour modification notice.
             </p>
+
+            {dropdownsError && (
+              <p className="rounded-md border border-error/30 bg-error-soft px-3 py-2 text-xs font-medium text-error">
+                {dropdownsError}
+              </p>
+            )}
+
+            {/* Prosumer — read-only (ownership is not editable) */}
+            <div className="rounded-md border border-line bg-surface-alt px-3 py-2">
+              <p className="text-xs text-muted">Prosumer (not editable)</p>
+              <p className="text-sm font-medium text-ink">
+                {prosumer
+                  ? `${prosumer.fullName} — ${r.prosumerNic}`
+                  : r.prosumerNic}
+              </p>
+            </div>
+
+            {/* Station dropdown — clears slot when it changes */}
             <Input
-              label="Station ID *"
+              label="Station *"
+              as="select"
               value={editForm.stationId}
-              onChange={(e) =>
-                setEditForm({ ...editForm, stationId: e.target.value })
-              }
-            />
+              onChange={(e) => {
+                setEditForm({
+                  ...editForm,
+                  stationId: e.target.value,
+                  slotId: "" // reset slot; new list loads
+                });
+                setSlots([]);
+              }}
+              disabled={dropdownsLoading.stations}
+            >
+              <option value="">
+                {dropdownsLoading.stations
+                  ? "Loading stations…"
+                  : stations.length === 0
+                    ? "No active stations"
+                    : "Select a station…"}
+              </option>
+              {stations.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </Input>
+
+            {/* Slot dropdown — includes the current slot even if not Available */}
             <Input
-              label="Slot ID *"
+              label="Slot *"
+              as="select"
               value={editForm.slotId}
               onChange={(e) =>
                 setEditForm({ ...editForm, slotId: e.target.value })
               }
-            />
+              disabled={
+                !editForm.stationId ||
+                dropdownsLoading.slots ||
+                slots.length === 0
+              }
+            >
+              <option value="">
+                {!editForm.stationId
+                  ? "Pick a station first"
+                  : dropdownsLoading.slots
+                    ? "Loading slots…"
+                    : slots.length === 0
+                      ? "No available slots at this station"
+                      : "Select a slot…"}
+              </option>
+              {slots.map((s) => (
+                <option key={s.id} value={s.id}>
+                  #{s.slotNumber} — {s.type} — {s.capacityKWh} kWh
+                  {s.id === r.slotId ? " (current)" : ""}
+                </option>
+              ))}
+            </Input>
+
+            {/* Scheduled at — bounded to the 7-day window */}
             <Input
               label="Scheduled at *"
               type="datetime-local"
               value={editForm.scheduledAt}
+              min={minScheduledAt()}
+              max={maxScheduledAt()}
               onChange={(e) =>
                 setEditForm({ ...editForm, scheduledAt: e.target.value })
               }
             />
+
             <div className="flex justify-end gap-2 pt-2">
               <Button
                 variant="secondary"
@@ -381,12 +575,7 @@ export default function ReservationDetailPage() {
               <Button
                 variant="primary"
                 onClick={submitEdit}
-                disabled={
-                  editBusy ||
-                  !editForm.stationId.trim() ||
-                  !editForm.slotId.trim() ||
-                  !editForm.scheduledAt
-                }
+                disabled={!canSave}
               >
                 {editBusy ? "Saving…" : "Save changes"}
               </Button>

@@ -8,9 +8,10 @@
 //          server-side; this page renders API responses and
 //          surfaces rejection messages verbatim.
 //
-//          The Create modal looks up the Prosumer by NIC via
-//          GET /api/prosumers/{nic} so the operator can
-//          visually confirm the right person before booking.
+//          The Create modal pulls Prosumers, Stations, and
+//          that station's Slots from the API and renders them
+//          as dropdowns, so operators pick instead of typing
+//          raw ObjectIds.
 // Author: Dinil
 // ============================================================
 import { useEffect, useMemo, useState } from "react";
@@ -86,18 +87,28 @@ export default function ReservationsAdminPage() {
   const [createForm, setCreateForm] = useState(emptyCreateForm());
   const [createBusy, setCreateBusy] = useState(false);
 
-  // Prosumer lookup state (NIC → profile).
-  // status: "idle" | "loading" | "found" | "notfound" | "error"
-  const [lookup, setLookup] = useState({
-    status: "idle",
-    data: null,
-    message: ""
+  // Dropdown data for the create modal.
+  // prosumers: [{ nic, fullName, status }]
+  // stations:  [{ id, name, status }]
+  // slots:     [{ id, slotNumber, type, capacityKWh, status }]  ← filtered by selected station
+  const [prosumers, setProsumers] = useState([]);
+  const [stations, setStations] = useState([]);
+  const [slots, setSlots] = useState([]);
+  const [dropdownsLoading, setDropdownsLoading] = useState({
+    prosumers: false,
+    stations: false,
+    slots: false
   });
+  const [dropdownsError, setDropdownsError] = useState(null);
 
   // Tiny helper to fire a toast without prop-drilling.
   function show(message, tone = "error") {
     setToast({ message, tone });
   }
+
+  // ---------------------------------------------------------------
+  // List load
+  // ---------------------------------------------------------------
 
   // Loads the reservation list using the current filters.
   async function load() {
@@ -130,37 +141,110 @@ export default function ReservationsAdminPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterStatus, filterNic, filterStationId]);
 
-  // Looks up a Prosumer by NIC using GET /api/prosumers/{nic}.
-  // Resets to idle when the NIC field is cleared.
-  async function lookupProsumer(nic) {
-    const trimmed = (nic || "").trim();
-    if (!trimmed) {
-      setLookup({ status: "idle", data: null, message: "" });
+  // ---------------------------------------------------------------
+  // Dropdown loaders
+  // ---------------------------------------------------------------
+
+  // Loads Prosumers + Stations once when the page first mounts.
+  // Kept separate from the reservation list so a dropdown failure
+  // never blocks the main table.
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      setDropdownsLoading((s) => ({ ...s, prosumers: true, stations: true }));
+      setDropdownsError(null);
+
+      // Prosumers — only Active ones make sense for a new booking.
+      try {
+        const { data } = await api.get("/prosumers", {
+          params: { status: "Active" }
+        });
+        if (!cancelled) setProsumers(Array.isArray(data) ? data : []);
+      } catch (e) {
+        if (!cancelled) {
+          setDropdownsError(
+            e?.response?.data?.message || "Could not load Prosumers list."
+          );
+        }
+      } finally {
+        if (!cancelled)
+          setDropdownsLoading((s) => ({ ...s, prosumers: false }));
+      }
+
+      // Stations — Active only.
+      try {
+        const { data } = await api.get("/stations", {
+          params: { status: "Active" }
+        });
+        if (!cancelled) setStations(Array.isArray(data) ? data : []);
+      } catch (e) {
+        if (!cancelled) {
+          setDropdownsError(
+            (prev) =>
+              prev ||
+              e?.response?.data?.message ||
+              "Could not load Stations list."
+          );
+        }
+      } finally {
+        if (!cancelled) setDropdownsLoading((s) => ({ ...s, stations: false }));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Whenever the selected station changes, load that station's slots.
+  useEffect(() => {
+    const stationId = createForm.stationId;
+    if (!stationId) {
+      setSlots([]);
       return;
     }
-    setLookup({ status: "loading", data: null, message: "" });
-    try {
-      const { data } = await api.get(`/prosumers/${trimmed}`);
-      setLookup({
-        status: "found",
-        data,
-        message: `${data.fullName} • ${data.status}`
-      });
-    } catch (e) {
-      if (e?.response?.status === 404) {
-        setLookup({
-          status: "notfound",
-          data: null,
-          message: "No Prosumer with that NIC."
-        });
-      } else {
-        setLookup({
-          status: "error",
-          data: null,
-          message: e?.response?.data?.message || "Lookup failed."
-        });
+
+    let cancelled = false;
+    (async () => {
+      setDropdownsLoading((s) => ({ ...s, slots: true }));
+      try {
+        const { data } = await api.get(`/stations/${stationId}`);
+        // StationDetailResponse shape — slots array inside.
+        const list = Array.isArray(data?.slots) ? data.slots : [];
+        if (!cancelled) {
+          // Only show Available slots — Reserved/Inactive would fail the
+          // server-side check anyway.
+          setSlots(list.filter((s) => s.status === "Available"));
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setSlots([]);
+          show(
+            e?.response?.data?.message || "Could not load slots for station.",
+            "error"
+          );
+        }
+      } finally {
+        if (!cancelled) setDropdownsLoading((s) => ({ ...s, slots: false }));
       }
-    }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createForm.stationId]);
+
+  // ---------------------------------------------------------------
+  // Create
+  // ---------------------------------------------------------------
+
+  // Resets the create modal to a clean slate.
+  function openCreate() {
+    setCreateForm(emptyCreateForm());
+    setSlots([]);
+    setShowCreate(true);
   }
 
   // Submits a create to the API. Enforces nothing client-side —
@@ -181,7 +265,7 @@ export default function ReservationsAdminPage() {
       show("Reservation created.", "success");
       setShowCreate(false);
       setCreateForm(emptyCreateForm());
-      setLookup({ status: "idle", data: null, message: "" });
+      setSlots([]);
       await load();
     } catch (e) {
       const msg =
@@ -195,7 +279,10 @@ export default function ReservationsAdminPage() {
     }
   }
 
-  // Submits a cancel to the API. 12-hour rule rejections come back as 409.
+  // ---------------------------------------------------------------
+  // Cancel
+  // ---------------------------------------------------------------
+
   async function confirmCancel() {
     if (!cancelTarget) return;
     setCancelBusy(true);
@@ -219,7 +306,10 @@ export default function ReservationsAdminPage() {
     }
   }
 
-  // Counts for the summary chips at the top.
+  // ---------------------------------------------------------------
+  // Derived values
+  // ---------------------------------------------------------------
+
   const counts = useMemo(
     () => ({
       total: reservations.length,
@@ -230,12 +320,11 @@ export default function ReservationsAdminPage() {
     [reservations]
   );
 
-  // Whether the Create button should be enabled.
   const canCreate =
     !createBusy &&
-    createForm.prosumerNic.trim() &&
-    createForm.stationId.trim() &&
-    createForm.slotId.trim() &&
+    createForm.prosumerNic &&
+    createForm.stationId &&
+    createForm.slotId &&
     createForm.scheduledAt;
 
   return (
@@ -252,14 +341,7 @@ export default function ReservationsAdminPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="primary"
-            onClick={() => {
-              setCreateForm(emptyCreateForm());
-              setLookup({ status: "idle", data: null, message: "" });
-              setShowCreate(true);
-            }}
-          >
+          <Button variant="primary" onClick={openCreate}>
             + New reservation
           </Button>
           <Button variant="secondary" onClick={load} disabled={loading}>
@@ -400,7 +482,7 @@ export default function ReservationsAdminPage() {
         </tbody>
       </Table>
 
-      {/* Create modal — operator-assisted booking */}
+      {/* Create modal — dropdowns for Prosumer / Station / Slot */}
       <Modal
         open={showCreate}
         onClose={() => !createBusy && setShowCreate(false)}
@@ -412,69 +494,97 @@ export default function ReservationsAdminPage() {
             the 7-day booking window and slot availability.
           </p>
 
-          {/* NIC with inline lookup */}
-          <div>
-            <div className="flex items-end gap-2">
-              <div className="flex-1">
-                <Input
-                  label="Prosumer NIC *"
-                  placeholder="e.g. 199012345678"
-                  value={createForm.prosumerNic}
-                  onChange={(e) => {
-                    const nic = e.target.value;
-                    setCreateForm({ ...createForm, prosumerNic: nic });
-                    // Reset lookup when the field changes; user must click Look up.
-                    if (lookup.status !== "idle") {
-                      setLookup({ status: "idle", data: null, message: "" });
-                    }
-                  }}
-                />
-              </div>
-              <Button
-                variant="secondary"
-                onClick={() => lookupProsumer(createForm.prosumerNic)}
-                disabled={
-                  !createForm.prosumerNic.trim() || lookup.status === "loading"
-                }
-              >
-                {lookup.status === "loading" ? "Looking…" : "Look up"}
-              </Button>
-            </div>
+          {dropdownsError && (
+            <p className="rounded-md border border-error/30 bg-error-soft px-3 py-2 text-xs font-medium text-error">
+              {dropdownsError}
+            </p>
+          )}
 
-            {/* Lookup result */}
-            {lookup.status === "found" && (
-              <p className="mt-2 text-xs font-medium text-success">
-                ✓ {lookup.message}
-              </p>
-            )}
-            {lookup.status === "notfound" && (
-              <p className="mt-2 text-xs font-medium text-error">
-                ✗ {lookup.message}
-              </p>
-            )}
-            {lookup.status === "error" && (
-              <p className="mt-2 text-xs font-medium text-error">
-                ✗ {lookup.message}
-              </p>
-            )}
-          </div>
-
+          {/* Prosumer dropdown */}
           <Input
-            label="Station ID *"
-            placeholder="Mongo ObjectId"
+            label="Prosumer *"
+            as="select"
+            value={createForm.prosumerNic}
+            onChange={(e) => {
+              // Changing prosumer does not reset station/slot.
+              setCreateForm({ ...createForm, prosumerNic: e.target.value });
+            }}
+            disabled={dropdownsLoading.prosumers}
+          >
+            <option value="">
+              {dropdownsLoading.prosumers
+                ? "Loading prosumers…"
+                : prosumers.length === 0
+                  ? "No active prosumers"
+                  : "Select a prosumer…"}
+            </option>
+            {prosumers.map((p) => (
+              <option key={p.nic} value={p.nic}>
+                {p.fullName} — {p.nic}
+              </option>
+            ))}
+          </Input>
+
+          {/* Station dropdown — clears slot when it changes */}
+          <Input
+            label="Station *"
+            as="select"
             value={createForm.stationId}
-            onChange={(e) =>
-              setCreateForm({ ...createForm, stationId: e.target.value })
-            }
-          />
+            onChange={(e) => {
+              setCreateForm({
+                ...createForm,
+                stationId: e.target.value,
+                slotId: "" // reset slot; new list loads
+              });
+              setSlots([]);
+            }}
+            disabled={dropdownsLoading.stations}
+          >
+            <option value="">
+              {dropdownsLoading.stations
+                ? "Loading stations…"
+                : stations.length === 0
+                  ? "No active stations"
+                  : "Select a station…"}
+            </option>
+            {stations.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </Input>
+
+          {/* Slot dropdown — disabled until a station is chosen */}
           <Input
-            label="Slot ID *"
-            placeholder="Mongo ObjectId"
+            label="Slot *"
+            as="select"
             value={createForm.slotId}
             onChange={(e) =>
               setCreateForm({ ...createForm, slotId: e.target.value })
             }
-          />
+            disabled={
+              !createForm.stationId ||
+              dropdownsLoading.slots ||
+              slots.length === 0
+            }
+          >
+            <option value="">
+              {!createForm.stationId
+                ? "Pick a station first"
+                : dropdownsLoading.slots
+                  ? "Loading slots…"
+                  : slots.length === 0
+                    ? "No available slots at this station"
+                    : "Select a slot…"}
+            </option>
+            {slots.map((s) => (
+              <option key={s.id} value={s.id}>
+                #{s.slotNumber} — {s.type} — {s.capacityKWh} kWh
+              </option>
+            ))}
+          </Input>
+
+          {/* Scheduled at — free text (datetime-local) */}
           <Input
             label="Scheduled at *"
             type="datetime-local"
