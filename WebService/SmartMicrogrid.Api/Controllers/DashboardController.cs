@@ -43,4 +43,22 @@ public class DashboardController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+
+    // GET /api/dashboard/operator/summary - today's confirmed/completed counts
+    // plus pending-by-station breakdown. GridOperator only.
+    [HttpGet("operator/summary")]
+    [Microsoft.AspNetCore.Authorization.Authorize(
+        Roles = "GridOperator,Backoffice")]
+    public async Task<IActionResult> GetOperatorSummary()
+    {
+        try
+        {
+            var summary = await _dashboardService.GetOperatorSummaryAsync();
+            return Ok(summary);
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
 }

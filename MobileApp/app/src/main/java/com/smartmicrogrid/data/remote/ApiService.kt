@@ -101,4 +101,7 @@ interface ApiService {
     // Username-based, not NIC-based - a separate mechanism from Rukshan's Prosumer login above.
     @POST("api/auth/login")
     suspend fun loginStaff(@Body request: StaffLoginRequest): Response<StaffLoginResponse>
+
+    @GET("api/dashboard/operator/summary")
+    suspend fun getOperatorSummary(): Response<OperatorSummaryResponse>
 }

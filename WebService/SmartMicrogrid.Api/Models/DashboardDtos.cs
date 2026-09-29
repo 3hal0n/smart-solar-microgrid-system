@@ -32,3 +32,17 @@ public class ProsumerDashboardSummaryResponse
     public int ApprovedFutureCount { get; set; }
     public List<ReservationHistoryItemResponse> RecentHistory { get; set; } = new();
 }
+public class OperatorSummaryResponse
+{
+    public int ConfirmedTodayCount { get; set; }
+    public int CompletedTodayCount { get; set; }
+    public List<PendingByStation> PendingByStation { get; set; } = new();
+}
+
+public class PendingByStation
+{
+    public string StationId { get; set; } = null!;
+    public string StationName { get; set; } = null!;
+    public int PendingCount { get; set; }
+}
+
