@@ -12,6 +12,9 @@
 //          their own TODO(<owner>) files) — this file never needs to
 //          change once the real screens land, since it only
 //          references them by route + function name.
+//          Bottom bar is the custom JouleBottomBar (premium revamp,
+//          2026-09); the nav graph and Rukshan's logout wiring below
+//          are unchanged.
 // Author: Shalon (Updated by Rukshan to wire ProfileScreen onLogout)
 // ============================================================
 package com.smartmicrogrid.ui.home
@@ -23,23 +26,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.NavType
@@ -108,47 +102,36 @@ private fun HomeShell(role: UserRole) {
     NavGraphShell(destinations = destinations)
 }
 
-// Renders a Scaffold with a bottom NavigationBar and a NavHost registering every destination this
-// shell knows about. Routes are the single thing connecting this file to each owner's real
-// screen, so this graph never needs editing once a placeholder is swapped for the real one.
+// Renders a Scaffold with the custom JouleBottomBar and a NavHost registering every destination
+// this shell knows about. Routes are the single thing connecting this file to each owner's real
+// screen, so this graph never needs editing once a placeholder is swapped for the real one. The
+// bar hides on the full-screen create-booking flow so its own back/submit actions own the bottom.
 @Composable
 private fun NavGraphShell(destinations: List<HomeDestination>) {
     val navController = rememberNavController()
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
+    val showBar = currentRoute?.startsWith(HomeRoutes.PROSUMER_CREATE_BOOKING) != true
+
+    // Standard "switch tabs" navigation options: don't pile up back-stack entries per tab switch,
+    // and restore each tab's own state on return.
+    fun openTab(route: String) {
+        navController.navigate(route) {
+            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = {
-            Column {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline)
-                NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
-                    val backStackEntry by navController.currentBackStackEntryAsState()
-                    val currentRoute = backStackEntry?.destination?.route
-                    destinations.forEach { destination ->
-                        NavigationBarItem(
-                            selected = currentRoute == destination.route,
-                            onClick = {
-                                // Standard "switch tabs" navigation options: don't pile up back-stack
-                                // entries per tab switch, and restore each tab's own state on return.
-                                navController.navigate(destination.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                            icon = { Icon(destination.icon, contentDescription = null, modifier = Modifier.size(22.dp)) },
-                            label = { Text(destination.label, style = MaterialTheme.typography.labelMedium) },
-                            colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = MaterialTheme.colorScheme.primary,
-                                selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                                indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            ),
-                        )
-                    }
-                }
+            if (showBar) {
+                JouleBottomBar(
+                    items = destinations.map { BottomBarItem(it.route, it.label, it.icon) },
+                    currentRoute = currentRoute,
+                    onSelect = { openTab(it.route) },
+                )
             }
         },
     ) { innerPadding ->
@@ -157,7 +140,12 @@ private fun NavGraphShell(destinations: List<HomeDestination>) {
             startDestination = destinations.first().route,
             modifier = Modifier.padding(innerPadding),
         ) {
-            composable(HomeRoutes.PROSUMER_DASHBOARD) { ProsumerDashboardScreen() }
+            composable(HomeRoutes.PROSUMER_DASHBOARD) {
+                ProsumerDashboardScreen(
+                    onBookSlot = { navController.navigate(HomeRoutes.PROSUMER_CREATE_BOOKING) },
+                    onOpenBookings = { openTab(HomeRoutes.PROSUMER_BOOKINGS) },
+                )
+            }
             composable(HomeRoutes.PROSUMER_BOOKINGS) {
                 BookingsScreen(
                     onNavigateToCreate = { navController.navigate(HomeRoutes.PROSUMER_CREATE_BOOKING) }

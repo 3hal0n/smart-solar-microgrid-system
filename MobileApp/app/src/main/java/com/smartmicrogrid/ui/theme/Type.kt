@@ -1,118 +1,71 @@
 // ============================================================
 // File: Type.kt
 // Purpose: Material3 type scale mapped from docs/stripe.design.md's
-//          {typography.*} tokens. The doc's own px sizes (hero=68px,
-//          headline-lg=48px, etc.) are explicitly marked as desktop
-//          anchors that "should step down quickly on mobile", so
-//          these are scaled-down phone-appropriate sizes that keep
-//          the doc's weight/tracking/role relationships rather than
-//          copying its pixel values 1:1. `sohne-var` isn't bundled as
-//          a font asset in this app, so FontFamily.Default (the
-//          platform sans-serif) stands in, matching the doc's own
-//          fallback chain ("...Helvetica Neue, Arial, sans-serif").
+//          {typography.*} tokens, scaled down to phone sizes (the doc
+//          marks its px values as desktop anchors). Uses Inter (OFL,
+//          bundled as a variable font in res/font) — the same family
+//          WebApp's --font-sans stack leads with — instead of the
+//          platform default, so both clients share one typeface.
+//          Headlines are SemiBold with tight tracking; body is Regular
+//          (Light read washed out on real phone screens). NumericStyle
+//          uses tabular figures so stat numbers don't jitter.
 // Author: Shalon
 // ============================================================
 package com.smartmicrogrid.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
+import com.smartmicrogrid.R
+
+@OptIn(ExperimentalTextApi::class)
+private fun inter(weight: FontWeight) = Font(
+    resId = R.font.inter_variable,
+    weight = weight,
+    variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
+)
+
+val Inter = FontFamily(
+    inter(FontWeight.Normal),
+    inter(FontWeight.Medium),
+    inter(FontWeight.SemiBold),
+    inter(FontWeight.Bold),
+)
+
+private fun style(size: Int, line: Int, weight: FontWeight, tracking: Double) = TextStyle(
+    fontFamily = Inter,
+    fontWeight = weight,
+    fontSize = size.sp,
+    lineHeight = line.sp,
+    letterSpacing = tracking.em,
+)
 
 val Typography = Typography(
-    // headline-lg (48px, w400, tracking -0.03em) → mobile section headers
-    headlineLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 30.sp,
-        lineHeight = 36.sp,
-        letterSpacing = (-0.02).em,
-    ),
-    headlineMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 26.sp,
-        lineHeight = 32.sp,
-        letterSpacing = (-0.02).em,
-    ),
-    // title-lg (32px, w400) → screen titles ("Dashboard", splash wordmark)
-    headlineSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = (-0.01).em,
-    ),
-    // title-md (24px, w400) → card group headings, stat tile numbers
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 20.sp,
-        lineHeight = 26.sp,
-        letterSpacing = (-0.01).em,
-    ),
-    // title-sm (18px, w500) → card titles
-    titleMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 16.sp,
-        lineHeight = 22.sp,
-        letterSpacing = 0.em,
-    ),
-    titleSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.em,
-    ),
-    // body (17px, w300, generous line-height) → paragraphs/descriptions
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Light,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.01.em,
-    ),
-    bodyMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Light,
-        fontSize = 14.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.01.em,
-    ),
-    // caption (13px, w300) → helper text, small table copy
-    bodySmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Light,
-        fontSize = 13.sp,
-        lineHeight = 18.sp,
-        letterSpacing = 0.015.em,
-    ),
-    // button (15px, w500) → CTAs, segmented controls
-    labelLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 15.sp,
-        lineHeight = 20.sp,
-        letterSpacing = 0.01.em,
-    ),
-    // label (13px, w500) → nav, labels, badges, metadata
-    labelMedium = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 13.sp,
-        lineHeight = 18.sp,
-        letterSpacing = 0.015.em,
-    ),
-    // legal (12px, w300) → footnotes, fine print
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.02.em,
-    ),
+    displaySmall = style(34, 40, FontWeight.SemiBold, -0.03),
+    headlineLarge = style(30, 36, FontWeight.SemiBold, -0.025),
+    headlineMedium = style(26, 32, FontWeight.SemiBold, -0.02),
+    headlineSmall = style(22, 28, FontWeight.SemiBold, -0.015),
+    titleLarge = style(19, 26, FontWeight.SemiBold, -0.01),
+    titleMedium = style(16, 22, FontWeight.SemiBold, -0.005),
+    titleSmall = style(14, 20, FontWeight.SemiBold, 0.0),
+    bodyLarge = style(16, 24, FontWeight.Normal, 0.0),
+    bodyMedium = style(14, 20, FontWeight.Normal, 0.0),
+    bodySmall = style(13, 18, FontWeight.Normal, 0.0),
+    labelLarge = style(15, 20, FontWeight.Medium, 0.0),
+    labelMedium = style(13, 18, FontWeight.Medium, 0.005),
+    labelSmall = style(11, 16, FontWeight.Medium, 0.02),
+)
+
+// Stat numbers: tabular figures ("tnum") so digits align and don't shift width while refreshing.
+val NumericStyle = TextStyle(
+    fontFamily = Inter,
+    fontWeight = FontWeight.SemiBold,
+    fontFeatureSettings = "tnum",
+    letterSpacing = (-0.02).em,
 )
