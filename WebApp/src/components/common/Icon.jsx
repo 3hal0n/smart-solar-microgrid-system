@@ -4,8 +4,9 @@
 //          cards, top bar) — drawn inline instead of pulling in an
 //          icon library for a handful of glyphs. 20x20 grid, 1.6
 //          stroke, currentColor, so color/size come from className.
-// Author: Shalon
+// Author: Shalon 
 // ============================================================
+
 const PATHS = {
   hubs: (
     <>
@@ -54,12 +55,27 @@ const PATHS = {
     </>
   ),
   check: <path d="M4 10.5 8 14l8-8" strokeLinecap="round" strokeLinejoin="round" />,
-  grid: (
+  
+  // Rukshan (Added new icons for Pending Prosumers Page)
+  clock: (
     <>
-      <rect x="3" y="3" width="5.5" height="5.5" rx="1.2" />
-      <rect x="11.5" y="3" width="5.5" height="5.5" rx="1.2" />
-      <rect x="3" y="11.5" width="5.5" height="5.5" rx="1.2" />
-      <rect x="11.5" y="11.5" width="5.5" height="5.5" rx="1.2" />
+      <circle cx="10" cy="10" r="7.5" />
+      <path d="M10 6.5V10l2.5 2" strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+  prosumer: (
+    <>
+      <path d="M3 10.5L10 4l7 6.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5 9.5V16h10V9.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M7 12h6v3H7z" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10 5.5V3" strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
+
+  alert: (
+    <>
+      <path d="M10 6v4M10 14v2" strokeLinecap="round" />
+      <path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z" />
     </>
   ),
 };

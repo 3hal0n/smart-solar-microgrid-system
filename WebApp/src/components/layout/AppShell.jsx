@@ -33,6 +33,15 @@ const NAV_SECTIONS = [
     title: 'Reservations',
     items: [{ label: 'Reservations', to: '/reservations', icon: 'calendar' }],
   },
+
+  // Rukshan — prosumer account management (Backoffice only).
+  {
+    title: 'Prosumer management',
+    items: [
+      { label: 'Prosumers', to: '/admin/prosumers', icon: 'prosumer' },
+      { label: 'Pending Prosumers', to: '/admin/prosumers/pending', icon: 'clock' },
+    ]
+  },
   // Migara — user management (Backoffice/GridOperator accounts).
   {
     title: 'Administration',
