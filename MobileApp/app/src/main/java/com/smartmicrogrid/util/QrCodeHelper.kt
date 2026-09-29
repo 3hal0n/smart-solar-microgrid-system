@@ -1,3 +1,11 @@
+// ============================================================
+// File: QrCodeHelper.kt
+// Purpose: Utility class to generate QR code ImageBitmaps from
+//          text strings (e.g., backend-generated qrTokens) using
+//          the ZXing library. Designed specifically for rendering
+//          in Jetpack Compose UIs without external UI dependencies.
+// Author: Migara
+// ============================================================
 package com.smartmicrogrid.util
 
 import android.graphics.Bitmap

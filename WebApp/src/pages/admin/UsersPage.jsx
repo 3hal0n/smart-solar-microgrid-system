@@ -2,8 +2,9 @@
 // File: UsersPage.jsx
 // Purpose: Handles CRUD operations for system users (Backoffice/
 //          GridOperator). Fetches users, displays them in a table,
-//          and provides modals for creation and updating.
-// Author: Migara (updated with Edit functionality)
+//          provides modals for creation/updating, and includes
+//          search and filter capabilities. Excludes Prosumers.
+// Author: Migara (updated with Search, Filters, and Prosumer exclusion)
 // ============================================================
 
 import { useMemo, useState, useEffect, useCallback } from 'react';
@@ -27,13 +28,18 @@ export default function UsersPage() {
   const [toast, setToast] = useState({ message: '', tone: 'error' });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState(null); // Tracks if we are editing
+  const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
 
   const [deactivateTarget, setDeactivateTarget] = useState(null);
   const [deactivating, setDeactivating] = useState(false);
+
+  // --- NEW: State for Search and Filters ---
+  const [searchQuery, setSearchQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('All');
 
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
@@ -47,21 +53,46 @@ export default function UsersPage() {
     }
   }, []);
 
-  // Fetch users on mount
   useEffect(() => {
     if (role === 'Backoffice') {
       fetchUsers();
     }
   }, [role, fetchUsers]);
 
+  // --- NEW: Filter logic (Excludes Prosumers, applies search/filters) ---
+  const filteredUsers = useMemo(() => {
+    return users.filter((u) => {
+      // 1. Exclude Prosumers entirely
+      if (u.role === 'Prosumer') return false;
+
+      // 2. Search by username (case-insensitive)
+      if (searchQuery && !u.username.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false;
+      }
+
+      // 3. Filter by role
+      if (roleFilter !== 'All' && u.role !== roleFilter) {
+        return false;
+      }
+
+      // 4. Filter by status
+      if (statusFilter !== 'All' && u.status !== statusFilter) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [users, searchQuery, roleFilter, statusFilter]);
+
+  // Summary now reflects the currently filtered view
   const summary = useMemo(
     () => ({
-      total: users.length,
-      active: users.filter((u) => u.status === 'Active').length,
-      backoffice: users.filter((u) => u.role === 'Backoffice').length,
-      operators: users.filter((u) => u.role === 'GridOperator').length,
+      total: filteredUsers.length,
+      active: filteredUsers.filter((u) => u.status === 'Active').length,
+      backoffice: filteredUsers.filter((u) => u.role === 'Backoffice').length,
+      operators: filteredUsers.filter((u) => u.role === 'GridOperator').length,
     }),
-    [users],
+    [filteredUsers],
   );
 
   const handleOpenCreate = () => {
@@ -74,7 +105,7 @@ export default function UsersPage() {
     setEditingUser(user);
     setFormData({
       username: user.username,
-      password: '', // Password is not updated via this form
+      password: '', 
       role: user.role,
       fullName: user.fullName,
       email: user.email,
@@ -108,7 +139,6 @@ export default function UsersPage() {
     if (!editingUser) return;
     setUpdating(true);
     try {
-      // Only send the fields the backend expects for update
       const updatePayload = {
         fullName: formData.fullName,
         email: formData.email,
@@ -141,7 +171,7 @@ export default function UsersPage() {
     }
   };
 
-    const columns = useMemo(
+  const columns = useMemo(
     () => [
       { key: 'username', header: 'Username', render: (u) => <span className="font-medium text-ink">{u.username}</span> },
       { key: 'fullName', header: 'Full name' },
@@ -162,7 +192,6 @@ export default function UsersPage() {
         className: 'text-right',
         render: (u) => (
           <div className="flex justify-end gap-2">
-            {/* Only show Edit and Deactivate buttons if the user is Active */}
             {u.status === 'Active' ? (
               <>
                 <Button variant="secondary" size="sm" onClick={() => handleOpenEdit(u)}>
@@ -182,7 +211,6 @@ export default function UsersPage() {
     [handleOpenEdit],
   );
 
-  // Access control
   if (role !== 'Backoffice') {
     return (
       <div className="mx-auto max-w-6xl px-6 py-8">
@@ -206,7 +234,7 @@ export default function UsersPage() {
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <StatCard icon="user" label="Total users" value={summary.total} hint="Registered staff accounts" />
+        <StatCard icon="user" label="Total staff" value={summary.total} hint="Filtered staff accounts" />
         <StatCard
           icon="pulse"
           label="Active"
@@ -217,11 +245,47 @@ export default function UsersPage() {
         <StatCard icon="bolt" label="Grid operators" value={summary.operators} hint="Field accounts" />
       </div>
 
+      {/* --- NEW: Search and Filter Controls --- */}
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+        <div className="flex-1">
+          <Input
+            label="Search by username"
+            placeholder="e.g., migara_admin"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <div className="w-full sm:w-48">
+          <Input
+            label="Filter by Role"
+            as="select"
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+          >
+            <option value="All">All Roles</option>
+            <option value="Backoffice">Backoffice</option>
+            <option value="GridOperator">Grid Operator</option>
+          </Input>
+        </div>
+        <div className="w-full sm:w-48">
+          <Input
+            label="Filter by Status"
+            as="select"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="All">All Statuses</option>
+            <option value="Active">Active</option>
+            <option value="Deactivated">Deactivated</option>
+          </Input>
+        </div>
+      </div>
+
       <DataTable
         columns={columns}
-        data={users}
+        data={filteredUsers}
         loading={isLoading}
-        emptyMessage="No users found."
+        emptyMessage="No matching staff users found."
         rowKey={(u) => u.id}
       />
 
@@ -232,7 +296,6 @@ export default function UsersPage() {
         description={editingUser ? "Update user details." : "Provisions a Backoffice or Grid Operator staff account."}
       >
         <form onSubmit={editingUser ? handleUpdateUser : handleCreateUser} className="flex flex-col gap-4">
-          {/* Only show Username and Password when creating a new user */}
           {!editingUser && (
             <>
               <Input
@@ -286,9 +349,7 @@ export default function UsersPage() {
       <ConfirmDialog
         open={Boolean(deactivateTarget)}
         title="Deactivate user?"
-        description={
-          deactivateTarget ? `"${deactivateTarget.username}" will no longer be able to sign in.` : ''
-        }
+        description={deactivateTarget ? `"${deactivateTarget.username}" will no longer be able to sign in.` : ''}
         confirmLabel="Deactivate"
         tone="danger"
         confirming={deactivating}

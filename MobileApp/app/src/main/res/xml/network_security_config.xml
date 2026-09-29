@@ -18,5 +18,6 @@ Author: Shalon
         <domain includeSubdomains="false">localhost</domain>
         <domain includeSubdomains="false">127.0.0.1</domain>
         <domain includeSubdomains="false">192.168.1.7</domain>
+        <domain includeSubdomains="false">192.168.8.101</domain>
     </domain-config>
 </network-security-config>
