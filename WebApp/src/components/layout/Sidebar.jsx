@@ -31,6 +31,7 @@ function NavSection({ section, onNavigate }) {
           <NavLink
             key={item.to}
             to={item.to}
+            end={item.end}
             onClick={onNavigate}
             className={({ isActive }) =>
               `flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors ${

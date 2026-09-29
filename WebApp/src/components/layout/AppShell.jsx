@@ -31,7 +31,7 @@ const NAV_SECTIONS = [
   {
     title: 'Prosumer management',
     items: [
-      { label: 'Prosumers', to: '/admin/prosumers', icon: 'prosumer' },
+      { label: 'Prosumers', to: '/admin/prosumers', icon: 'prosumer', end: true },
       { label: 'Pending Prosumers', to: '/admin/prosumers/pending', icon: 'clock' },
     ],
   },
