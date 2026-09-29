@@ -48,7 +48,7 @@ public class LocationResponse
 // Response row for GET /stations.
 // NOTE: totalBatterySlots was added here beyond architecture.md §3's original shape
 // (id, name, location, capacityKWh, status) to support the web Stations table's "slot count"
-// column — see architecture.md §3 for the corresponding note. Backward-compatible field addition.
+// column - see architecture.md §3 for the corresponding note. Backward-compatible field addition.
 public class StationSummaryResponse
 {
     public string Id { get; set; } = string.Empty;
@@ -91,9 +91,9 @@ public class ReservationOverviewResponse
     public DateTime? ScheduledAt { get; set; }
 }
 
-// Response row for GET /stations/nearby (moved from Migara to Shalon 2026-09-21 — see §3/§4).
+// Response row for GET /stations/nearby (moved from Migara to Shalon 2026-09-21 - see §3/§4).
 // NOTE: capacityKWh and availableSlots were added 2026-09-24 beyond architecture.md §3's original
-// shape (id, name, location, distanceKm), for the mobile map's info window — backward-compatible
+// shape (id, name, location, distanceKm), for the mobile map's info window - backward-compatible
 // addition, same pattern as GET /stations' totalBatterySlots.
 public class NearbyStationResponse
 {

@@ -5,7 +5,7 @@
 //          reads as the same product, not a separate Material default
 //          theme. Names mirror the doc's {colors.*} tokens directly.
 //          Light-mode only per 2026-09-28 direction (Theme.kt always
-//          builds LightColorScheme) — no Dark* tokens here anymore.
+//          builds LightColorScheme) - no Dark* tokens here anymore.
 // Author: Shalon
 // ============================================================
 package com.smartmicrogrid.ui.theme
@@ -34,18 +34,18 @@ val StripeFooterBg = Color(0xFF0A2540)
 val StripeOnPrimary = Color(0xFFFFFFFF)
 
 // The cyan stop from the JouleMark brand gradient, reused as a standalone accent for a third
-// stat-tray color (2026-09-26 "more colorful, not full enterprise" pass) — Active/Pending already
+// stat-tray color (2026-09-26 "more colorful, not full enterprise" pass) - Active/Pending already
 // read naturally as primary/warning, this gives Upcoming its own identity instead of repeating one.
 val StripeCyan = Color(0xFF0EA5A0)
 val StripeCyanContainer = Color(0xFFD9F5F3)
 val StripeOnCyanContainer = Color(0xFF063D3A)
 
-// Tray tint for stat/feature trays — a step darker than {colors.canvas} so a tray reads as a frame
+// Tray tint for stat/feature trays - a step darker than {colors.canvas} so a tray reads as a frame
 // on the canvas background (the doc's surfaceAlt #fafbfd is lighter than canvas, which washes out).
 // Same value WebApp uses for its surface-alt trays.
 val StripeTray = Color(0xFFF1F5F9)
 
-// Soft container tints for semantic colors — not literal doc tokens (the doc only gives a single
+// Soft container tints for semantic colors - not literal doc tokens (the doc only gives a single
 // hex per semantic role), derived by lightening each one for container/on-container pairs the way
 // Material3's color roles require.
 val StripeSuccessContainer = Color(0xFFDCF3E9)

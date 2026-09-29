@@ -37,7 +37,7 @@ export default function LoginPage() {
       // 2. Update global auth state via AuthContext (persists to localStorage)
       login({ token, role, fullName, userId });
 
-      // 3. All roles land on the Dashboard (architecture.md §6 — central overview first)
+      // 3. All roles land on the Dashboard (architecture.md §6 - central overview first)
       if (role === 'Backoffice' || role === 'GridOperator') {
         navigate('/dashboard');
       } else {

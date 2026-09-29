@@ -1,6 +1,6 @@
 // ============================================================
 // File: Sidebar.jsx
-// Purpose: Shared left navigation rail for AppShell — brand at the
+// Purpose: Shared left navigation rail for AppShell - brand at the
 //          top, icon nav sections in the middle, and the signed-in
 //          user + sign out pinned to the bottom. Sits flat on the
 //          canvas (the content panel is the one raised surface) and
@@ -95,7 +95,7 @@ export default function Sidebar({ sections, open, onClose, fullName, role, profi
               />
             ) : (
               <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-soft text-[12px] font-semibold text-primary">
-                {fullName ? initialsOf(fullName) : '—'}
+                {fullName ? initialsOf(fullName) : '-'}
               </span>
             )}
             <div className="min-w-0 flex-1">

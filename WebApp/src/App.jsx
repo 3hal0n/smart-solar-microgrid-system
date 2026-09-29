@@ -1,6 +1,6 @@
 // ============================================================
 // File: App.jsx
-// Purpose: App shell — routing and the shared auth provider. Pages
+// Purpose: App shell - routing and the shared auth provider. Pages
 //          that should render inside the shared AppShell (sidebar +
 //          top bar) nest under its layout route below; a route
 //          placed outside it (e.g. login screen) renders
@@ -31,13 +31,13 @@ export default function App() {
       <ToastProvider>
         <BrowserRouter>
           <Routes>
-            {/* Public pages — deliberately outside AppShell (no sidebar/top bar). */}
+            {/* Public pages - deliberately outside AppShell (no sidebar/top bar). */}
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} /> {/* ADDED */}
 
             {/* Everything below requires a signed-in session (2026-09-26: these routes were
                 reachable with no login check at all until Migara's real auth existed to gate
-                them against) — see RequireAuth.jsx. */}
+                them against) - see RequireAuth.jsx. */}
             <Route
               element={
                 <RequireAuth>
@@ -49,7 +49,7 @@ export default function App() {
               <Route path="/stations" element={<StationsPage />} />
               <Route path="/stations/:id" element={<StationDetailPage />} />
 
-              {/* Migara: User Management — Backoffice only. */}
+              {/* Migara: User Management - Backoffice only. */}
               <Route
                 path="/admin/users"
                 element={

@@ -225,7 +225,7 @@ fun ScanQrScreen() {
                 }
             }
         } else {
-            // No camera permission — centered prompt
+            // No camera permission - centered prompt
             Column(
                 modifier = Modifier.fillMaxSize().padding(32.dp),
                 verticalArrangement = Arrangement.Center,

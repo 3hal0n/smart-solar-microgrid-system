@@ -1,6 +1,6 @@
 // ============================================================
 // File: ReservationService.cs
-// Purpose: Business logic for the reservation lifecycle —
+// Purpose: Business logic for the reservation lifecycle -
 //          7-day booking window, 12-hour notice rule, slot
 //          coordination through SlotService, QR issuance,
 //          and operator QR verification (flips Confirmed ->
@@ -62,7 +62,7 @@ public class ReservationService
         if (station.Status != "Active")
             throw new ServiceException(409, "STATION_INACTIVE", "Station is not active.");
 
-        // Issue QR immediately — no separate approval step (see architecture.md §2.4).
+        // Issue QR immediately - no separate approval step (see architecture.md §2.4).
         var reservationId = MongoDB.Bson.ObjectId.GenerateNewId().ToString();
         var qrExpiry = scheduledUtc.AddHours(24);
         var qrToken = _qrService.Issue(reservationId, qrExpiry);

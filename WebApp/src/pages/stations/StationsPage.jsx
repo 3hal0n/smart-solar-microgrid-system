@@ -1,6 +1,6 @@
 // ============================================================
 // File: StationsPage.jsx
-// Purpose: Microgrid hub & node management screen — search, filter,
+// Purpose: Microgrid hub & node management screen - search, filter,
 //          inspect node capacity, battery slot counts, and launch
 //          create/edit modals.
 //          Calls the real Stations API and renders its data/errors as-is.
@@ -24,7 +24,7 @@ import StationForm from './StationForm.jsx';
 function formatCoordinates(location) {
   const [lng, lat] = location?.coordinates ?? [];
   if (lat === undefined || lng === undefined) {
-    return '—';
+    return '-';
   }
   return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
 }
@@ -362,7 +362,7 @@ export default function StationsPage() {
                       </Td>
                       <Td className="tnum text-right py-3.5">
                         <span className="inline-flex items-center justify-center rounded-md bg-surface-alt px-2.5 py-0.5 text-xs text-body font-semibold">
-                          {station.batterySlots?.length ?? station.totalBatterySlots ?? '—'}
+                          {station.batterySlots?.length ?? station.totalBatterySlots ?? '-'}
                         </span>
                       </Td>
                       <Td className="py-3.5">

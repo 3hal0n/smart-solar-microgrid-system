@@ -4,7 +4,7 @@
 //          replacing Material3's stock NavigationBar: white surface
 //          with a hairline + soft upward shadow, and the selected tab
 //          shown as a violet icon inside an animated soft-violet pill
-//          with its label darkened — the unselected tabs stay quiet.
+//          with its label darkened - the unselected tabs stay quiet.
 //          Pads itself for the system navigation bar (edge-to-edge).
 // Author: Shalon
 // ============================================================

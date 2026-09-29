@@ -1,6 +1,6 @@
 // ============================================================
 // File: OperatorProfileScreen.kt
-// Purpose: Grid Operator profile screen — displays staff session
+// Purpose: Grid Operator profile screen - displays staff session
 //          details, avatar photo, privileges, and logout button.
 //          No extra top spacing; clean Stripe design styling.
 // ============================================================
@@ -255,8 +255,8 @@ fun OperatorProfileScreen(onLogout: () -> Unit) {
 
                     HorizontalDivider(color = StripeBorder)
 
-                    InfoRow(label = "Username", value = staffSession?.username ?: "—")
-                    InfoRow(label = "Full Name", value = staffSession?.fullName ?: "—")
+                    InfoRow(label = "Username", value = staffSession?.username ?: "-")
+                    InfoRow(label = "Full Name", value = staffSession?.fullName ?: "-")
                     InfoRow(label = "Assigned Role", value = staffSession?.role ?: "GridOperator")
                     InfoRow(label = "Account Status", value = "Active", valueColor = StripeSuccess)
                     InfoRow(

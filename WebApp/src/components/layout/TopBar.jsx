@@ -1,6 +1,6 @@
 // ============================================================
 // File: TopBar.jsx
-// Purpose: Shared top bar for AppShell — mobile sidebar toggle and
+// Purpose: Shared top bar for AppShell - mobile sidebar toggle and
 //          a breadcrumb for the current page. Sits on the canvas
 //          above the raised content panel. Purely presentational:
 //          the crumbs come in as props from AppShell.

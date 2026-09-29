@@ -3,7 +3,7 @@
 // Purpose: Prosumer dashboard, per architecture.md §6/§7 (Shalon):
 //          active/pending/approved-future counts, current bookings,
 //          pending reservations (needs check-in), booking history and
-//          search/filter — backed by GET /dashboard/prosumer/{nic}/
+//          search/filter - backed by GET /dashboard/prosumer/{nic}/
 //          summary and GET /reservations (FAT service: this screen only
 //          chooses which filters to send, never computes business
 //          rules). Cache-first via DashboardCacheDao, then refresh; a
@@ -32,8 +32,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -126,7 +128,7 @@ private val STATUS_FILTERS = listOf("All", "Confirmed", "Completed", "Cancelled"
 private val DATE_INPUT_PATTERN = Regex("""^\d{4}-\d{2}-\d{2}$""")
 private const val HISTORY_PREVIEW = 5
 
-// The signature gradient stop from the JouleMark — used only as a thin accent stripe.
+// The signature gradient stop from the JouleMark - used only as a thin accent stripe.
 private val SignatureCyan = Color(0xFF11EFE3)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -185,7 +187,7 @@ fun ProsumerDashboardScreen(
                     loadError = if (summary == null) {
                         "Cannot connect to server. Check your network connection or sign in again."
                     } else {
-                        "Couldn't refresh dashboard — showing last saved data."
+                        "Couldn't refresh dashboard - showing last saved data."
                     }
                 }
             }
@@ -202,7 +204,7 @@ fun ProsumerDashboardScreen(
     val fromDateValid = fromFilter.isBlank() || DATE_INPUT_PATTERN.matches(fromFilter)
     val toDateValid = toFilter.isBlank() || DATE_INPUT_PATTERN.matches(toFilter)
 
-    // Debounced GET /reservations — "All" is a UI-only sentinel, sent as no status param.
+    // Debounced GET /reservations - "All" is a UI-only sentinel, sent as no status param.
     LaunchedEffect(statusFilter, stationFilter, fromFilter, toFilter, refreshToken) {
         delay(300)
         reservationsError = null
@@ -339,14 +341,21 @@ fun ProsumerDashboardScreen(
                 onOpenBookings = onOpenBookings,
             )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(IntrinsicSize.Max),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
                 MetricTile(
                     label = "Active",
                     value = summary?.activeCount,
                     icon = JouleIcons.Pulse,
                     accent = StripePrimary,
                     accentSoft = StripeBrandVioletSoft,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
                 )
                 MetricTile(
                     label = "Needs check-in",
@@ -354,7 +363,9 @@ fun ProsumerDashboardScreen(
                     icon = JouleIcons.Bolt,
                     accent = StripeWarning,
                     accentSoft = StripeWarningContainer,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
                 )
                 MetricTile(
                     label = "Upcoming",
@@ -362,7 +373,9 @@ fun ProsumerDashboardScreen(
                     icon = JouleIcons.Calendar,
                     accent = StripeCyan,
                     accentSoft = StripeCyanContainer,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight(),
                 )
             }
 
@@ -392,7 +405,7 @@ fun ProsumerDashboardScreen(
             AnimatedVisibility(visible = needsCheckIn.isNotEmpty()) {
                 BookingGroup(
                     title = "Needs check-in",
-                    subtitle = "Past start time — show your QR at the hub",
+                    subtitle = "Past start time - show your QR at the hub",
                     items = needsCheckIn,
                     nameFor = ::nameFor,
                     highlightFirst = true,
@@ -502,7 +515,7 @@ private fun NextBookingHero(
             .clip(RoundedCornerShape(20.dp))
             .background(StripeInk),
     ) {
-        // Thin signature stripe along the top edge — a narrow accent, never a page-wide gradient.
+        // Thin signature stripe along the top edge - a narrow accent, never a page-wide gradient.
         Box(
             Modifier
                 .fillMaxWidth()

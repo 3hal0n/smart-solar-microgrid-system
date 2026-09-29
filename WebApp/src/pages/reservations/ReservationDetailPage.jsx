@@ -1,7 +1,7 @@
 // ============================================================
 // File: ReservationDetailPage.jsx
 // Purpose: Single reservation view for Backoffice/GridOperator.
-//          Shows lifecycle timestamps, QR token (as text — the
+//          Shows lifecycle timestamps, QR token (as text - the
 //          web app never renders or scans the QR image, that's
 //          a mobile action), and offers Cancel for Confirmed
 //          reservations. No business rules computed here.
@@ -18,7 +18,7 @@ import Toast from "../../components/common/Toast.jsx";
 
 // Formats an ISO timestamp for display, or an em dash for null.
 function formatDateTime(iso) {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const d = new Date(iso);
   return d.toLocaleString(undefined, {
     year: "numeric",
@@ -166,7 +166,7 @@ export default function ReservationDetailPage() {
             <span className="font-mono text-lg">{r.id.slice(-8)}</span>
           </h1>
           <p className="text-sm text-muted mt-1">
-            Full lifecycle detail. Read-only — cancel is the only write action
+            Full lifecycle detail. Read-only - cancel is the only write action
             available here.
           </p>
         </div>
@@ -208,18 +208,18 @@ export default function ReservationDetailPage() {
               <span className="tnum">{formatDateTime(r.completedAt)}</span>
             }
           />
-          <DetailRow label="Cancel reason" value={r.cancelReason || "—"} />
+          <DetailRow label="Cancel reason" value={r.cancelReason || "-"} />
         </DetailCard>
 
         <DetailCard title="QR token" className="md:col-span-2">
           <p className="text-xs text-muted mb-2">
             The token is issued at creation and verified by a Grid Operator's
-            mobile scan. The web app never renders or scans it — this is a text
+            mobile scan. The web app never renders or scans it - this is a text
             view only.
           </p>
           <div className="rounded-md border border-line bg-surface-alt p-3">
             <code className="text-xs font-mono break-all text-ink">
-              {r.qrToken || "—"}
+              {r.qrToken || "-"}
             </code>
           </div>
         </DetailCard>
@@ -234,7 +234,7 @@ export default function ReservationDetailPage() {
         <div className="space-y-4">
           <p className="text-sm text-body">
             Cancelling this reservation will free the slot. The server enforces
-            a 12-hour notice rule — a late cancel returns a rejection message
+            a 12-hour notice rule - a late cancel returns a rejection message
             that will be shown here verbatim.
           </p>
           <Input
@@ -262,7 +262,7 @@ export default function ReservationDetailPage() {
         </div>
       </Modal>
 
-      {/* Toast — parent-owned state */}
+      {/* Toast - parent-owned state */}
       <Toast
         message={toast.message}
         tone={toast.tone}

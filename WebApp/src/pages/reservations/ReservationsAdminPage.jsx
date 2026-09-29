@@ -1,7 +1,7 @@
 // ============================================================
 // File: ReservationsAdminPage.jsx
 // Purpose: Backoffice/GridOperator admin view of all energy
-//          reservations. Read + cancel only — creation and edit
+//          reservations. Read + cancel only - creation and edit
 //          are Prosumer mobile actions per architecture.md §3.
 //          All business rules (12-hour notice, status transitions)
 //          enforced server-side; this page renders what the API
@@ -21,7 +21,7 @@ import StatCard from "../../components/common/StatCard.jsx";
 
 // Formats an ISO timestamp for display (local time, minute precision).
 function formatDateTime(iso) {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const d = new Date(iso);
   return d.toLocaleString(undefined, {
     year: "numeric",
@@ -53,7 +53,7 @@ export default function ReservationsAdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Toast state — parent-owned per Shalon's Toast.jsx pattern.
+  // Toast state - parent-owned per Shalon's Toast.jsx pattern.
   const [toast, setToast] = useState({ message: "", tone: "error" });
 
   // Filters mirror the query params GET /api/reservations accepts.
@@ -120,7 +120,7 @@ export default function ReservationsAdminPage() {
         e?.response?.data?.code ||
         e.message ||
         "Cancel failed.";
-      // Surface the API's rejection message verbatim — a rubric expectation.
+      // Surface the API's rejection message verbatim - a rubric expectation.
       show(msg, "error");
     } finally {
       setCancelBusy(false);
@@ -205,7 +205,7 @@ export default function ReservationsAdminPage() {
           <h1 className="text-xl font-semibold tracking-tight text-ink">Reservations</h1>
           <p className="mt-1 text-[13px] text-muted">
             All energy slot reservations across microgrid nodes. Read-only
-            oversight — creation and edits happen on the Prosumer mobile app.
+            oversight - creation and edits happen on the Prosumer mobile app.
           </p>
         </div>
         <Button variant="secondary" onClick={load} disabled={loading}>
@@ -255,7 +255,7 @@ export default function ReservationsAdminPage() {
         </p>
       )}
 
-      {/* Table — Shalon's shared shell, rendered with named exports */}
+      {/* Table - Shalon's shared shell, rendered with named exports */}
       <Table>
         <thead>
           <tr>
@@ -342,7 +342,7 @@ export default function ReservationsAdminPage() {
               <span className="font-semibold">{cancelTarget.prosumerNic}</span>?
             </p>
             <p className="text-xs text-muted">
-              The server enforces the 12-hour notice rule — a late cancel will
+              The server enforces the 12-hour notice rule - a late cancel will
               be rejected and the reason shown below.
             </p>
             <Input
@@ -370,7 +370,7 @@ export default function ReservationsAdminPage() {
           </div>
         )}
       </Modal>
-      {/* Toast — Shalon's component, parent-owned state */}
+      {/* Toast - Shalon's component, parent-owned state */}
       <Toast
         message={toast.message}
         tone={toast.tone}

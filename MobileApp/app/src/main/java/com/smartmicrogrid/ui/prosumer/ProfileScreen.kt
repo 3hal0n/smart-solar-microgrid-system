@@ -1,6 +1,6 @@
 // ============================================================
 // File: ProfileScreen.kt
-// Purpose: Prosumer profile screen — avatar with gallery photo upload,
+// Purpose: Prosumer profile screen - avatar with gallery photo upload,
 //          editable fields, account status, deactivation, and logout.
 //          No extra top spacing; content starts directly below insets.
 // ============================================================

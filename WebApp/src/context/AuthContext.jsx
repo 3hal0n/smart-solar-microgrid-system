@@ -4,7 +4,7 @@
 //          localStorage, so any page can read "who's logged in"
 //          without re-implementing storage. Built jointly Day 1 per
 //          architecture.md §8; the client never decides *whether*
-//          an action is allowed from this state — that's still
+//          an action is allowed from this state - that's still
 //          enforced server-side per the FAT service pattern.
 // Author: Shalon
 // ============================================================

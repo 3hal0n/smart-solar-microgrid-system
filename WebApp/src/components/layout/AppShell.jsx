@@ -1,7 +1,7 @@
 // ============================================================
 // File: AppShell.jsx
-// Purpose: Shared product shell — sidebar on the left and full
-//          content panel from top to bottom — that every authenticated
+// Purpose: Shared product shell - sidebar on the left and full
+//          content panel from top to bottom - that every authenticated
 //          page renders inside.
 // Author: Shalon
 // ============================================================
@@ -22,12 +22,12 @@ const NAV_SECTIONS = [
     title: 'Node management',
     items: [{ label: 'Microgrid hubs', to: '/stations', icon: 'hubs' }],
   },
-  // Dinil — reservation oversight (web admin view of the reservations collection).
+  // Dinil - reservation oversight (web admin view of the reservations collection).
   {
     title: 'Reservations',
     items: [{ label: 'Reservations', to: '/reservations', icon: 'calendar' }],
   },
-  // Migara — user management (Backoffice/GridOperator accounts).
+  // Migara - user management (Backoffice/GridOperator accounts).
   {
     title: 'Administration',
     items: [{ label: 'Users', to: '/admin/users', icon: 'user' }],

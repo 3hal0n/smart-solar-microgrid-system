@@ -18,7 +18,7 @@ import Icon from '../../components/common/Icon.jsx';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatRelative(iso) {
-  if (!iso) return '—';
+  if (!iso) return '-';
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60000);
   if (m < 1) return 'Just now';
@@ -29,7 +29,7 @@ function formatRelative(iso) {
 }
 
 function formatDate(iso) {
-  if (!iso) return '—';
+  if (!iso) return '-';
   try {
     const d = new Date(iso);
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -129,7 +129,7 @@ function PrimaryKpiCard({ label, value, hint, icon, accent = 'primary', loading 
       </div>
       <div className="mt-4">
         <p className="tnum text-3xl font-bold tracking-tight text-ink">
-          {loading ? '…' : (value ?? '—')}
+          {loading ? '…' : (value ?? '-')}
         </p>
         {hint && (
           <p className="mt-1.5 text-[12px] text-muted flex items-center gap-1">
@@ -150,7 +150,7 @@ function SecondaryKpiStrip({ label, value, icon, hint, loading }) {
       <div className="min-w-0 flex-1">
         <p className="text-[11px] font-medium uppercase tracking-wider text-muted truncate">{label}</p>
         <p className="tnum text-lg font-bold text-ink leading-tight">
-          {loading ? '…' : (value ?? '—')}
+          {loading ? '…' : (value ?? '-')}
         </p>
       </div>
       {hint && <span className="text-[11px] text-muted shrink-0">{hint}</span>}
@@ -190,7 +190,7 @@ function ActivityItem({ reservation }) {
         <div className="flex items-center gap-2">
           <p className="text-[13px] font-semibold text-ink truncate">NIC {reservation.prosumerNic}</p>
           <span className="text-[11px] text-muted">·</span>
-          <span className="text-[11px] text-muted truncate">Station {reservation.stationId?.slice(-6) ?? '—'}</span>
+          <span className="text-[11px] text-muted truncate">Station {reservation.stationId?.slice(-6) ?? '-'}</span>
         </div>
         <p className="text-[11px] text-muted mt-0.5">{formatDate(reservation.scheduledAt)}</p>
       </div>
@@ -369,7 +369,7 @@ export default function DashboardPage() {
           />
           <SecondaryKpiStrip
             label="Staff Accounts"
-            value={users?.length ?? '—'}
+            value={users?.length ?? '-'}
             icon="user"
             hint="Operators & Admins"
             loading={loading}

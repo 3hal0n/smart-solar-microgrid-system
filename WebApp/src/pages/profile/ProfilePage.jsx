@@ -318,7 +318,7 @@ export default function ProfilePage() {
               <div className="flex items-center justify-between text-muted">
                 <span>Email</span>
                 <span className="font-medium text-ink truncate max-w-[180px]">
-                  {profile.email || '—'}
+                  {profile.email || '-'}
                 </span>
               </div>
               <div className="flex items-center justify-between text-muted">
@@ -369,7 +369,7 @@ export default function ProfilePage() {
                   </label>
                   <input
                     type="text"
-                    value={profile.username || '—'}
+                    value={profile.username || '-'}
                     disabled
                     className="w-full rounded-lg border border-line bg-surface-alt px-3.5 py-2 text-sm text-muted cursor-not-allowed"
                   />
@@ -380,7 +380,7 @@ export default function ProfilePage() {
                   </label>
                   <input
                     type="text"
-                    value={profile.role || authRole || '—'}
+                    value={profile.role || authRole || '-'}
                     disabled
                     className="w-full rounded-lg border border-line bg-surface-alt px-3.5 py-2 text-sm text-muted cursor-not-allowed"
                   />

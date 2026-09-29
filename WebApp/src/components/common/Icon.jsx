@@ -1,7 +1,7 @@
 // ============================================================
 // File: Icon.jsx
 // Purpose: Small shared set of inline stroke icons (nav, stat
-//          cards, top bar) — drawn inline instead of pulling in an
+//          cards, top bar) - drawn inline instead of pulling in an
 //          icon library for a handful of glyphs. 20x20 grid, 1.6
 //          stroke, currentColor, so color/size come from className.
 // Author: Shalon

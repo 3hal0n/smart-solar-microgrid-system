@@ -1,6 +1,6 @@
 // ============================================================
 // File: StationDetailPage.jsx
-// Purpose: Station detail & provisioning screen — editable operating
+// Purpose: Station detail & provisioning screen - editable operating
 //          schedule, battery slot manager with add/edit/status controls,
 //          and live reservations overview.
 //          Calls the real Stations/Slots API and renders data as-is.
@@ -23,7 +23,7 @@ import SlotForm from './SlotForm.jsx';
 function formatCoordinates(location) {
   const [lng, lat] = location?.coordinates ?? [];
   if (lat === undefined || lng === undefined) {
-    return '—';
+    return '-';
   }
   return `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
 }
@@ -290,7 +290,7 @@ export default function StationDetailPage() {
               </div>
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Declared Slots</p>
-                <p className="tnum mt-1 text-2xl font-bold text-ink">{station.totalBatterySlots ?? '—'}</p>
+                <p className="tnum mt-1 text-2xl font-bold text-ink">{station.totalBatterySlots ?? '-'}</p>
               </div>
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Active Slot Configs</p>
@@ -448,9 +448,9 @@ export default function StationDetailPage() {
                 reservations.map((reservation) => (
                   <tr key={`${reservation.slotId}-${reservation.scheduledAt}`} className="hover:bg-surface-alt/50 transition-colors">
                     <Td className="tnum text-right font-medium py-3.5">Slot {slotNumberFor(reservation.slotId)}</Td>
-                    <Td className="font-mono text-[12px] text-body py-3.5">{reservation.prosumerNic ?? '—'}</Td>
+                    <Td className="font-mono text-[12px] text-body py-3.5">{reservation.prosumerNic ?? '-'}</Td>
                     <Td className="tnum text-body py-3.5">
-                      {reservation.scheduledAt ? new Date(reservation.scheduledAt).toLocaleString() : '—'}
+                      {reservation.scheduledAt ? new Date(reservation.scheduledAt).toLocaleString() : '-'}
                     </Td>
                     <Td className="py-3.5">
                       <Badge tone={reservation.status === 'Confirmed' ? 'info' : 'neutral'}>{reservation.status}</Badge>

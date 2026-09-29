@@ -87,7 +87,7 @@ val CardShape = RoundedCornerShape(14.dp)
 val ControlShape = RoundedCornerShape(12.dp)
 val PillShape = RoundedCornerShape(50)
 
-// Blue-tinted, low elevation — docs/stripe.design.md: "keep shadows blue-tinted and subtle".
+// Blue-tinted, low elevation - docs/stripe.design.md: "keep shadows blue-tinted and subtle".
 private val ShadowTint = Color(0xFF31315D)
 
 fun Modifier.softShadow(shape: Shape = CardShape, elevation: Dp = 6.dp): Modifier =
@@ -160,23 +160,33 @@ fun MetricTile(
             .background(StripeSurface)
             .border(1.dp, StripeBorder, CardShape)
             .padding(horizontal = 14.dp, vertical = 14.dp),
+        verticalArrangement = Arrangement.SpaceBetween,
     ) {
-        Box(
-            modifier = Modifier
-                .size(30.dp)
-                .clip(RoundedCornerShape(9.dp))
-                .background(accentSoft),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
+        Column {
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .clip(RoundedCornerShape(9.dp))
+                    .background(accentSoft),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, contentDescription = null, tint = accent, modifier = Modifier.size(16.dp))
+            }
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = value?.toString() ?: "0",
+                style = NumericStyle.copy(fontSize = 26.sp, lineHeight = 30.sp),
+                color = StripeInk,
+            )
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(6.dp))
         Text(
-            text = value?.toString() ?: "–",
-            style = NumericStyle.copy(fontSize = 26.sp, lineHeight = 30.sp),
-            color = StripeInk,
+            label,
+            style = MaterialTheme.typography.labelMedium,
+            color = StripeBody,
+            maxLines = 2,
+            minLines = 2,
         )
-        Text(label, style = MaterialTheme.typography.labelMedium, color = StripeBody, maxLines = 2)
     }
 }
 
@@ -347,7 +357,7 @@ fun JouleTextField(
     }
 }
 
-// Pill segmented control — docs/stripe.design.md's segmented-control token.
+// Pill segmented control - docs/stripe.design.md's segmented-control token.
 @Composable
 fun <T> SegmentedControl(
     options: List<Pair<T, String>>,

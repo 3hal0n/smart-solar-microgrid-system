@@ -3,8 +3,8 @@
 // Purpose: Material3 type scale mapped from docs/stripe.design.md's
 //          {typography.*} tokens, scaled down to phone sizes (the doc
 //          marks its px values as desktop anchors). Uses Inter (OFL,
-//          bundled as a variable font in res/font) — the same family
-//          WebApp's --font-sans stack leads with — instead of the
+//          bundled as a variable font in res/font) - the same family
+//          WebApp's --font-sans stack leads with - instead of the
 //          platform default, so both clients share one typeface.
 //          Headlines are SemiBold with tight tracking; body is Regular
 //          (Light read washed out on real phone screens). NumericStyle

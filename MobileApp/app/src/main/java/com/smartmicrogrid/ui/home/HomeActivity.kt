@@ -1,6 +1,6 @@
 // ============================================================
 // File: HomeActivity.kt
-// Purpose: Role-based Home shell — a single Activity hosting a
+// Purpose: Role-based Home shell - a single Activity hosting a
 //          Jetpack Navigation Compose nav-graph with a bottom nav
 //          bar, meant to be launched after login. Destinations are
 //          wired by route name to each owner's real screen
@@ -9,7 +9,7 @@
 //          (ui/prosumer/*) for the Prosumer role, and Scan QR/Map are
 //          Dinil's & Migara (ui/operator/*) for the Grid Operator role.
 //          Several of those destinations are still placeholders (see
-//          their own TODO(<owner>) files) — this file never needs to
+//          their own TODO(<owner>) files) - this file never needs to
 //          change once the real screens land, since it only
 //          references them by route + function name.
 //          Bottom bar is the custom JouleBottomBar (premium revamp,
@@ -56,7 +56,7 @@ import com.smartmicrogrid.ui.prosumer.CreateBookingScreen
 import com.smartmicrogrid.ui.prosumer.ProfileScreen
 import com.smartmicrogrid.ui.theme.SmartMicrogridTheme
 
-// One bottom-nav tab: its route, label and icon (from the shared JouleIcons set — kept
+// One bottom-nav tab: its route, label and icon (from the shared JouleIcons set - kept
 // dependency-free rather than pulling in Material Icons Extended for a handful of icons).
 private data class HomeDestination(val route: String, val label: String, val icon: ImageVector)
 

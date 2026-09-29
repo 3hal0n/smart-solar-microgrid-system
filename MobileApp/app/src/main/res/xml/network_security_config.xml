@@ -4,7 +4,7 @@ File: network_security_config.xml
 Purpose: Android blocks plaintext HTTP by default (targetSdk 28+). The
          real backend runs locally over http:// during development
          (see ApiClient.kt / API_BASE_URL), so cleartext is allowed
-         here, but only to local dev addresses — not the whole app —
+         here, but only to local dev addresses - not the whole app -
          so a real deployment wouldn't silently inherit this.
          10.0.2.2 is the Android emulator's alias for the host
          machine's own localhost. If you're running on a physical

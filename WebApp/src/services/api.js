@@ -1,6 +1,6 @@
 // ============================================================
 // File: api.js
-// Purpose: Shared Axios instance for all API calls — base URL and
+// Purpose: Shared Axios instance for all API calls - base URL and
 //          JWT bearer attachment live here once, so pages never
 //          talk to fetch()/localStorage directly. Built jointly
 //          Day 1 per architecture.md §8; every owner's pages use
@@ -26,7 +26,7 @@ api.interceptors.request.use((config) => {
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch {
-      // Malformed stored auth — ignore and send the request unauthenticated.
+      // Malformed stored auth - ignore and send the request unauthenticated.
     }
   }
   return config;
