@@ -70,18 +70,26 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit) {
                 .padding(padding)
                 .verticalScroll(rememberScrollState()),
         ) {
-            // Top Bar with Back button
-            Row(
+            // Hero image at top with floating back button overlay
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
+                    .height(200.dp),
             ) {
+                Image(
+                    painter = painterResource(id = R.drawable.auth_register_hero),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+
+                // Floating Back button over image
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .padding(start = 16.dp, top = 16.dp)
+                        .size(38.dp)
                         .clip(CircleShape)
-                        .background(StripeSurface)
+                        .background(StripeSurface.copy(alpha = 0.92f))
                         .border(1.dp, StripeBorder, CircleShape)
                         .clickable(
                             indication = null,
@@ -99,17 +107,7 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit) {
                 }
             }
 
-            // Dedicated register hero image
-            Image(
-                painter = painterResource(id = R.drawable.auth_register_hero),
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp),
-                contentScale = ContentScale.Crop,
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Logo & Title
             Column(
