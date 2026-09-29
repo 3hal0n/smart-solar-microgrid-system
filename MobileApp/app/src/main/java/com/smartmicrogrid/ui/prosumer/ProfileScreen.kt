@@ -153,7 +153,8 @@ fun ProfileScreen(onLogout: () -> Unit) {
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding)
-                        .verticalScroll(rememberScrollState()),
+                        .verticalScroll(rememberScrollState())
+                        .padding(bottom = 32.dp),
                 ) {
                     // Header section (No extra top spacing)
                     Column(
@@ -346,7 +347,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
                         // Logout
                         OutlinedButton(
                             onClick = { sessionDao.clearSession(); ApiClient.authToken = null; onLogout() },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
                             shape = RoundedCornerShape(12.dp),
                         ) {
                             Icon(JouleIcons.Logout, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -354,7 +355,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
                             Text("Logout")
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(36.dp))
                     }
                 }
             } ?: Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {

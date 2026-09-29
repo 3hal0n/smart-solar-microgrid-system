@@ -127,7 +127,7 @@ if (app.Environment.IsDevelopment())
 // Optional: Commented out to prevent HTTPS redirect warnings during local HTTP testing
 // app.UseHttpsRedirection();
 
-// ⚠️ ORDER MATTERS: CORS must come before Auth, and Auth must come before Controllers
+// NOTE: ORDER MATTERS: CORS must come before Auth, and Auth must come before Controllers
 app.UseCors("WebApp");
 
 // ADDED: Authentication and Authorization Middleware

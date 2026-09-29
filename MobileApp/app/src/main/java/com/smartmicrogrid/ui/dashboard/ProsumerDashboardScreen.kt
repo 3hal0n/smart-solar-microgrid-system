@@ -319,8 +319,6 @@ fun ProsumerDashboardScreen(
                         .padding(start = 14.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Box(Modifier.size(8.dp).clip(CircleShape).background(StripeError))
-                    Spacer(Modifier.width(10.dp))
                     Text(
                         it,
                         style = MaterialTheme.typography.bodySmall,

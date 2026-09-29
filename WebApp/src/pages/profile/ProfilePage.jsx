@@ -308,8 +308,7 @@ export default function ProfilePage() {
               </h2>
               <p className="text-xs font-medium text-muted">@{profile.username || 'user'}</p>
 
-              <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-surface-alt px-3 py-1 text-xs font-semibold text-slate-700">
-                <span className="h-2 w-2 rounded-full bg-success" />
+              <div className="mt-3 inline-flex items-center rounded-md bg-surface-alt px-3 py-1 text-xs font-semibold text-slate-700">
                 {profile.role || authRole || 'Operator'}
               </div>
             </div>

@@ -209,9 +209,7 @@ fun StatusPill(status: String, modifier: Modifier = Modifier) {
             .background(bg)
             .padding(horizontal = 10.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Box(Modifier.size(6.dp).clip(CircleShape).background(fg))
         Text(text, style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp), color = fg)
     }
 }
@@ -468,7 +466,7 @@ fun EmptyState(
     }
 }
 
-// Compact inline error with an optional dismiss "×".
+// Compact inline error with an optional dismiss "x".
 @Composable
 fun ErrorBanner(message: String, modifier: Modifier = Modifier, onDismiss: (() -> Unit)? = null) {
     Row(
@@ -480,8 +478,6 @@ fun ErrorBanner(message: String, modifier: Modifier = Modifier, onDismiss: (() -
             .padding(start = 14.dp, end = 6.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(Modifier.size(8.dp).clip(CircleShape).background(StripeError))
-        Spacer(Modifier.width(10.dp))
         Text(
             message,
             style = MaterialTheme.typography.bodySmall,

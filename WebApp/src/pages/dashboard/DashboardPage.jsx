@@ -195,8 +195,7 @@ function ActivityItem({ reservation }) {
         <p className="text-[11px] text-muted mt-0.5">{formatDate(reservation.scheduledAt)}</p>
       </div>
       <div className="flex flex-col items-end gap-1 shrink-0">
-        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium border ${conf.bg}`}>
-          <span className={`h-1.5 w-1.5 rounded-full ${conf.dot}`} />
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-medium border ${conf.bg}`}>
           {status}
         </span>
         <span className="text-[10px] text-muted">{formatRelative(reservation.scheduledAt)}</span>
@@ -562,12 +561,11 @@ export default function DashboardPage() {
                       </span>
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium border ${
+                      <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-[11px] font-medium border ${
                         s.status === 'Active'
                           ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
                           : 'bg-slate-100 text-slate-600 border-slate-200'
                       }`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${s.status === 'Active' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                         {s.status}
                       </span>
                     </td>

@@ -347,8 +347,9 @@ export default function StationsPage() {
                         <span className="text-[11px] text-muted font-mono">ID: {station.id?.slice(-8)}</span>
                       </Td>
                       <Td className="font-mono text-[12px] text-muted py-3.5">
-                        <span className="inline-flex items-center gap-1 rounded bg-surface-alt px-2 py-0.5 border border-line text-[11px]">
-                          📍 {formatCoordinates(station.location)}
+                        <span className="inline-flex items-center gap-1.5 rounded bg-surface-alt px-2 py-0.5 border border-line text-[11px]">
+                          <Icon name="mapPin" className="h-3 w-3 text-muted" />
+                          <span>{formatCoordinates(station.location)}</span>
                         </span>
                       </Td>
                       <Td className="py-3.5">
@@ -366,12 +367,11 @@ export default function StationsPage() {
                         </span>
                       </Td>
                       <Td className="py-3.5">
-                        <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium border ${
+                        <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-[11px] font-medium border ${
                           station.status === 'Active'
                             ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
                             : 'bg-slate-100 text-slate-600 border-slate-200'
                         }`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${station.status === 'Active' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                           {station.status}
                         </span>
                       </Td>
@@ -446,12 +446,11 @@ export default function StationsPage() {
                         </Link>
                         <p className="text-[11px] text-muted font-mono mt-0.5">ID: {station.id?.slice(-8)}</p>
                       </div>
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-medium border ${
+                      <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-[11px] font-medium border ${
                         station.status === 'Active'
                           ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
                           : 'bg-slate-100 text-slate-600 border-slate-200'
                       }`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${station.status === 'Active' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
                         {station.status}
                       </span>
                     </div>

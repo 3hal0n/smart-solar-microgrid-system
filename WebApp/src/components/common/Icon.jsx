@@ -86,6 +86,12 @@ const PATHS = {
       <path d="M10 3.5v9M6.5 7 10 3.5 13.5 7" strokeLinecap="round" strokeLinejoin="round" />
     </>
   ),
+  mapPin: (
+    <>
+      <path d="M10 2.5a5 5 0 0 0-5 5c0 3.8 5 10 5 10s5-6.2 5-10a5 5 0 0 0-5-5Z" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="10" cy="7.5" r="1.8" />
+    </>
+  ),
 };
 
 // Renders the named icon; decorative by default (aria-hidden), so pair it with visible text.
