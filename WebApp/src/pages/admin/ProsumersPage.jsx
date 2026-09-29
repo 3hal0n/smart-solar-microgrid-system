@@ -30,6 +30,7 @@ export default function ProsumersPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProsumer, setEditingProsumer] = useState(null);
   const [formData, setFormData] = useState(EMPTY_FORM);
+  const [formErrors, setFormErrors] = useState({});
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
 
@@ -92,9 +93,50 @@ export default function ProsumersPage() {
     currentPage * ITEMS_PER_PAGE
   );
 
+  // Form Validation Logic
+  const validateForm = () => {
+    const errors = {};
+    
+    if (!formData.nic.trim()) {
+      errors.nic = 'NIC is required';
+    } else if (!/^\d{9}[vVxX]$|^\d{12}$/.test(formData.nic.trim())) {
+      errors.nic = 'Invalid NIC format (e.g., 200012345678 or 981234567V)';
+    }
+
+    if (!formData.fullName.trim()) {
+      errors.fullName = 'Full name is required';
+    }
+
+    if (!formData.email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      errors.email = 'Invalid email format';
+    }
+
+    if (!formData.phone.trim()) {
+      errors.phone = 'Phone number is required';
+    } else if (!/^\d{10}$/.test(formData.phone.trim().replace(/\s+/g, ''))) {
+      errors.phone = 'Phone number must be exactly 10 digits';
+    }
+
+    if (!formData.address.trim()) {
+      errors.address = 'Address is required';
+    }
+
+    if (!editingProsumer && !formData.password) {
+      errors.password = 'Password is required';
+    } else if (!editingProsumer && formData.password.length < 6) {
+      errors.password = 'Password must be at least 6 characters';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleOpenCreate = () => {
     setEditingProsumer(null);
     setFormData(EMPTY_FORM);
+    setFormErrors({});
     setIsModalOpen(true);
   };
 
@@ -108,6 +150,7 @@ export default function ProsumersPage() {
       address: prosumer.address || '',
       password: '',
     });
+    setFormErrors({});
     setIsModalOpen(true);
   };
 
@@ -115,10 +158,12 @@ export default function ProsumersPage() {
     setIsModalOpen(false);
     setEditingProsumer(null);
     setFormData(EMPTY_FORM);
+    setFormErrors({});
   };
 
   const handleCreateProsumer = async (e) => {
     e.preventDefault();
+    if (!validateForm()) return;
     setCreating(true);
     try {
       await api.post('/admin/prosumers', formData);
@@ -134,7 +179,7 @@ export default function ProsumersPage() {
 
   const handleUpdateProsumer = async (e) => {
     e.preventDefault();
-    if (!editingProsumer) return;
+    if (!validateForm()) return;
     setUpdating(true);
     try {
       const updatePayload = {
@@ -391,45 +436,83 @@ export default function ProsumersPage() {
         <form onSubmit={editingProsumer ? handleUpdateProsumer : handleCreateProsumer} className="flex flex-col gap-4">
           {!editingProsumer && (
             <>
-              <Input
-                label="NIC"
-                required
-                value={formData.nic}
-                onChange={(e) => setFormData({ ...formData, nic: e.target.value })}
-                placeholder="e.g., 200012345678 or 981234567V"
-              />
-              <Input
-                label="Password"
-                type="password"
-                required
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              />
+              <div>
+                <Input
+                  label="NIC"
+                  required
+                  value={formData.nic}
+                  onChange={(e) => {
+                    setFormData({ ...formData, nic: e.target.value });
+                    if (formErrors.nic) setFormErrors({ ...formErrors, nic: '' });
+                  }}
+                  placeholder="e.g., 200012345678 or 981234567V"
+                />
+                {formErrors.nic && <p className="mt-1 text-xs text-error">{formErrors.nic}</p>}
+              </div>
+              <div>
+                <Input
+                  label="Password"
+                  type="password"
+                  required
+                  value={formData.password}
+                  onChange={(e) => {
+                    setFormData({ ...formData, password: e.target.value });
+                    if (formErrors.password) setFormErrors({ ...formErrors, password: '' });
+                  }}
+                />
+                {formErrors.password && <p className="mt-1 text-xs text-error">{formErrors.password}</p>}
+              </div>
             </>
           )}
-          <Input
-            label="Full name"
-            required
-            value={formData.fullName}
-            onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-          />
-          <Input
-            label="Email"
-            type="email"
-            required
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          />
-          <Input
-            label="Phone"
-            value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-          />
-          <Input
-            label="Address"
-            value={formData.address}
-            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-          />
+          <div>
+            <Input
+              label="Full name"
+              required
+              value={formData.fullName}
+              onChange={(e) => {
+                setFormData({ ...formData, fullName: e.target.value });
+                if (formErrors.fullName) setFormErrors({ ...formErrors, fullName: '' });
+              }}
+            />
+            {formErrors.fullName && <p className="mt-1 text-xs text-error">{formErrors.fullName}</p>}
+          </div>
+          <div>
+            <Input
+              label="Email"
+              type="email"
+              required
+              value={formData.email}
+              onChange={(e) => {
+                setFormData({ ...formData, email: e.target.value });
+                if (formErrors.email) setFormErrors({ ...formErrors, email: '' });
+              }}
+            />
+            {formErrors.email && <p className="mt-1 text-xs text-error">{formErrors.email}</p>}
+          </div>
+          <div>
+            <Input
+              label="Phone"
+              required
+              value={formData.phone}
+              onChange={(e) => {
+                setFormData({ ...formData, phone: e.target.value });
+                if (formErrors.phone) setFormErrors({ ...formErrors, phone: '' });
+              }}
+            />
+            {formErrors.phone && <p className="mt-1 text-xs text-error">{formErrors.phone}</p>}
+          </div>
+          <div>
+            <Input
+              label="Address"
+              required
+              value={formData.address}
+              onChange={(e) => {
+                setFormData({ ...formData, address: e.target.value });
+                if (formErrors.address) setFormErrors({ ...formErrors, address: '' });
+              }}
+            />
+            {formErrors.address && <p className="mt-1 text-xs text-error">{formErrors.address}</p>}
+          </div>
           <div className="mt-2 flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={handleCloseModal} disabled={creating || updating}>
               Cancel
