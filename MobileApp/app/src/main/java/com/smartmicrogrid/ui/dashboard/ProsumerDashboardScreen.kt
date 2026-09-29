@@ -42,6 +42,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DatePicker
@@ -77,6 +78,7 @@ import com.smartmicrogrid.data.local.DashboardCacheDao
 import com.smartmicrogrid.data.local.ProsumerSessionDao
 import com.smartmicrogrid.data.remote.ApiClient
 import com.smartmicrogrid.data.remote.dto.ReservationResponse
+import com.smartmicrogrid.ui.components.ControlShape
 import com.smartmicrogrid.ui.components.DateBlock
 import com.smartmicrogrid.ui.components.EmptyState
 import com.smartmicrogrid.ui.components.ErrorBanner
@@ -99,8 +101,11 @@ import com.smartmicrogrid.ui.theme.StripeBrandVioletSoft
 import com.smartmicrogrid.ui.theme.StripeCanvas
 import com.smartmicrogrid.ui.theme.StripeCyan
 import com.smartmicrogrid.ui.theme.StripeCyanContainer
+import com.smartmicrogrid.ui.theme.StripeError
+import com.smartmicrogrid.ui.theme.StripeErrorContainer
 import com.smartmicrogrid.ui.theme.StripeInk
 import com.smartmicrogrid.ui.theme.StripeMuted
+import com.smartmicrogrid.ui.theme.StripeOnErrorContainer
 import com.smartmicrogrid.ui.theme.StripePrimary
 import com.smartmicrogrid.ui.theme.StripeSurface
 import com.smartmicrogrid.ui.theme.StripeWarning
@@ -129,6 +134,7 @@ private val SignatureCyan = Color(0xFF11EFE3)
 fun ProsumerDashboardScreen(
     onBookSlot: () -> Unit = {},
     onOpenBookings: () -> Unit = {},
+    onNavigateToSignIn: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val api = remember { ApiClient.service }
@@ -172,8 +178,16 @@ fun ProsumerDashboardScreen(
                     }
                 }
             }
-            .onFailure {
-                loadError = "Couldn't refresh the dashboard — showing your last saved data."
+            .onFailure { throwable ->
+                if (throwable is retrofit2.HttpException && (throwable.code() == 401 || throwable.code() == 403)) {
+                    onNavigateToSignIn()
+                } else {
+                    loadError = if (summary == null) {
+                        "Cannot connect to server. Check your network connection or sign in again."
+                    } else {
+                        "Couldn't refresh dashboard — showing last saved data."
+                    }
+                }
             }
         refreshing = false
     }
@@ -201,7 +215,13 @@ fun ProsumerDashboardScreen(
                 to = toFilter.takeIf { toDateValid && it.isNotBlank() },
             )
         }.onSuccess { reservations = it }
-            .onFailure { reservationsError = "Couldn't load your bookings. Pull down to try again." }
+            .onFailure { throwable ->
+                if (throwable is retrofit2.HttpException && (throwable.code() == 401 || throwable.code() == 403)) {
+                    onNavigateToSignIn()
+                } else {
+                    reservationsError = "Couldn't load bookings. Pull down to try again."
+                }
+            }
     }
 
     val now = Instant.now().toString()
@@ -214,6 +234,64 @@ fun ProsumerDashboardScreen(
     val advancedFilterCount = listOf(stationFilter, fromFilter, toFilter).count { it.isNotBlank() }
 
     fun nameFor(stationId: String) = stationNames[stationId] ?: "Station ${stationId.takeLast(6)}"
+
+    // If there is no cached or live data and a connection/network error occurred, show a prominent recovery screen
+    if (summary == null && loadError != null) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(StripeCanvas)
+                .padding(24.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            JouleCard(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(54.dp)
+                            .clip(CircleShape)
+                            .background(StripeErrorContainer),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            JouleIcons.Pulse,
+                            contentDescription = null,
+                            tint = StripeError,
+                            modifier = Modifier.size(26.dp),
+                        )
+                    }
+                    Text(
+                        text = "Connection Error",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = StripeInk,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    )
+                    Text(
+                        text = "Unable to reach the smart grid server. Check your network connection (file sharing / Wi-Fi / USB tethering) or return to sign in.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = StripeBody,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    JoulePrimaryButton(
+                        text = "Go to Sign In",
+                        onClick = onNavigateToSignIn,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    JouleSecondaryButton(
+                        text = "Retry Connection",
+                        onClick = { refreshing = true; refreshToken++ },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        }
+        return
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(StripeCanvas)) {
         Column(
@@ -229,7 +307,29 @@ fun ProsumerDashboardScreen(
                 onRefresh = { refreshing = true; refreshToken++ },
             )
 
-            loadError?.let { ErrorBanner(message = it, onDismiss = { loadError = null }) }
+            loadError?.let {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(ControlShape)
+                        .background(StripeErrorContainer)
+                        .border(1.dp, StripeError.copy(alpha = 0.2f), ControlShape)
+                        .padding(start = 14.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.size(8.dp).clip(CircleShape).background(StripeError))
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = StripeOnErrorContainer,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = onNavigateToSignIn) {
+                        Text("Sign In", color = StripeError, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
             reservationsError?.let { ErrorBanner(message = it, onDismiss = { reservationsError = null }) }
 
             NextBookingHero(

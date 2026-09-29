@@ -42,6 +42,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.smartmicrogrid.MainActivity
+import com.smartmicrogrid.data.local.ProsumerSessionDao
 import com.smartmicrogrid.data.remote.ApiClient
 import com.smartmicrogrid.ui.components.JouleIcons
 import com.smartmicrogrid.ui.dashboard.OperatorDashboardScreen
@@ -141,9 +142,20 @@ private fun NavGraphShell(destinations: List<HomeDestination>) {
             modifier = Modifier.padding(innerPadding),
         ) {
             composable(HomeRoutes.PROSUMER_DASHBOARD) {
+                val context = LocalContext.current
                 ProsumerDashboardScreen(
                     onBookSlot = { navController.navigate(HomeRoutes.PROSUMER_CREATE_BOOKING) },
                     onOpenBookings = { openTab(HomeRoutes.PROSUMER_BOOKINGS) },
+                    onNavigateToSignIn = {
+                        ProsumerSessionDao(context).clearSession()
+                        StaffSessionPreferences.clear(context)
+                        ApiClient.authToken = null
+                        val intent = Intent(context, MainActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        }
+                        context.startActivity(intent)
+                        (context as? Activity)?.finish()
+                    },
                 )
             }
             composable(HomeRoutes.PROSUMER_BOOKINGS) {
