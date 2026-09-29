@@ -79,6 +79,167 @@ public class DashboardService
         };
     }
 
+
+    // ============================================================
+    // Dinil addition to DashboardService — operator summary
+    // aggregation. Reads the Reservations collection (architecture.md
+    // 2.4, owner: Dinil) for confirmed/completed-today counts and
+    // pending-by-station breakdown. Called by DashboardController's
+    // GET /api/dashboard/operator/summary.
+    // ============================================================
+
+    // Returns today's confirmed/completed reservation counts plus a
+    // per-station breakdown of pending (Confirmed but not yet scanned)
+    // reservations. All times computed in UTC; the client renders them.
+    // ============================================================
+    // OPERATOR DASHBOARD SUMMARY
+    // ============================================================
+    public async Task<OperatorSummaryResponse> GetOperatorSummaryAsync()
+    {
+        var now = DateTime.UtcNow;
+
+        var startOfTodayUtc = now.Date;
+        var startOfTomorrowUtc = startOfTodayUtc.AddDays(1);
+
+        var reservationFilter = Builders<Reservation>.Filter;
+
+        // --------------------------------------------------------
+        // Confirmed reservations created today
+        // --------------------------------------------------------
+
+        var confirmedTodayFilter =
+            reservationFilter.Gte(
+                r => r.CreatedAt,
+                startOfTodayUtc
+            )
+            &
+            reservationFilter.Lt(
+                r => r.CreatedAt,
+                startOfTomorrowUtc
+            );
+
+        var confirmedTodayCount =
+            (int)await _context.Reservations
+                .CountDocumentsAsync(confirmedTodayFilter);
+
+        // --------------------------------------------------------
+        // Completed reservations today
+        // --------------------------------------------------------
+
+        var completedTodayFilter =
+            reservationFilter.Eq(
+                r => r.Status,
+                "Completed"
+            )
+            &
+            reservationFilter.Gte(
+                r => r.CompletedAt,
+                startOfTodayUtc
+            )
+            &
+            reservationFilter.Lt(
+                r => r.CompletedAt,
+                startOfTomorrowUtc
+            );
+
+        var completedTodayCount =
+            (int)await _context.Reservations
+                .CountDocumentsAsync(completedTodayFilter);
+
+        // --------------------------------------------------------
+        // Pending reservations by station
+        // --------------------------------------------------------
+        //
+        // Pending = Confirmed reservations that haven't been
+        // completed/scanned yet.
+        //
+
+        var pendingFilter =
+            reservationFilter.Eq(
+                r => r.Status,
+                "Confirmed"
+            );
+
+        var pendingReservations =
+            await _context.Reservations
+                .Find(pendingFilter)
+                .ToListAsync();
+
+        var groupedByStation = pendingReservations
+            .GroupBy(r => r.StationId)
+            .Select(g => new
+            {
+                StationId = g.Key,
+                Count = g.Count()
+            })
+            .ToList();
+
+        // --------------------------------------------------------
+        // Get station names
+        // --------------------------------------------------------
+
+        var stationIds = groupedByStation
+            .Select(g => g.StationId)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Distinct()
+            .ToList();
+
+        var stationLookup = new Dictionary<string, string>();
+
+        if (stationIds.Count > 0)
+        {
+            // IMPORTANT:
+            // Change SolarStations to the actual collection property
+            // in MongoDbContext if your project uses another name.
+
+            var stationFilter =
+                Builders<Station>.Filter.In(
+                    s => s.Id,
+                    stationIds
+                );
+
+            var stations =
+                await _context.SolarStations
+                    .Find(stationFilter)
+                    .ToListAsync();
+
+            foreach (var station in stations)
+            {
+                if (!string.IsNullOrWhiteSpace(station.Id))
+                {
+                    stationLookup[station.Id] = station.Name;
+                }
+            }
+        }
+
+        // --------------------------------------------------------
+        // Build response
+        // --------------------------------------------------------
+
+        var pendingByStation = groupedByStation
+            .Select(g => new PendingByStation
+            {
+                StationId = g.StationId,
+                StationName =
+                    stationLookup.TryGetValue(
+                        g.StationId,
+                        out var stationName
+                    )
+                        ? stationName
+                        : "",
+
+                PendingCount = g.Count
+            })
+            .ToList();
+
+        return new OperatorSummaryResponse
+        {
+            ConfirmedTodayCount = confirmedTodayCount,
+            CompletedTodayCount = completedTodayCount,
+            PendingByStation = pendingByStation
+        };
+    }
+
     // Ensures a NIC was actually supplied — this endpoint reads another person's reservations by
     // NIC, so an empty value would otherwise silently match nothing rather than fail loudly.
     private static void ValidateNic(string nic)
