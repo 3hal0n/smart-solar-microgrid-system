@@ -42,6 +42,40 @@ namespace SmartMicrogrid.Api.Services
                 UpdatedAt = p.UpdatedAt
             }).ToList();
         }
+        // Returns all prosumers, optionally filtered by status.
+        // Uses a projection so MongoDB only returns the fields the DTO needs -
+        // this prevents deserialization 500s on documents missing optional
+        // fields (e.g. legacy test data with no CreatedAt, no Phone, etc.).
+        public async Task<List<ProsumerResponseDto>> ListAsync(string? status)
+        {
+            var builder = Builders<Prosumer>.Filter;
+            var filter = builder.Eq(p => p.Role, "Prosumer");
+
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                filter &= builder.Eq(p => p.Status, status);
+            }
+
+            return await _prosumers
+                .Find(filter)
+                .SortByDescending(p => p.CreatedAt)
+                .Project<ProsumerResponseDto>(Builders<Prosumer>.Projection
+                    .Expression(p => new ProsumerResponseDto
+                    {
+                        Id = p.Id,
+                        Nic = p.Nic,
+                        FullName = p.FullName,
+                        Email = p.Email,
+                        Phone = p.Phone,
+                        Address = p.Address,
+                        Status = p.Status,
+                        DeactivationRequestedAt = p.DeactivationRequestedAt,
+                        CreatedAt = p.CreatedAt,
+                        UpdatedAt = p.UpdatedAt
+                    }))
+                .ToListAsync();
+        }
+
 
         // Get a single prosumer by NIC
         public async Task<ProsumerResponseDto?> GetByNicAsync(string nic)

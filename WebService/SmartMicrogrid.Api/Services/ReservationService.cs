@@ -6,6 +6,12 @@
 //          and operator QR verification (flips Confirmed ->
 //          Completed). All validation lives here, never in
 //          controllers or clients.
+//
+//          Admin paths (UpdateAsAdminAsync / CancelAsAdminAsync)
+//          skip NIC ownership checks so Grid Operators and
+//          Backoffice staff can act on behalf of Prosumers -
+//          but they still enforce the 12-hour rule and the
+//          7-day window.
 // Author: Dinil
 // ============================================================
 
@@ -38,8 +44,13 @@ public class ReservationService
 
     // Creates a reservation under the given prosumer's NIC, enforcing the 7-day
     // window and slot availability; issues the QR token immediately at creation.
+    // The NIC is resolved by the controller - for Prosumers it comes from the
+    // JWT, for Operators/Backoffice it comes from the request body.
     public async Task<CreateReservationResponse> CreateAsync(string prosumerNic, CreateReservationRequest req)
     {
+        if (string.IsNullOrWhiteSpace(prosumerNic))
+            throw new ServiceException(400, "MISSING_NIC", "Prosumer NIC is required.");
+
         var now = DateTime.UtcNow;
         var scheduledUtc = DateTime.SpecifyKind(req.ScheduledAt, DateTimeKind.Utc);
 
@@ -93,11 +104,26 @@ public class ReservationService
         };
     }
 
-    // Updates a reservation, enforcing 12-hour notice against the CURRENT stored
-    // time and re-validating the 7-day window against any new time.
+    // Updates a reservation as the owning Prosumer - enforces ownership.
+    // Delegates to the shared core after the ownership check.
     public async Task UpdateAsync(string id, string prosumerNic, UpdateReservationRequest req)
     {
         var reservation = await GetOwnedAsync(id, prosumerNic);
+        await ApplyUpdateAsync(reservation, req);
+    }
+
+    // Updates a reservation as a Grid Operator / Backoffice user.
+    // Skips the NIC ownership check but still enforces all business rules.
+    public async Task UpdateAsAdminAsync(string id, UpdateReservationRequest req)
+    {
+        var reservation = await GetByIdAsync(id);
+        await ApplyUpdateAsync(reservation, req);
+    }
+
+    // Shared update logic - used by both Prosumer and Admin paths.
+    // Enforces status, 12-hour notice, 7-day window, and slot coordination.
+    private async Task ApplyUpdateAsync(Reservation reservation, UpdateReservationRequest req)
+    {
         var now = DateTime.UtcNow;
 
         if (reservation.Status != "Confirmed")
@@ -109,7 +135,7 @@ public class ReservationService
             throw new ServiceException(409, "TOO_LATE_TO_MODIFY",
                 $"Changes require at least {NOTICE_HOURS} hours' notice.");
 
-        // Re-validate 7-day window if rescheduling.
+        // If rescheduling, re-validate 7-day window on the new time.
         if (req.ScheduledAt.HasValue)
         {
             var newScheduled = DateTime.SpecifyKind(req.ScheduledAt.Value, DateTimeKind.Utc);
@@ -119,6 +145,16 @@ public class ReservationService
                 throw new ServiceException(400, "OUTSIDE_7_DAY_WINDOW",
                     $"New time must be within {BOOKING_WINDOW_DAYS} days.");
             reservation.ScheduledAt = newScheduled;
+        }
+
+        // If station is changing, validate it exists and is Active.
+        if (!string.IsNullOrEmpty(req.StationId) && req.StationId != reservation.StationId)
+        {
+            var newStation = await _stationService.GetByIdAsync(req.StationId)
+                ?? throw new ServiceException(404, "STATION_NOT_FOUND", "New station does not exist.");
+            if (newStation.Status != "Active")
+                throw new ServiceException(409, "STATION_INACTIVE", "New station is not active.");
+            reservation.StationId = req.StationId;
         }
 
         // If slot is changing, validate new slot and coordinate state.
@@ -135,13 +171,27 @@ public class ReservationService
         }
 
         reservation.UpdatedAt = now;
-        await _db.Reservations.ReplaceOneAsync(r => r.Id == id, reservation);
+        await _db.Reservations.ReplaceOneAsync(r => r.Id == reservation.Id, reservation);
     }
 
-    // Cancels a reservation, enforcing 12-hour notice and freeing the slot.
+    // Cancels a reservation as the owning Prosumer - enforces ownership.
     public async Task CancelAsync(string id, string prosumerNic, string? reason)
     {
         var reservation = await GetOwnedAsync(id, prosumerNic);
+        await ApplyCancelAsync(reservation, reason);
+    }
+
+    // Cancels a reservation as a Grid Operator / Backoffice user.
+    // Skips the NIC ownership check but still enforces the 12-hour rule.
+    public async Task CancelAsAdminAsync(string id, string? reason)
+    {
+        var reservation = await GetByIdAsync(id);
+        await ApplyCancelAsync(reservation, reason);
+    }
+
+    // Shared cancel logic - used by both Prosumer and Admin paths.
+    private async Task ApplyCancelAsync(Reservation reservation, string? reason)
+    {
         var now = DateTime.UtcNow;
 
         if (reservation.Status != "Confirmed")
@@ -156,7 +206,7 @@ public class ReservationService
         reservation.CancelReason = reason;
         reservation.UpdatedAt = now;
 
-        await _db.Reservations.ReplaceOneAsync(r => r.Id == id, reservation);
+        await _db.Reservations.ReplaceOneAsync(r => r.Id == reservation.Id, reservation);
         await _slotService.MarkAvailable(reservation.SlotId);
     }
 
@@ -180,7 +230,7 @@ public class ReservationService
             ?? throw new ServiceException(404, "STATION_NOT_FOUND", "Station not found.");
 
         if (station.Status != "Active")
-         throw new ServiceException(409, "STATION_INACTIVE", "Station is not active.");
+            throw new ServiceException(409, "STATION_INACTIVE", "Station is not active.");
 
         var slot = await _slotService.GetByIdAsync(reservation.SlotId)
             ?? throw new ServiceException(404, "SLOT_NOT_FOUND", "Slot not found.");

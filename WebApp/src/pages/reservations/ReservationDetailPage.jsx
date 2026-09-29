@@ -1,10 +1,20 @@
 // ============================================================
 // File: ReservationDetailPage.jsx
 // Purpose: Single reservation view for Backoffice/GridOperator.
-//          Shows lifecycle timestamps, QR token (as text - the
-//          web app never renders or scans the QR image, that's
-//          a mobile action), and offers Cancel for Confirmed
-//          reservations. No business rules computed here.
+//          Shows lifecycle timestamps, QR token (as text), and
+//          offers Edit + Cancel for Confirmed reservations.
+//          Server enforces 7-day and 12-hour rules; rejections
+//          are surfaced verbatim.
+//
+//          On load, fetches the Prosumer's profile via
+//          GET /api/prosumers/{nic} so the operator sees the
+//          name and email - not just the NIC.
+//
+//          The Edit modal loads Stations and (for the selected
+//          station) its available Slots as dropdowns. The
+//          reservation's own current slot is included in the
+//          list even if its status isn't Available, so the
+//          operator can leave it unchanged.
 // Author: Dinil
 // ============================================================
 import { useEffect, useState } from "react";
@@ -29,6 +39,37 @@ function formatDateTime(iso) {
   });
 }
 
+// Converts an ISO string to a value usable by <input type="datetime-local">.
+function toLocalDateTimeInput(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  );
+}
+
+// Minimum allowed scheduled time: now + 15 minutes.
+function minScheduledAt() {
+  const d = new Date(Date.now() + 15 * 60 * 1000);
+  const pad = (n) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  );
+}
+
+// Maximum allowed scheduled time: now + 7 days (matches server window).
+function maxScheduledAt() {
+  const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const pad = (n) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  );
+}
+
 function statusTone(status) {
   switch (status) {
     case "Confirmed":
@@ -47,28 +88,55 @@ export default function ReservationDetailPage() {
   const navigate = useNavigate();
 
   const [reservation, setReservation] = useState(null);
+  const [prosumer, setProsumer] = useState(null); // Fetched by NIC
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Parent-owned toast state, matching Shalon's Toast.jsx pattern.
+  // Parent-owned toast state.
   const [toast, setToast] = useState({ message: "", tone: "error" });
 
   const [showCancel, setShowCancel] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelBusy, setCancelBusy] = useState(false);
 
-  // Small helper so call sites stay readable: show(msg, tone).
+  // Edit modal state.
+  const [showEdit, setShowEdit] = useState(false);
+  const [editForm, setEditForm] = useState(null);
+  const [editBusy, setEditBusy] = useState(false);
+
+  // Dropdown data for the Edit modal.
+  const [stations, setStations] = useState([]);
+  const [slots, setSlots] = useState([]);
+  const [dropdownsLoading, setDropdownsLoading] = useState({
+    stations: false,
+    slots: false
+  });
+  const [dropdownsError, setDropdownsError] = useState(null);
+
   function show(message, tone = "error") {
     setToast({ message, tone });
   }
 
-  // Fetches the reservation by ID.
+  // -----------------------
+  // Data load
+  // -----------------------
+
   async function load() {
     setLoading(true);
     setError(null);
+    setProsumer(null);
     try {
       const { data } = await api.get(`/reservations/${id}`);
       setReservation(data);
+
+      if (data?.prosumerNic) {
+        try {
+          const p = await api.get(`/prosumers/${data.prosumerNic}`);
+          setProsumer(p.data);
+        } catch {
+          setProsumer(null);
+        }
+      }
     } catch (e) {
       const msg =
         e?.response?.data?.message ||
@@ -79,32 +147,159 @@ export default function ReservationDetailPage() {
     }
   }
 
+  // Initial load - every setState runs after an await.
   useEffect(() => {
-    let mounted = true;
+    let cancelled = false;
 
-    async function fetchData() {
-      setLoading(true);
-      setError(null);
+    (async () => {
       try {
         const { data } = await api.get(`/reservations/${id}`);
-        if (mounted) setReservation(data);
+        if (cancelled) return;
+        setReservation(data);
+
+        if (data?.prosumerNic) {
+          try {
+            const p = await api.get(`/prosumers/${data.prosumerNic}`);
+            if (!cancelled) setProsumer(p.data);
+          } catch {
+            if (!cancelled) setProsumer(null);
+          }
+        }
       } catch (e) {
+        if (cancelled) return;
         const msg =
           e?.response?.data?.message ||
           (e?.response?.status === 404 ? "Reservation not found." : e.message);
-        if (mounted) setError(msg);
+        setError(msg);
       } finally {
-        if (mounted) setLoading(false);
+        if (!cancelled) setLoading(false);
       }
-    }
+    })();
 
-    fetchData();
     return () => {
-      mounted = false;
+      cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // Cancels the reservation. The 12-hour rejection surfaces verbatim.
+  // -----------------------
+  // Dropdown loaders
+  // -----------------------
+
+  // Load Stations once (Active only).
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      setDropdownsLoading((s) => ({ ...s, stations: true }));
+      try {
+        const { data } = await api.get("/stations", {
+          params: { status: "Active" }
+        });
+        if (!cancelled) setStations(Array.isArray(data) ? data : []);
+      } catch (e) {
+        if (!cancelled) {
+          setDropdownsError(
+            e?.response?.data?.message || "Could not load Stations."
+          );
+        }
+      } finally {
+        if (!cancelled) setDropdownsLoading((s) => ({ ...s, stations: false }));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // When edit modal is open and station is chosen, load that station's slots.
+  // Include the reservation's own current slot even if it's not Available,
+  // so opening the modal and saving without changes never errors out.
+  useEffect(() => {
+    if (!showEdit || !editForm?.stationId) {
+      setSlots([]);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      setDropdownsLoading((s) => ({ ...s, slots: true }));
+      try {
+        const { data } = await api.get(`/stations/${editForm.stationId}`);
+        const all = Array.isArray(data?.slots) ? data.slots : [];
+
+        // Include Available slots + the reservation's current slot
+        // (which may be Reserved because this very reservation owns it).
+        const currentSlotId = reservation?.slotId;
+        const visible = all.filter(
+          (s) => s.status === "Available" || s.id === currentSlotId
+        );
+
+        if (!cancelled) setSlots(visible);
+      } catch (e) {
+        if (!cancelled) {
+          setSlots([]);
+          show(
+            e?.response?.data?.message || "Could not load slots for station.",
+            "error"
+          );
+        }
+      } finally {
+        if (!cancelled) setDropdownsLoading((s) => ({ ...s, slots: false }));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showEdit, editForm?.stationId]);
+
+  // -----------------------
+  // Edit
+  // -----------------------
+
+  function openEdit() {
+    setEditForm({
+      stationId: reservation.stationId || "",
+      slotId: reservation.slotId || "",
+      scheduledAt: toLocalDateTimeInput(reservation.scheduledAt)
+    });
+    setSlots([]);
+    setShowEdit(true);
+  }
+
+  async function submitEdit() {
+    setEditBusy(true);
+    try {
+      const payload = {
+        stationId: editForm.stationId.trim(),
+        slotId: editForm.slotId.trim(),
+        scheduledAt: editForm.scheduledAt
+          ? new Date(editForm.scheduledAt).toISOString()
+          : null
+      };
+      await api.put(`/reservations/${id}`, payload);
+      show("Reservation updated.", "success");
+      setShowEdit(false);
+      await load();
+    } catch (e) {
+      const msg =
+        e?.response?.data?.message ||
+        e?.response?.data?.code ||
+        e.message ||
+        "Update failed.";
+      show(msg, "error");
+    } finally {
+      setEditBusy(false);
+    }
+  }
+
+  // -----------------------
+  // Cancel
+  // -----------------------
+
   async function confirmCancel() {
     setCancelBusy(true);
     try {
@@ -127,8 +322,16 @@ export default function ReservationDetailPage() {
     }
   }
 
+  // -----------------------
+  // Render
+  // -----------------------
+
   if (loading) {
-    return <div className="mx-auto max-w-6xl px-6 py-8 text-[13px] text-muted">Loading reservation…</div>;
+    return (
+      <div className="mx-auto max-w-6xl px-6 py-8 text-[13px] text-muted">
+        Loading reservation…
+      </div>
+    );
   }
 
   if (error || !reservation) {
@@ -146,6 +349,14 @@ export default function ReservationDetailPage() {
 
   const r = reservation;
   const isCancellable = r.status === "Confirmed";
+  const isEditable = r.status === "Confirmed";
+
+  const canSave =
+    editForm &&
+    !editBusy &&
+    editForm.stationId &&
+    editForm.slotId &&
+    editForm.scheduledAt;
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
@@ -166,8 +377,8 @@ export default function ReservationDetailPage() {
             <span className="font-mono text-lg">{r.id.slice(-8)}</span>
           </h1>
           <p className="text-sm text-muted mt-1">
-            Full lifecycle detail. Read-only - cancel is the only write action
-            available here.
+            Full lifecycle detail. Edit and cancel are available while the
+            reservation is Confirmed.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -175,6 +386,11 @@ export default function ReservationDetailPage() {
           <Button variant="secondary" onClick={load}>
             Refresh
           </Button>
+          {isEditable && (
+            <Button variant="primary" onClick={openEdit}>
+              Edit
+            </Button>
+          )}
           {isCancellable && (
             <Button variant="danger" onClick={() => setShowCancel(true)}>
               Cancel reservation
@@ -185,8 +401,30 @@ export default function ReservationDetailPage() {
 
       {/* Detail grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Prosumer card */}
+        <DetailCard title="Prosumer">
+          <DetailRow label="NIC" value={r.prosumerNic} mono />
+          {prosumer ? (
+            <>
+              <DetailRow label="Name" value={prosumer.fullName} />
+              <DetailRow label="Email" value={prosumer.email} />
+              {prosumer.phone && (
+                <DetailRow label="Phone" value={prosumer.phone} />
+              )}
+              <DetailRow
+                label="Account status"
+                value={<Badge tone="neutral">{prosumer.status}</Badge>}
+              />
+            </>
+          ) : (
+            <p className="text-xs text-muted pt-1">
+              Profile not available (may be pending activation, deactivated, or
+              lookup restricted).
+            </p>
+          )}
+        </DetailCard>
+
         <DetailCard title="Booking">
-          <DetailRow label="Prosumer NIC" value={r.prosumerNic} mono />
           <DetailRow label="Station ID" value={r.stationId} mono />
           <DetailRow label="Slot ID" value={r.slotId} mono />
           <DetailRow
@@ -197,7 +435,7 @@ export default function ReservationDetailPage() {
           />
         </DetailCard>
 
-        <DetailCard title="Lifecycle">
+        <DetailCard title="Lifecycle" className="md:col-span-2">
           <DetailRow
             label="Created"
             value={<span className="tnum">{formatDateTime(r.createdAt)}</span>}
@@ -224,6 +462,127 @@ export default function ReservationDetailPage() {
           </div>
         </DetailCard>
       </div>
+
+      {/* Edit modal */}
+      <Modal
+        open={showEdit}
+        onClose={() => !editBusy && setShowEdit(false)}
+        title="Edit reservation"
+      >
+        {editForm && (
+          <div className="space-y-4">
+            <p className="text-sm text-body">
+              Update the reservation details. The server enforces the 7-day
+              window and the 12-hour modification notice.
+            </p>
+
+            {dropdownsError && (
+              <p className="rounded-md border border-error/30 bg-error-soft px-3 py-2 text-xs font-medium text-error">
+                {dropdownsError}
+              </p>
+            )}
+
+            {/* Prosumer - read-only (ownership is not editable) */}
+            <div className="rounded-md border border-line bg-surface-alt px-3 py-2">
+              <p className="text-xs text-muted">Prosumer (not editable)</p>
+              <p className="text-sm font-medium text-ink">
+                {prosumer
+                  ? `${prosumer.fullName} - ${r.prosumerNic}`
+                  : r.prosumerNic}
+              </p>
+            </div>
+
+            {/* Station dropdown - clears slot when it changes */}
+            <Input
+              label="Station *"
+              as="select"
+              value={editForm.stationId}
+              onChange={(e) => {
+                setEditForm({
+                  ...editForm,
+                  stationId: e.target.value,
+                  slotId: "" // reset slot; new list loads
+                });
+                setSlots([]);
+              }}
+              disabled={dropdownsLoading.stations}
+            >
+              <option value="">
+                {dropdownsLoading.stations
+                  ? "Loading stations…"
+                  : stations.length === 0
+                    ? "No active stations"
+                    : "Select a station…"}
+              </option>
+              {stations.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </Input>
+
+            {/* Slot dropdown - includes the current slot even if not Available */}
+            <Input
+              label="Slot *"
+              as="select"
+              value={editForm.slotId}
+              onChange={(e) =>
+                setEditForm({ ...editForm, slotId: e.target.value })
+              }
+              disabled={
+                !editForm.stationId ||
+                dropdownsLoading.slots ||
+                slots.length === 0
+              }
+            >
+              <option value="">
+                {!editForm.stationId
+                  ? "Pick a station first"
+                  : dropdownsLoading.slots
+                    ? "Loading slots…"
+                    : slots.length === 0
+                      ? "No available slots at this station"
+                      : "Select a slot…"}
+              </option>
+              {slots.map((s) => (
+                <option key={s.id} value={s.id}>
+                  #{s.slotNumber} - {s.type} - {s.capacityKWh} kWh
+                  {s.id === r.slotId ? " (current)" : ""}
+                </option>
+              ))}
+            </Input>
+
+            {/* Scheduled at - bounded to the 7-day window */}
+            <Input
+              label="Scheduled at *"
+              type="datetime-local"
+              value={editForm.scheduledAt}
+              min={minScheduledAt()}
+              max={maxScheduledAt()}
+              onChange={(e) =>
+                setEditForm({ ...editForm, scheduledAt: e.target.value })
+              }
+            />
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                variant="secondary"
+                onClick={() => setShowEdit(false)}
+                disabled={editBusy}
+              >
+                Discard changes
+              </Button>
+              <Button
+                variant="primary"
+                onClick={submitEdit}
+                disabled={!canSave}
+              >
+                {editBusy ? "Saving…" : "Save changes"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Cancel modal */}
       <Modal
@@ -262,7 +621,7 @@ export default function ReservationDetailPage() {
         </div>
       </Modal>
 
-      {/* Toast - parent-owned state */}
+      {/* Toast */}
       <Toast
         message={toast.message}
         tone={toast.tone}
@@ -291,7 +650,9 @@ function DetailRow({ label, value, mono = false }) {
     <div className="flex items-start justify-between gap-4">
       <span className="text-sm text-muted">{label}</span>
       <span
-        className={`text-sm text-ink text-right break-all ${mono ? "font-mono text-xs" : ""}`}
+        className={`text-sm text-ink text-right break-all ${
+          mono ? "font-mono text-xs" : ""
+        }`}
       >
         {value}
       </span>

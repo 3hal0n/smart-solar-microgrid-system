@@ -4,6 +4,8 @@
 //          cancel, fetch, list, and QR verification. All
 //          business rules delegated to ReservationService
 //          (FAT service pattern). No validation in clients.
+//          Operators/Backoffice can create reservations on
+//          behalf of any Prosumer (phone-in / walk-in booking).
 // Author: Dinil
 // ============================================================
 
@@ -16,7 +18,7 @@ namespace SmartMicrogrid.Api.Controllers;
 
 [ApiController]
 [Route("api/reservations")]
-// [Authorize]
+//[Authorize]
 public class ReservationsController : ControllerBase
 {
     private readonly ReservationService _service;
@@ -26,40 +28,68 @@ public class ReservationsController : ControllerBase
         _service = service;
     }
 
-    // Creates a reservation under the caller's prosumer identity.
+    // Creates a reservation.
+    // - Prosumer: creates for themselves (NIC from JWT).
+    // - GridOperator / Backoffice: creates on behalf of a Prosumer (NIC from body).
     [HttpPost]
-    //[Authorize(Roles = "Prosumer")]
+    //[Authorize(Roles = "Prosumer,GridOperator,Backoffice")]
     public async Task<IActionResult> Create([FromBody] CreateReservationRequest req)
     {
-        var nic = User.FindFirst("nic")?.Value
-            ?? throw new ServiceException(401, "MISSING_NIC", "JWT missing nic claim.");
+        var nic = ResolveProsumerNic(req.ProsumerNic);
         var result = await _service.CreateAsync(nic, req);
         return Ok(result);
     }
 
     // Updates a reservation (12-hour rule, 7-day window re-check).
     [HttpPut("{id}")]
-    //[Authorize(Roles = "Prosumer")]
+    [Authorize(Roles = "Prosumer,GridOperator,Backoffice")]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateReservationRequest req)
     {
-        var nic = User.FindFirst("nic")?.Value!;
-        await _service.UpdateAsync(id, nic, req);
+        var role = User.FindFirst("role")?.Value;
+        var callerNic = User.FindFirst("nic")?.Value;
+
+        if (role == "Prosumer")
+        {
+            // Prosumer can only update their own reservation.
+            if (string.IsNullOrEmpty(callerNic))
+                throw new ServiceException(401, "MISSING_NIC", "JWT missing nic claim.");
+            await _service.UpdateAsync(id, callerNic, req);
+        }
+        else
+        {
+            // Operator/Backoffice updates without NIC ownership check.
+            await _service.UpdateAsAdminAsync(id, req);
+        }
+
         return NoContent();
     }
 
     // Cancels a reservation (12-hour rule, slot returned to Available).
     [HttpPut("{id}/cancel")]
-    //[Authorize(Roles = "Prosumer")]
+    [Authorize(Roles = "Prosumer,GridOperator,Backoffice")]
     public async Task<IActionResult> Cancel(string id, [FromBody] CancelReservationRequest req)
     {
-        var nic = User.FindFirst("nic")?.Value!;
-        await _service.CancelAsync(id, nic, req.Reason);
+        var role = User.FindFirst("role")?.Value;
+        var callerNic = User.FindFirst("nic")?.Value;
+
+        if (role == "Prosumer")
+        {
+            if (string.IsNullOrEmpty(callerNic))
+                throw new ServiceException(401, "MISSING_NIC", "JWT missing nic claim.");
+            await _service.CancelAsync(id, callerNic, req.Reason);
+        }
+        else
+        {
+            // Operator/Backoffice cancels on behalf - no NIC ownership check.
+            await _service.CancelAsAdminAsync(id, req.Reason);
+        }
+
         return NoContent();
     }
 
     // Fetches one reservation - owning Prosumer or GridOperator/Backoffice.
     [HttpGet("{id}")]
-    //[Authorize(Roles = "Prosumer,GridOperator,Backoffice")]
+    [Authorize(Roles = "Prosumer,GridOperator,Backoffice")]
     public async Task<IActionResult> Get(string id)
     {
         var role = User.FindFirst("role")?.Value;
@@ -74,7 +104,7 @@ public class ReservationsController : ControllerBase
 
     // Lists reservations with filters. Prosumers are scoped to their own NIC.
     [HttpGet]
-    //[Authorize(Roles = "Prosumer,GridOperator,Backoffice")]
+    [Authorize(Roles = "Prosumer,GridOperator,Backoffice")]
     public async Task<IActionResult> List(
         [FromQuery] string? nic,
         [FromQuery] string? stationId,
@@ -94,13 +124,35 @@ public class ReservationsController : ControllerBase
 
     // Grid Operator verifies a scanned QR token, flipping the reservation to Completed.
     [HttpPost("verify-qr")]
-    //[Authorize(Roles = "GridOperator")]
+    [Authorize(Roles = "GridOperator")]
     public async Task<IActionResult> VerifyQr([FromBody] VerifyQrRequest req)
     {
         var operatorUserId = User.FindFirst("sub")?.Value
             ?? throw new ServiceException(401, "MISSING_SUB", "JWT missing sub claim.");
         var result = await _service.VerifyQrAsync(req.QrToken, operatorUserId);
         return Ok(result);
+    }
+
+    // ---------- Helpers ----------
+
+    // Resolves the NIC of the Prosumer the reservation is for.
+    // Prosumer: NIC must come from JWT.
+    // Operator/Backoffice: NIC must come from the request body.
+    private string ResolveProsumerNic(string? bodyNic)
+    {
+        var role = User.FindFirst("role")?.Value;
+
+        if (role == "Prosumer")
+        {
+            return User.FindFirst("nic")?.Value
+                ?? throw new ServiceException(401, "MISSING_NIC", "JWT missing nic claim.");
+        }
+
+        // Operator / Backoffice path
+        if (string.IsNullOrWhiteSpace(bodyNic))
+            throw new ServiceException(400, "MISSING_NIC", "Prosumer NIC is required.");
+
+        return bodyNic.Trim();
     }
 
     // Maps a Reservation model to its API response shape.

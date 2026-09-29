@@ -70,6 +70,20 @@ namespace SmartMicrogrid.Api.Controllers
             return NoContent();
         }
 
+        // GET: api/prosumers?status=Active
+        // Returns the list of Prosumers (optionally filtered by status).
+        // Used by the Web App's reservation form so operators can pick a
+        // Prosumer from a dropdown instead of typing an NIC by hand.
+        // Backoffice and GridOperator may call this.
+        //[Authorize(Roles = "Backoffice,GridOperator")]
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<ProsumerResponseDto>>> List(
+            [FromQuery] string? status)
+        {
+            var prosumers = await _prosumerService.ListAsync(status);
+            return Ok(prosumers);
+        }
+
         // PUT: api/prosumers/{nic}/request-deactivation
         [Authorize]
         [HttpPut("{nic}/request-deactivation")]
