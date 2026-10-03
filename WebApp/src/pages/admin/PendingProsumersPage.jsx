@@ -190,7 +190,7 @@ export default function PendingProsumersPage() {
       {/* Stats Cards */}
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-2">
         <StatCard icon="clock" label="Pending Activation" value={summary.pending} hint="Awaiting Backoffice approval" />
-        <StatCard icon="x-circle" label="Deactivated" value={summary.deactivated} hint="Require Backoffice reactivation" />
+        <StatCard icon="alert" label="Deactivated" value={summary.deactivated} hint="Require Backoffice reactivation" />
       </div>
 
       {/* Search Bar */}
