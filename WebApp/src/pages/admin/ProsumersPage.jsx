@@ -292,7 +292,7 @@ export default function ProsumersPage() {
         <StatCard icon="user" label="Total prosumers" value={summary.total} hint="Registered accounts" />
         <StatCard icon="pulse" label="Active" value={summary.active} hint="Currently active" />
         <StatCard icon="clock" label="Pending" value={summary.pending} hint="Awaiting activation" />
-        <StatCard icon="x-circle" label="Deactivated" value={summary.deactivated} hint="Deactivated accounts" />
+        <StatCard icon="alert" label="Deactivated" value={summary.deactivated} hint="Deactivated accounts" />
       </div>
 
       {/* Search Bar */}
