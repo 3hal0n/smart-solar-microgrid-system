@@ -2,6 +2,7 @@
 // File: LoginScreen.kt
 // Purpose: Sign-in screen using home.png image, Joule logo,
 //          tagline, password eye toggle, and role selector.
+// Author: Rukshan
 // ============================================================
 package com.smartmicrogrid.ui.prosumer
 
