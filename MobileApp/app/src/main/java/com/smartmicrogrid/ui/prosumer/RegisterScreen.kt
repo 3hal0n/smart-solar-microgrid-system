@@ -2,6 +2,7 @@
 // File: RegisterScreen.kt
 // Purpose: Prosumer registration screen with signup.png image,
 //          Joule branding, password eye toggle, and registration form.
+// Author: Rukshan
 // ============================================================
 package com.smartmicrogrid.ui.prosumer
 
@@ -197,29 +198,45 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit) {
                 Button(
                     onClick = {
                         errorMessage = null
+
+                        // Trim all inputs for accurate validation
+                        val trimmedNic = nic.trim()
+                        val trimmedFullName = fullName.trim()
+                        val trimmedEmail = email.trim()
+                        val trimmedPhone = phone.trim()
+                        val trimmedAddress = address.trim()
+                        val trimmedPassword = password.trim()
+
                         when {
-                            nic.isBlank() -> errorMessage = "NIC is required"
-                            fullName.isBlank() -> errorMessage = "Full name is required"
-                            email.isBlank() -> errorMessage = "Email address is required"
-                            password.length < 6 -> errorMessage = "Password must be at least 6 characters"
+                            trimmedNic.isBlank() -> errorMessage = "NIC is required"
+                            !Regex("^\\d{9}[vVxX]$|^\\d{12}$").matches(trimmedNic) ->
+                                errorMessage = "Invalid NIC format (e.g., 200012345678 or 981234567V)"
+                            trimmedFullName.isBlank() -> errorMessage = "Full name is required"
+                            trimmedEmail.isBlank() -> errorMessage = "Email address is required"
+                            !Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$").matches(trimmedEmail) ->
+                                errorMessage = "Invalid email format"
+                            trimmedPhone.isNotBlank() && !Regex("^\\d{10}$").matches(trimmedPhone.replace("\\s+".toRegex(), "")) ->
+                                errorMessage = "Phone number must be exactly 10 digits"
+                            trimmedPassword.isBlank() -> errorMessage = "Password is required"
+                            trimmedPassword.length < 6 -> errorMessage = "Password must be at least 6 characters"
                             else -> {
                                 isLoading = true
                                 scope.launch {
                                     try {
                                         val request = ProsumerRegistrationRequest(
-                                            nic = nic.trim(),
-                                            fullName = fullName.trim(),
-                                            email = email.trim(),
-                                            phone = phone.trim().ifBlank { null },
-                                            address = address.trim().ifBlank { null },
-                                            password = password,
+                                            nic = trimmedNic,
+                                            fullName = trimmedFullName,
+                                            email = trimmedEmail,
+                                            phone = trimmedPhone.ifBlank { null },
+                                            address = trimmedAddress.ifBlank { null },
+                                            password = trimmedPassword,
                                         )
                                         val response = ApiClient.service.registerProsumer(request)
                                         if (response.isSuccessful) {
                                             Toast.makeText(context, "Registration successful! Pending Backoffice activation.", Toast.LENGTH_LONG).show()
                                             onNavigateToLogin()
                                         } else {
-                                            errorMessage = "Registration failed: ${response.code()}"
+                                            errorMessage = "Registration failed: ${response.errorBody()?.string() ?: response.code()}"
                                         }
                                     } catch (e: Exception) {
                                         errorMessage = "Network error: ${e.localizedMessage}"
