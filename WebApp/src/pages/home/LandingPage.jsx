@@ -44,8 +44,9 @@ export default function LandingPage() {
       {/* Sticky / Fixed Navbar across all scroll states */}
       <header className="fixed top-0 left-0 right-0 z-50 w-full px-4 sm:px-6 md:px-12 lg:px-16 pt-3 sm:pt-6 transition-all duration-300">
         <nav className="liquid-glass rounded-xl px-4 py-2.5 sm:py-2 flex items-center justify-between">
-          {/* Left: Logo */}
-          <Link to="/" className="flex items-center gap-2" onClick={() => setIsMobileMenuOpen(false)}>
+          {/* Left: Logo with Joule brand mark */}
+          <Link to="/" className="flex items-center gap-2 sm:gap-2.5" onClick={() => setIsMobileMenuOpen(false)}>
+            <JouleMark id="nav-joule-mark" className="h-6 w-7 sm:h-7 sm:w-8 shrink-0" />
             <span className="text-xl sm:text-2xl font-semibold tracking-tight text-white">JOULE</span>
           </Link>
 
