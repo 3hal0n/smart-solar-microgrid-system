@@ -2,3 +2,5 @@ docs/CLAUDE.md
 docs/shalon-implementation-plan.md
 docs/shalon-prompts.md
 docs/stripe.design.md
+config.bat
+node_modules
