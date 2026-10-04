@@ -13,7 +13,7 @@ import axios from 'axios';
 export const AUTH_STORAGE_KEY = 'smartmicrogrid_auth';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5128/api',
+  baseURL: import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
 });
 
 // Attaches the stored JWT (if any) to every outgoing request as a Bearer token.

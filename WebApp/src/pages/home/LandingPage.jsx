@@ -8,7 +8,7 @@
 // ============================================================
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Download, Smartphone } from 'lucide-react';
 import Button from '../../components/common/Button.jsx';
 import JouleMark from '../../components/common/JouleMark.jsx';
 import FadeIn from '../../components/common/FadeIn.jsx';
@@ -278,10 +278,10 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Prosumer callout */}
+      {/* Prosumer callout & Direct Mobile App Download */}
       <section id="prosumers" className="border-y border-line bg-canvas">
-        <div className="mx-auto max-w-6xl px-6 py-20">
-          <div className="relative flex flex-col items-start gap-10 overflow-hidden rounded-lg border border-line p-8 text-on-dark sm:p-10 lg:flex-row lg:items-center lg:justify-between">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 py-16 sm:py-20">
+          <div className="relative flex flex-col items-start gap-10 overflow-hidden rounded-2xl border border-line p-6 sm:p-10 text-on-dark lg:flex-row lg:items-center lg:justify-between shadow-hero">
             <img
               src="/images/rooftop-solar.jpg"
               alt="Rooftop solar panel installation on a prosumer's home"
@@ -291,31 +291,55 @@ export default function LandingPage() {
               decoding="async"
               className="absolute inset-0 h-full w-full object-cover"
             />
-            <div className="absolute inset-0 bg-ink/88" />
-            <div className="relative max-w-xl">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-white/50">For solar prosumers</span>
-              <h2 className="mt-3 text-3xl font-medium tracking-[-0.02em]">Get the Prosumer app</h2>
-              <p className="mt-3 text-[15px] font-light leading-relaxed text-white/70">
-                Register with your NIC, find nearby grid nodes on the map, and reserve charging or discharging slots in
-                a few taps. Every confirmed booking issues a secure transaction QR code that an operator scans at the
-                hub.
+            <div className="absolute inset-0 bg-ink/90 backdrop-blur-[2px]" />
+            <div className="relative max-w-xl space-y-4">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-primary">
+                Native Android Prosumer Client
+              </span>
+              <h2 className="text-3xl sm:text-4xl font-medium tracking-[-0.02em]">
+                Get the Joule Prosumer App
+              </h2>
+              <p className="text-sm sm:text-base font-light leading-relaxed text-white/75">
+                Register with your NIC, find nearby grid nodes on the live map, and reserve charging or discharging
+                slots in a few taps. Every confirmed booking issues a secure transaction QR code verified instantly by
+                grid operators.
               </p>
-              <ol className="mt-6 space-y-2 text-[14px] font-light text-white/70">
+              <ol className="space-y-2.5 text-xs sm:text-sm font-light text-white/80 pt-2">
                 {PROSUMER_STEPS.map((step, index) => (
-                  <li key={step}>
-                    {index + 1}. {step}
+                  <li key={step} className="flex items-start gap-2.5">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/10 text-[11px] font-medium text-white border border-white/20">
+                      {index + 1}
+                    </span>
+                    <span>{step}</span>
                   </li>
                 ))}
               </ol>
             </div>
 
-            <div className="relative flex shrink-0 flex-col items-center gap-3 rounded-lg bg-white/10 p-6 backdrop-blur-sm">
-              <QrPlaceholder />
-              <p className="text-center text-[12px] font-light text-white/60">
-                Scan to download
-                <br />
-                Android only · SQLite offline support
-              </p>
+            {/* Direct APK Download Card */}
+            <div className="relative w-full lg:w-auto shrink-0 flex flex-col items-center gap-4 rounded-xl border border-white/15 bg-white/10 p-6 sm:p-8 backdrop-blur-md shadow-2xl text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-ink shadow-md">
+                <Smartphone className="h-7 w-7 text-primary" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-lg font-medium text-white">Android Application</h3>
+                <p className="text-xs text-white/60">Version 1.0.0 • Pure Native Kotlin</p>
+              </div>
+
+              {/* Direct APK Download Link */}
+              <a
+                href="/downloads/joule-prosumer.apk"
+                download="joule-prosumer.apk"
+                className="w-full flex items-center justify-center gap-2 rounded-lg bg-white px-6 py-3 text-sm font-medium text-black transition-colors hover:bg-gray-100 shadow-lg"
+              >
+                <Download className="h-4 w-4" />
+                <span>Download APK</span>
+              </a>
+
+              <div className="flex flex-col gap-1 text-[11px] text-white/50 pt-1">
+                <span>Direct installation package for Android 8.0+</span>
+                <span>SQLite local storage • CameraX QR verification</span>
+              </div>
             </div>
           </div>
         </div>
