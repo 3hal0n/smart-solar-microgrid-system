@@ -187,6 +187,7 @@ private fun NavGraphShell(destinations: List<HomeDestination>) {
             }
             composable(HomeRoutes.PROSUMER_MAP) {
                 MapScreen(
+                    userRole = UserRole.Prosumer,
                     onStationSelect = { stationId ->
                         navController.navigate("${HomeRoutes.PROSUMER_CREATE_BOOKING}?stationId=$stationId")
                     }
@@ -212,7 +213,11 @@ private fun NavGraphShell(destinations: List<HomeDestination>) {
 
             composable(HomeRoutes.OPERATOR_DASHBOARD) { OperatorDashboardScreen() }
             composable(HomeRoutes.OPERATOR_SCAN_QR) { ScanQrScreen() }
-            composable(HomeRoutes.OPERATOR_MAP) { MapScreen() }
+            composable(HomeRoutes.OPERATOR_MAP) {
+                MapScreen(
+                    userRole = UserRole.GridOperator
+                )
+            }
             composable(HomeRoutes.OPERATOR_PROFILE) {
                 val context = LocalContext.current
                 OperatorProfileScreen(onLogout = {

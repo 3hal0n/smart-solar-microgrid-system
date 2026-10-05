@@ -166,4 +166,5 @@ https://github.com/3hal0n/smart-solar-microgrid-system
 
 ## Demo video
 
-A short walkthrough of the application is available here: *add your video link before submission.*
+A comprehensive walkthrough of the application (under 5 minutes) is available:
+- **Demo Video:** [JouleDemo.mp4 (OneDrive / SharePoint)](https://mysliit-my.sharepoint.com/:v:/g/personal/it22362544_my_sliit_lk/IQBvTgFMRkPJQKGFHGoIvIJgAQ9GXCwDsMBgF1Juv_zKcWQ?e=bAFMzG)

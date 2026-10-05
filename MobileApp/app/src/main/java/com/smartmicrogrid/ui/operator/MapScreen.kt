@@ -37,14 +37,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapUiSettings
+import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerInfoWindowContent
 import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.maps.android.compose.rememberMarkerState
 import com.smartmicrogrid.data.remote.ApiClient
 import com.smartmicrogrid.ui.components.IconTile
 import com.smartmicrogrid.ui.components.JouleIcons
+import com.smartmicrogrid.ui.home.UserRole
 import com.smartmicrogrid.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -56,6 +62,7 @@ private const val SEARCH_RADIUS_ALL_KM = 500.0 // Load all stations by default
 
 @Composable
 fun MapScreen(
+    userRole: UserRole = UserRole.Prosumer,
     onStationSelect: ((String) -> Unit)? = null,
 ) {
     val context = LocalContext.current
@@ -68,6 +75,7 @@ fun MapScreen(
         )
     }
     var showRationaleDialog by remember { mutableStateOf(!hasLocationPermission) }
+    var userLocation by remember { mutableStateOf<LatLng?>(null) }
     var center by remember { mutableStateOf<LatLng?>(null) }
     var usingDeviceLocation by remember { mutableStateOf(false) }
     var allStations by remember { mutableStateOf<List<NearbyStation>?>(null) }
@@ -85,6 +93,7 @@ fun MapScreen(
     ) { granted ->
         hasLocationPermission = granted
         if (!granted) {
+            userLocation = null
             center = DEFAULT_CENTER
             usingDeviceLocation = false
         }
@@ -93,12 +102,14 @@ fun MapScreen(
     LaunchedEffect(hasLocationPermission) {
         if (!hasLocationPermission) {
             if (center == null) {
+                userLocation = null
                 center = DEFAULT_CENTER
                 usingDeviceLocation = false
             }
             return@LaunchedEffect
         }
         val resolved = readLastKnownLocation(context)
+        userLocation = resolved
         center = resolved ?: DEFAULT_CENTER
         usingDeviceLocation = resolved != null
     }
@@ -145,7 +156,14 @@ fun MapScreen(
             mapError != null -> ErrorState(message = mapError!!, onRetry = { mapRefreshToken++ })
             center == null || allStations == null -> LoadingState()
             filteredStations != null && filteredStations.isEmpty() -> {
-                StationsMap(center = center!!, stations = emptyList(), onStationSelect = onStationSelect)
+                StationsMap(
+                    center = center!!,
+                    userLocation = userLocation,
+                    userRole = userRole,
+                    hasLocationPermission = hasLocationPermission,
+                    stations = emptyList(),
+                    onStationSelect = onStationSelect,
+                )
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -180,7 +198,14 @@ fun MapScreen(
                     }
                 }
             }
-            else -> StationsMap(center = center!!, stations = filteredStations ?: allStations!!, onStationSelect = onStationSelect)
+            else -> StationsMap(
+                center = center!!,
+                userLocation = userLocation,
+                userRole = userRole,
+                hasLocationPermission = hasLocationPermission,
+                stations = filteredStations ?: allStations!!,
+                onStationSelect = onStationSelect,
+            )
         }
 
         // Floating Filter & Status Header
@@ -216,12 +241,33 @@ fun MapScreen(
                             modifier = Modifier.size(22.dp),
                         )
                         Column {
-                            Text(
-                                text = if (usingDeviceLocation) "Near Your Location" else "All Microgrid Hubs",
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = StripeInk,
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Text(
+                                    text = if (usingDeviceLocation) {
+                                        if (userRole == UserRole.GridOperator) "Operator Location" else "Prosumer Location"
+                                    } else "All Microgrid Hubs",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = StripeInk,
+                                )
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = if (userRole == UserRole.GridOperator) StripeBrandVioletSoft else StripeSurfaceAlt,
+                                    border = BorderStroke(1.dp, if (userRole == UserRole.GridOperator) StripePrimary.copy(alpha = 0.4f) else StripeBorder),
+                                ) {
+                                    Text(
+                                        text = if (userRole == UserRole.GridOperator) "Operator" else "Prosumer",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (userRole == UserRole.GridOperator) StripePrimary else StripeBody,
+                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+                                    )
+                                }
+                            }
                             Text(
                                 text = if (filteredStations != null && allStations != null) {
                                     "${filteredStations.size} of ${allStations!!.size} stations shown"
@@ -474,6 +520,9 @@ private fun ErrorState(message: String, onRetry: () -> Unit) {
 @Composable
 private fun StationsMap(
     center: LatLng,
+    userLocation: LatLng?,
+    userRole: UserRole,
+    hasLocationPermission: Boolean,
     stations: List<NearbyStation>,
     onStationSelect: ((String) -> Unit)? = null,
 ) {
@@ -484,17 +533,42 @@ private fun StationsMap(
     GoogleMap(
         modifier = Modifier.fillMaxSize(),
         cameraPositionState = cameraPositionState,
-        uiSettings = com.google.maps.android.compose.MapUiSettings(
+        properties = MapProperties(
+            isMyLocationEnabled = hasLocationPermission,
+        ),
+        uiSettings = MapUiSettings(
             zoomControlsEnabled = true,
             mapToolbarEnabled = true,
+            myLocationButtonEnabled = hasLocationPermission,
         ),
     ) {
+        // Render Role-Specific Current Location Marker
+        if (userLocation != null) {
+            val isOperator = userRole == UserRole.GridOperator
+            val title = if (isOperator) "You (Grid Operator)" else "You (Prosumer)"
+            val snippet = if (isOperator) "Field Dispatch Unit Position" else "Current Solar Prosumer Location"
+            val hue = if (isOperator) BitmapDescriptorFactory.HUE_VIOLET else BitmapDescriptorFactory.HUE_AZURE
+
+            Marker(
+                state = rememberMarkerState(position = userLocation),
+                title = title,
+                snippet = snippet,
+                icon = BitmapDescriptorFactory.defaultMarker(hue),
+                zIndex = 3.0f,
+            )
+        }
+
+        // Render Microgrid Hub Station Markers
         stations.forEach { station ->
+            val isAvailable = station.availableSlots > 0
+            val stationHue = if (isAvailable) BitmapDescriptorFactory.HUE_GREEN else BitmapDescriptorFactory.HUE_RED
+
             MarkerInfoWindowContent(
-                state = com.google.maps.android.compose.rememberMarkerState(
+                state = rememberMarkerState(
                     position = LatLng(station.location.lat, station.location.lng),
                 ),
                 title = station.name,
+                icon = BitmapDescriptorFactory.defaultMarker(stationHue),
                 onInfoWindowClick = {
                     onStationSelect?.invoke(station.id)
                 },
