@@ -123,7 +123,7 @@ A client-server enterprise application for trading solar energy through a networ
 - **Web API & Backend:** User authentication and staff management (`AuthController.cs`, `UsersController.cs`), JWT token generation, role-based authorization policies (`Backoffice`, `GridOperator`), and BCrypt password hashing.
 - **Web Application:** Staff authentication portal (`LoginPage.jsx`) and user administration interface (`UsersPage.jsx`) for managing staff credentials and system access roles.
 
-### 4. Rukshan Dias
+### 4. Rukshan Ekanayake
 - **Web API & Backend:** Prosumer account endpoints (`ProsumersController.cs`, `ProsumerService.cs`) utilizing National Identity Card (NIC) as the unique primary key, pending account approval workflows, and deactivation handling.
 - **Web Application:** Prosumer administration dashboard (`ProsumersPage.jsx`, `PendingProsumersPage.jsx`) for reviewing, verifying, and activating pending prosumer registrations.
 - **Mobile Application:** Prosumer self-registration flow with NIC validation, user profile management, and account deactivation request interface.
