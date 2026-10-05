@@ -19,7 +19,6 @@ import DataTable from '../../components/common/Table';
 import StatCard from '../../components/common/StatCard';
 
 const EMPTY_FORM = { nic: '', fullName: '', email: '', phone: '', address: '', password: '' };
-const ITEMS_PER_PAGE = 6;
 
 export default function ProsumersPage() {
   const { role } = useAuth();
@@ -40,6 +39,7 @@ export default function ProsumersPage() {
   // Search and Pagination State
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
 
   const fetchProsumers = useCallback(async () => {
     setIsLoading(true);
@@ -59,10 +59,10 @@ export default function ProsumersPage() {
     }
   }, [role, fetchProsumers]);
 
-  // Reset to page 1 when search query changes
+  // Reset to page 1 when search query or pageSize changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, pageSize]);
 
   const summary = useMemo(
     () => ({
@@ -87,10 +87,10 @@ export default function ProsumersPage() {
   }, [prosumers, searchQuery]);
 
   // Pagination logic
-  const totalPages = Math.ceil(filteredProsumers.length / ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filteredProsumers.length / pageSize));
   const currentItems = filteredProsumers.slice(
-    (currentPage - 1) * ITEMS_PER_PAGE,
-    currentPage * ITEMS_PER_PAGE
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
   );
 
   // Form Validation Logic
@@ -397,30 +397,65 @@ export default function ProsumersPage() {
 
       {/* Pagination Controls */}
       {!isLoading && filteredProsumers.length > 0 && (
-        <div className="mt-6 flex flex-col items-center justify-between gap-4 border-t border-line pt-4 sm:flex-row">
-          <p className="text-sm text-muted">
-            Showing {currentItems.length > 0 ? (currentPage - 1) * ITEMS_PER_PAGE + 1 : 0} to{' '}
-            {Math.min(currentPage * ITEMS_PER_PAGE, filteredProsumers.length)} of {filteredProsumers.length} results
-          </p>
-          <div className="flex items-center gap-2">
+        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-line pt-4">
+          <div className="flex items-center gap-3 text-xs text-muted">
+            <span>
+              Showing <span className="font-semibold text-ink">{currentItems.length > 0 ? (currentPage - 1) * pageSize + 1 : 0}</span> to{' '}
+              <span className="font-semibold text-ink">
+                {Math.min(currentPage * pageSize, filteredProsumers.length)}
+              </span>{' '}
+              of <span className="font-semibold text-ink">{filteredProsumers.length}</span> prosumers
+            </span>
+            <span className="text-line">|</span>
+            <div className="flex items-center gap-1.5">
+              <span>Per page:</span>
+              <select
+                aria-label="Prosumers per page"
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="rounded-md border border-line bg-surface px-2 py-1 text-xs font-medium text-ink focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value={6}>6</option>
+                <option value={12}>12</option>
+                <option value={24}>24</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
             <Button
               variant="secondary"
               size="sm"
               onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
+              className="px-2.5"
             >
-              Previous
+              ← Prev
             </Button>
-            <span className="text-sm font-medium text-ink">
-              Page {currentPage} of {totalPages || 1}
-            </span>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <button
+                  key={pageNum}
+                  type="button"
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`min-w-[32px] h-8 rounded-md text-xs font-semibold transition-all ${
+                    currentPage === pageNum
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'border border-line bg-surface text-ink hover:bg-surface-alt'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+            </div>
             <Button
               variant="secondary"
               size="sm"
               onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages || totalPages === 0}
+              disabled={currentPage === totalPages}
+              className="px-2.5"
             >
-              Next
+              Next →
             </Button>
           </div>
         </div>
