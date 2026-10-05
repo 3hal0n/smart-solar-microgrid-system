@@ -1,170 +1,129 @@
-# Smart Solar Microgrid Trading System
+# Smart Solar Microgrid Trading System (Joule)
 
-[![.NET](https://img.shields.io/badge/.NET-9.0-512BD4?style=flat-square)](https://dotnet.microsoft.com/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=flat-square)](https://www.mongodb.com/atlas)
-[![React](https://img.shields.io/badge/React-19-149ECA?style=flat-square)](https://react.dev/)
-[![Vite](https://img.shields.io/badge/Vite-8-646CFF?style=flat-square)](https://vitejs.dev/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-4-38BDF8?style=flat-square)](https://tailwindcss.com/)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.2-7F52FF?style=flat-square)](https://kotlinlang.org/)
-[![Android](https://img.shields.io/badge/Android-Jetpack%20Compose-3DDC84?style=flat-square)](https://developer.android.com/jetpack/compose)
+A client-server enterprise application for trading solar energy through a network of managed microgrid hubs. The system features a centralized C# ASP.NET Core Web API (FAT service architecture pattern) backed by MongoDB, a React web portal for backoffice administration and site operators, and a pure native Android mobile application with local SQLite caching for prosumers and on-site grid operators.
 
-A client-server system for trading solar energy through a network of managed microgrid hubs. A web application handles backoffice administration and grid operator tools; a native Android application handles the prosumer side and on-site operator verification. Everything goes through one central API - neither client talks to the database directly.
+---
 
-## Contents
+## System Architecture & Diagrams
 
-- [What this system does](#what-this-system-does)
-- [Architecture](#architecture)
-- [Tech stack](#tech-stack)
-- [Project layout](#project-layout)
-- [Running it locally](#running-it-locally)
-- [Team and individual contributions](#team-and-individual-contributions)
-- [Repository](#repository)
-- [Demo video](#demo-video)
+### High-Level Architecture
+![High Level Architecture](report/diagrams/High-Level-architecture.drawio.png)
 
-## What this system does
+### System Use Case Diagram
+![Use Case Diagram](report/diagrams/EAD_usecase_d.drawio.png)
 
-A solar prosumer is someone with their own solar panel array who wants to sell surplus energy back into the grid, or draw from it, through a physical charging/discharging point - a microgrid hub. The Backoffice team registers these hubs (location, capacity, battery slots) and keeps their schedules current. Grid operators keep an eye on slot availability and verify transfers in person. Prosumers do everything else from their phone: find a nearby hub, reserve a slot within a 7-day window, get a QR code once the reservation is confirmed, and hand that code to an operator when they show up.
+### Visual System Flow
+![Visual Flow Diagram](report/diagrams/diagram.png)
 
-None of the business rules - slot availability, the 7-day window, the 12-hour cancellation notice, whether a hub can be deactivated - are decided by either client. They all live in the API, and both the web app and the mobile app just render whatever the API tells them, including its rejection messages when a request isn't allowed.
+---
 
-## Architecture
+## Setup & Running the Application
 
-```
-        ┌─────────────┐          ┌─────────────┐
-        │  Web App    │          │  Mobile App │
-        │  (React)    │          │  (Android)  │
-        └──────┬──────┘          └──────┬──────┘
-               │      REST / JSON       │
-               └───────────┬────────────┘
-                            │
-                    ┌───────▼────────┐
-                    │   Web Service   │
-                    │  (C# / ASP.NET) │
-                    └───────┬────────┘
-                            │
-                    ┌───────▼────────┐
-                    │    MongoDB      │
-                    └────────────────┘
-```
+### Prerequisites
+- **.NET 9.0 SDK** (for the Web Service)
+- **Node.js 18+ & npm** (for the Web Application)
+- **Android Studio Ladybug / Koala** or newer with Android SDK 34+ (for the Mobile Application)
+- **MongoDB** instance (Local or MongoDB Atlas)
 
-Both clients are interface layers only. The web app is a React single-page app; the mobile app is pure native Android - no Flutter, no React Native, no Xamarin. The mobile app keeps a small local SQLite cache for offline-first rendering (recent dashboard numbers, cached QR verification history), but that cache is never the source of truth - every write goes through the API, and the cache just holds the last thing the API said.
+---
 
-Authentication is JWT-based for Backoffice and Grid Operator staff on the web. The mobile app currently runs against fixture/test data for the prosumer identity until a prosumer login flow is wired up end to end.
+### 1. Web Service (C# ASP.NET Core 9.0 Web API)
 
-## Tech stack
+1. Open `WebService/SmartMicrogrid.Api/appsettings.json` and configure your MongoDB connection string:
+   ```json
+   {
+     "MongoDb": {
+       "ConnectionString": "mongodb://localhost:27017",
+       "DatabaseName": "SmartMicrogridDB"
+     },
+     "Jwt": {
+       "Secret": "YourSuperSecretKeyWithAtLeast32CharactersLong!"
+     }
+   }
+   ```
 
-**Web Service**
-- ASP.NET Core 9 Web API, deployed against Windows IIS in production
-- MongoDB (Atlas in development), accessed through the official MongoDB.Driver
-- JWT bearer authentication, BCrypt password hashing
-- Swagger/OpenAPI for interactive API docs in development
+2. Run the Web API from the root directory:
+   ```bash
+   cd WebService/SmartMicrogrid.Api
+   dotnet restore
+   dotnet run
+   ```
+   The API will start listening on `http://localhost:5128` (or configured port). Swagger documentation is available at `http://localhost:5128/swagger`.
 
-**Web Application**
-- React 19 with Vite
-- Tailwind CSS 4
-- React Router
-- Axios, with a shared instance that attaches the signed-in user's JWT automatically
+3. *(Optional)* Create an initial administrator account using cURL or Swagger:
+   ```bash
+   curl -X POST http://localhost:5128/api/users \
+     -H "Content-Type: application/json" \
+     -d '{"username":"admin","password":"ChangeMe123!","role":"Backoffice","fullName":"Admin User","email":"admin@example.com"}'
+   ```
 
-**Mobile Application**
-- Pure native Android, Kotlin, Jetpack Compose
-- SQLite via the platform's own `SQLiteOpenHelper` - no Room, no ORM
-- Retrofit and OkHttp for API calls
-- Google Maps SDK for Android (nearby-hub map)
-- CameraX and ML Kit for QR scanning
+---
 
-## Project layout
+### 2. Web Application (React + Vite + Tailwind CSS)
 
-```
-WebService/     ASP.NET Core API - controllers, services, MongoDB models
-WebApp/         React web application
-MobileApp/      Native Android application
-docs/           Architecture notes and this assignment's brief
-```
+1. Navigate to the `WebApp` directory and install dependencies:
+   ```bash
+   cd WebApp
+   npm install
+   ```
 
-## Running it locally
+2. Start the local development server:
+   ```bash
+   npm run dev
+   ```
+   The web application will launch at `http://localhost:5173`.
 
-You'll need the .NET 9 SDK, Node.js, Android Studio, and a MongoDB connection string (Atlas or local).
+---
 
-**1. Web Service**
+### 3. Mobile Application (Pure Native Android with Jetpack Compose & SQLite)
 
-```
-cd WebService/SmartMicrogrid.Api
-dotnet run --launch-profile http
-```
+1. Open the `MobileApp` directory directly in Android Studio.
+2. Configure `MobileApp/local.properties` with your Google Maps API key and local computer IP:
+   ```properties
+   MAPS_API_KEY=your_google_maps_api_key
+   API_BASE_URL=http://10.0.2.2:5128/
+   ```
+   *(Note: Use `http://10.0.2.2:5128/` for the Android emulator or your host PC's local Wi-Fi IP e.g. `http://192.168.1.X:5128/` for physical test devices).*
 
-Add a `.env` file in that folder with your own `ConnectionStrings__MongoDb` and `Jwt__Key` - see `.env.example`. The API listens on `http://localhost:5128` by default.
+3. Build and install via command line or Android Studio:
+   ```bash
+   cd MobileApp
+   .\gradlew assembleDebug
+   .\gradlew installDebug
+   ```
 
-Before anyone can sign in, create the first account directly against the API (this endpoint is deliberately open, precisely so there's a way to bootstrap the first user):
+---
 
-```
-curl -X POST http://localhost:5128/api/users \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"ChangeMe123!","role":"Backoffice","fullName":"Admin User","email":"admin@example.com"}'
-```
+## Git Repository
 
-**2. Web Application**
+**GitHub Link:** https://github.com/3hal0n/smart-solar-microgrid-system
 
-```
-cd WebApp
-npm install
-npm run dev
-```
+---
 
-Runs on `http://localhost:5173`. Sign in at `/login` with the account you just created.
+## Demo Video
 
-**3. Mobile Application**
+**Walkthrough Video (< 5 Minutes):**  
+[JouleDemo.mp4 (OneDrive / SharePoint Link)](https://mysliit-my.sharepoint.com/:v:/g/personal/it22362544_my_sliit_lk/IQBvTgFMRkPJQKGFHGoIvIJgAQ9GXCwDsMBgF1Juv_zKcWQ?e=bAFMzG)
 
-*Via Command Line (CLI):*
+---
 
-With an Android emulator running or a physical device connected via USB (with USB Debugging enabled):
+## Individual Contributions
 
-```bash
-cd MobileApp
+### 1. Shalon Fernando (IT22362544)
+- **Web API & Backend:** Microgrid node lifecycle management (`StationsController.cs`, `StationService.cs`), 2dsphere geospatial proximity calculations (Haversine & `$geoNear`), node conflict guard preventing deactivation with active reservations, and prosumer dashboard summary aggregation engine (`DashboardController.cs`, `DashboardService.cs`).
+- **Web Application:** Microgrid Hubs catalog and detail provisioning views (`StationsPage.jsx`, `StationDetailPage.jsx`), Leaflet/OpenStreetMap coordinate picker modal (`MapPicker.jsx`, `StationForm.jsx`), and shared product shell infrastructure (`AppShell.jsx`, `Sidebar.jsx`, `TopBar.jsx`, `DashboardPage.jsx`).
+- **Mobile Application:** Prosumer dashboard screen with live counters and filter sheet (`ProsumerDashboardScreen.kt`), Google Maps interactive hub discovery screen with custom markers and capacity filtering (`MapScreen.kt`), offline-first SQLite cache layer (`DashboardCacheDao.kt`), and branded entry flow (`SplashActivity.kt`, `OnboardingActivity.kt`).
 
-# Build and install the debug APK onto the active device / emulator:
-.\gradlew installDebug       # Windows PowerShell
-./gradlew installDebug       # macOS / Linux
+### 2. Dinil Dulneth
+- **Web API & Backend:** Energy reservation lifecycle management (`ReservationsController.cs`, `ReservationService.cs`), 7-day scheduling window validation, 12-hour modification/cancellation lockout rule, and secure cryptographic QR token generation and validation.
+- **Web Application:** Central reservation administration console (`ReservationsAdminPage.jsx`, `ReservationDetailPage.jsx`) for reviewing, filtering, and managing bookings across all microgrid stations.
+- **Mobile Application:** Grid Operator QR code scanner (`OperatorScannerScreen.kt`) built with CameraX and ML Kit for in-person scanning, server-side reservation verification, and energy drop-off finalization.
 
-# Launch the application on the device via ADB:
-adb shell am start -n com.smartmicrogrid/.ui.onboarding.SplashActivity
-```
+### 3. Migara Wijesinghe
+- **Web API & Backend:** User authentication and staff management (`AuthController.cs`, `UsersController.cs`), JWT token generation, role-based authorization policies (`Backoffice`, `GridOperator`), and BCrypt password hashing.
+- **Web Application:** Staff authentication portal (`LoginPage.jsx`) and user administration interface (`UsersPage.jsx`) for managing staff credentials and system access roles.
 
-> **Tip:** To build the APK bundle without installing, run `.\gradlew assembleDebug`. The generated APK will be at `MobileApp/app/build/outputs/apk/debug/app-debug.apk`.
-
-*Via Android Studio:*
-
-1. Open the `MobileApp` directory in Android Studio (open the `MobileApp` folder specifically, not the root repository folder) and wait for Gradle to sync.
-2. Select your active emulator or connected physical device from the device dropdown.
-3. Press **Run** (`Shift + F10`) to build, install, and launch the app.
-
-**Device & Network Configuration (`local.properties`):**
-
-If testing on a physical device rather than an emulator, configure `MobileApp/local.properties`:
-
-```properties
-MAPS_API_KEY=your_google_maps_api_key
-API_BASE_URL=http://<your-computer's-LAN-IP>:5128/
-```
-
-The emulator defaults to `http://10.0.2.2:5128/` (the Android emulator's loopback alias to your host PC). A physical device must be on the same Wi-Fi network and requires your PC's actual local IPv4 address (e.g. `http://192.168.1.7:5128/`).
-
-## Team and individual contributions
-
-This was a four-person group project. Ownership of each module shifted a few times over the course of the project as the team rebalanced who was doing what; what follows reflects the final split.
-
-**Shalon Fernando** - Microgrid node management on the backend and web: creating and updating hubs, their battery slots and operating schedule, and the deactivation rule that blocks a hub from going offline while it still has active reservations. Also built the prosumer dashboard summary and reservation search endpoints, and the geolocation query behind the nearby-hubs map. On the web app: the Microgrid Hubs list and detail screens, the shared page layout used across the whole app, and the public landing page. On mobile: the prosumer dashboard (stat counts, booking history, filtering) and the nearby-hubs map screen built on the Google Maps SDK, plus the app's splash and onboarding screens.
-
-**Dinil Dulneth** - The reservation lifecycle on the backend: creating, updating and cancelling a booking, with the 7-day scheduling window and 12-hour notice rule both enforced server-side, along with QR token issuance and verification. On the web app: the reservations oversight page used by Backoffice and Grid Operator staff to review and cancel bookings. On mobile: the Grid Operator QR scanner, built with CameraX and ML Kit, which reads a prosumer's transaction code and confirms the transfer against the server.
-
-**Migara Wijesinghe** - User authentication and account management on the backend: JWT login, and CRUD for Backoffice and Grid Operator staff accounts with BCrypt password hashing. On the web app: the staff sign-in page and the user management screen.
-
-**Rukshan** - Prosumer management on the web: prosumer profile administration and reviewing pending account activations. On mobile: prosumer account control - registration using NIC as the primary key, profile editing, and requesting account deactivation.
-
-## Repository
-
-https://github.com/3hal0n/smart-solar-microgrid-system
-
-## Demo video
-
-A comprehensive walkthrough of the application (under 5 minutes) is available:
-- **Demo Video:** [JouleDemo.mp4 (OneDrive / SharePoint)](https://mysliit-my.sharepoint.com/:v:/g/personal/it22362544_my_sliit_lk/IQBvTgFMRkPJQKGFHGoIvIJgAQ9GXCwDsMBgF1Juv_zKcWQ?e=bAFMzG)
+### 4. Rukshan Dias
+- **Web API & Backend:** Prosumer account endpoints (`ProsumersController.cs`, `ProsumerService.cs`) utilizing National Identity Card (NIC) as the unique primary key, pending account approval workflows, and deactivation handling.
+- **Web Application:** Prosumer administration dashboard (`ProsumersPage.jsx`, `PendingProsumersPage.jsx`) for reviewing, verifying, and activating pending prosumer registrations.
+- **Mobile Application:** Prosumer self-registration flow with NIC validation, user profile management, and account deactivation request interface.
