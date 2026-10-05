@@ -51,8 +51,14 @@ public class ReservationService
         if (string.IsNullOrWhiteSpace(prosumerNic))
             throw new ServiceException(400, "MISSING_NIC", "Prosumer NIC is required.");
 
+        var cleanNic = prosumerNic.Trim();
+        var stationId = req.StationId?.Trim() ?? string.Empty;
+        var slotId = req.SlotId?.Trim() ?? string.Empty;
+
         var now = DateTime.UtcNow;
-        var scheduledUtc = DateTime.SpecifyKind(req.ScheduledAt, DateTimeKind.Utc);
+        var scheduledUtc = req.ScheduledAt.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(req.ScheduledAt, DateTimeKind.Utc)
+            : req.ScheduledAt.ToUniversalTime();
 
         // 7-day window (must be in future, within BOOKING_WINDOW_DAYS days).
         if (scheduledUtc <= now)
@@ -62,13 +68,13 @@ public class ReservationService
                 $"Reservations must be within {BOOKING_WINDOW_DAYS} days.");
 
         // Slot must exist and be Available.
-        var slot = await _slotService.GetByIdAsync(req.SlotId)
+        var slot = await _slotService.GetByIdAsync(slotId)
             ?? throw new ServiceException(404, "SLOT_NOT_FOUND", "Slot does not exist.");
         if (slot.Status != SlotStatus.Available)
             throw new ServiceException(409, "SLOT_NOT_AVAILABLE", "Slot is not available.");
 
         // Station must exist and be Active.
-        var station = await _stationService.GetByIdAsync(req.StationId)
+        var station = await _stationService.GetByIdAsync(stationId)
             ?? throw new ServiceException(404, "STATION_NOT_FOUND", "Station does not exist.");
         if (station.Status != "Active")
             throw new ServiceException(409, "STATION_INACTIVE", "Station is not active.");
@@ -81,9 +87,9 @@ public class ReservationService
         var reservation = new Reservation
         {
             Id = reservationId,
-            ProsumerNic = prosumerNic,
-            StationId = req.StationId,
-            SlotId = req.SlotId,
+            ProsumerNic = cleanNic,
+            StationId = stationId,
+            SlotId = slotId,
             ScheduledAt = scheduledUtc,
             Status = "Confirmed",
             QrToken = qrToken,
@@ -93,7 +99,7 @@ public class ReservationService
         };
 
         await _db.Reservations.InsertOneAsync(reservation);
-        await _slotService.MarkReserved(req.SlotId);
+        await _slotService.MarkReserved(slotId);
 
         return new CreateReservationResponse
         {

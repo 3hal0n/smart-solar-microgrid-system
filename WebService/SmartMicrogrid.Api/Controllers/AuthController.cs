@@ -67,6 +67,7 @@ namespace SmartMicrogrid.Api.Controllers
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id),
                 new Claim("role", user.Role),
+                new Claim(ClaimTypes.Role, user.Role),
                 new Claim("fullName", user.FullName),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };

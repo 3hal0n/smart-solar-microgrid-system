@@ -449,11 +449,13 @@ fun CreateBookingScreen(
                 onClick = {
                     if (canSubmit) {
                         isSubmitting = true
+                        val prosumerNic = com.smartmicrogrid.data.local.ProsumerSessionDao(context).getSession()?.nic
                         viewModel.createReservation(
                             CreateReservationRequest(
                                 stationId = selectedStation!!.id,
                                 slotId = selectedSlotId,
-                                scheduledAt = scheduledIsoString
+                                scheduledAt = scheduledIsoString,
+                                prosumerNic = prosumerNic
                             )
                         )
                     }
