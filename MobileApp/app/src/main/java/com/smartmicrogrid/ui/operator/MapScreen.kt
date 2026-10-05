@@ -499,7 +499,12 @@ private fun StationsMap(
                     onStationSelect?.invoke(station.id)
                 },
             ) {
-                StationInfoWindow(station, onBookClick = { onStationSelect?.invoke(station.id) })
+                StationInfoWindow(
+                    station = station,
+                    onBookClick = if (onStationSelect != null) {
+                        { onStationSelect(station.id) }
+                    } else null
+                )
             }
         }
     }

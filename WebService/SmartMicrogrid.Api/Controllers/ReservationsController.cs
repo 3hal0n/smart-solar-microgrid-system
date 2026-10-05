@@ -45,8 +45,8 @@ public class ReservationsController : ControllerBase
     [Authorize(Roles = "Prosumer,GridOperator,Backoffice")]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateReservationRequest req)
     {
-        var role = User.FindFirst("role")?.Value;
-        var callerNic = User.FindFirst("nic")?.Value;
+        var role = ResolveRole();
+        var callerNic = ResolveCallerNic();
 
         if (role == "Prosumer")
         {
@@ -69,8 +69,8 @@ public class ReservationsController : ControllerBase
     [Authorize(Roles = "Prosumer,GridOperator,Backoffice")]
     public async Task<IActionResult> Cancel(string id, [FromBody] CancelReservationRequest req)
     {
-        var role = User.FindFirst("role")?.Value;
-        var callerNic = User.FindFirst("nic")?.Value;
+        var role = ResolveRole();
+        var callerNic = ResolveCallerNic();
 
         if (role == "Prosumer")
         {
@@ -92,8 +92,8 @@ public class ReservationsController : ControllerBase
     [Authorize(Roles = "Prosumer,GridOperator,Backoffice")]
     public async Task<IActionResult> Get(string id)
     {
-        var role = User.FindFirst("role")?.Value;
-        var nic = User.FindFirst("nic")?.Value;
+        var role = ResolveRole();
+        var nic = ResolveCallerNic();
 
         var reservation = (role == "Prosumer")
             ? await _service.GetOwnedAsync(id, nic!)
@@ -112,11 +112,11 @@ public class ReservationsController : ControllerBase
         [FromQuery] DateTime? from,
         [FromQuery] DateTime? to)
     {
-        var role = User.FindFirst("role")?.Value;
-        var jwtNic = User.FindFirst("nic")?.Value;
+        var role = ResolveRole();
+        var jwtNic = ResolveCallerNic();
 
         // Prosumers can only ever see their own reservations.
-        var effectiveNic = (role == "Prosumer") ? jwtNic : nic;
+        var effectiveNic = (role == "Prosumer") ? jwtNic : (nic ?? jwtNic);
 
         var list = await _service.ListAsync(effectiveNic, stationId, status, from, to);
         return Ok(list.Select(MapToResponse));
@@ -139,24 +139,49 @@ public class ReservationsController : ControllerBase
     }
     // ---------- Helpers ----------
 
+    private string? ResolveRole()
+    {
+        return User.FindFirst("role")?.Value
+            ?? User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+            ?? User.FindFirst("http://schemas.microsoft.com/ws/2008/06/identity/claims/role")?.Value;
+    }
+
+    private string? ResolveCallerNic()
+    {
+        return User.FindFirst("nic")?.Value
+            ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    }
+
     // Resolves the NIC of the Prosumer the reservation is for.
-    // Prosumer: NIC must come from JWT.
-    // Operator/Backoffice: NIC must come from the request body.
+    // Prosumer: NIC resolved from JWT or request body fallback.
+    // Operator/Backoffice: NIC comes from request body.
     private string ResolveProsumerNic(string? bodyNic)
     {
-        var role = User.FindFirst("role")?.Value;
+        var role = ResolveRole();
+        var jwtNic = ResolveCallerNic();
+
+        if (!string.IsNullOrWhiteSpace(jwtNic) && (role == "Prosumer" || string.IsNullOrWhiteSpace(bodyNic)))
+        {
+            return jwtNic.Trim();
+        }
 
         if (role == "Prosumer")
         {
-            return User.FindFirst("nic")?.Value
-                ?? throw new ServiceException(401, "MISSING_NIC", "JWT missing nic claim.");
+            if (!string.IsNullOrWhiteSpace(jwtNic))
+                return jwtNic.Trim();
+            if (!string.IsNullOrWhiteSpace(bodyNic))
+                return bodyNic.Trim();
+            throw new ServiceException(401, "MISSING_NIC", "JWT missing nic claim.");
         }
 
-        // Operator / Backoffice path
-        if (string.IsNullOrWhiteSpace(bodyNic))
-            throw new ServiceException(400, "MISSING_NIC", "Prosumer NIC is required.");
+        // Operator / Backoffice path or fallback
+        if (!string.IsNullOrWhiteSpace(bodyNic))
+            return bodyNic.Trim();
 
-        return bodyNic.Trim();
+        if (!string.IsNullOrWhiteSpace(jwtNic))
+            return jwtNic.Trim();
+
+        throw new ServiceException(400, "MISSING_NIC", "Prosumer NIC is required.");
     }
 
     // Maps a Reservation model to its API response shape.

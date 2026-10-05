@@ -135,10 +135,17 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Ensures the 2dsphere index on SolarStations.location exists before serving traffic.
-using (var startupScope = app.Services.CreateScope())
+try
 {
-    var stationService = startupScope.ServiceProvider.GetRequiredService<StationService>();
-    await stationService.EnsureIndexesAsync();
+    using (var startupScope = app.Services.CreateScope())
+    {
+        var stationService = startupScope.ServiceProvider.GetRequiredService<StationService>();
+        await stationService.EnsureIndexesAsync();
+    }
+}
+catch (Exception ex)
+{
+    app.Logger.LogWarning(ex, "Could not ensure Mongo indexes on startup; continuing startup.");
 }
 
 var summaries = new[]

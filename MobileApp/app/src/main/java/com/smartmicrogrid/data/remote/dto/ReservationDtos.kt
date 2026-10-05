@@ -24,7 +24,8 @@ data class VerifyQrResponse(
 data class CreateReservationRequest(
     @SerializedName("stationId") val stationId: String,
     @SerializedName("slotId") val slotId: String,
-    @SerializedName("scheduledAt") val scheduledAt: String // ISO 8601 format
+    @SerializedName("scheduledAt") val scheduledAt: String, // ISO 8601 format
+    @SerializedName("prosumerNic") val prosumerNic: String? = null
 )
 
 data class CreateReservationResponse(

@@ -76,10 +76,16 @@ private val OPERATOR_DESTINATIONS = listOf(
 
 class HomeActivity : ComponentActivity() {
 
-    // Reads the caller-supplied role (see HomeRoutes.EXTRA_ROLE) and renders that role's shell.
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        if (ApiClient.authToken.isNullOrBlank()) {
+            val prosumerSession = ProsumerSessionDao(this).getSession()
+            val staffSession = StaffSessionPreferences.read(this)
+            ApiClient.authToken = prosumerSession?.token ?: staffSession?.token
+        }
+
         val role = UserRole.fromClaimValue(intent.getStringExtra(HomeRoutes.EXTRA_ROLE))
         setContent {
             SmartMicrogridTheme {
