@@ -95,8 +95,8 @@ public class ReservationsController : ControllerBase
         var role = ResolveRole();
         var nic = ResolveCallerNic();
 
-        var reservation = (role == "Prosumer")
-            ? await _service.GetOwnedAsync(id, nic!)
+        var reservation = (role == "Prosumer" && !string.IsNullOrWhiteSpace(nic))
+            ? await _service.GetOwnedAsync(id, nic)
             : await _service.GetByIdAsync(id);
 
         return Ok(MapToResponse(reservation));
@@ -116,7 +116,10 @@ public class ReservationsController : ControllerBase
         var jwtNic = ResolveCallerNic();
 
         // Prosumers can only ever see their own reservations.
-        var effectiveNic = (role == "Prosumer") ? jwtNic : (nic ?? jwtNic);
+        // Backoffice & GridOperator see ALL reservations by default.
+        var effectiveNic = (role == "Prosumer")
+            ? jwtNic
+            : (string.IsNullOrWhiteSpace(nic) ? null : nic.Trim());
 
         var list = await _service.ListAsync(effectiveNic, stationId, status, from, to);
         return Ok(list.Select(MapToResponse));
@@ -148,8 +151,7 @@ public class ReservationsController : ControllerBase
 
     private string? ResolveCallerNic()
     {
-        return User.FindFirst("nic")?.Value
-            ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        return User.FindFirst("nic")?.Value;
     }
 
     // Resolves the NIC of the Prosumer the reservation is for.
@@ -160,11 +162,6 @@ public class ReservationsController : ControllerBase
         var role = ResolveRole();
         var jwtNic = ResolveCallerNic();
 
-        if (!string.IsNullOrWhiteSpace(jwtNic) && (role == "Prosumer" || string.IsNullOrWhiteSpace(bodyNic)))
-        {
-            return jwtNic.Trim();
-        }
-
         if (role == "Prosumer")
         {
             if (!string.IsNullOrWhiteSpace(jwtNic))
@@ -174,7 +171,7 @@ public class ReservationsController : ControllerBase
             throw new ServiceException(401, "MISSING_NIC", "JWT missing nic claim.");
         }
 
-        // Operator / Backoffice path or fallback
+        // Operator / Backoffice path
         if (!string.IsNullOrWhiteSpace(bodyNic))
             return bodyNic.Trim();
 

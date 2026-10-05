@@ -35,6 +35,11 @@ export default function UsersPage() {
   const [deactivateTarget, setDeactivateTarget] = useState(null);
   const [deactivating, setDeactivating] = useState(false);
 
+  // Search & Pagination State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
+
   const fetchUsers = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -63,6 +68,35 @@ export default function UsersPage() {
     }),
     [users],
   );
+
+  // Filter users by search term
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery.trim()) return users;
+    const q = searchQuery.toLowerCase();
+    return users.filter(
+      (u) =>
+        u.username?.toLowerCase().includes(q) ||
+        u.fullName?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
+        u.role?.toLowerCase().includes(q)
+    );
+  }, [users, searchQuery]);
+
+  // Total pages and paginated slice
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(filteredUsers.length / pageSize)),
+    [filteredUsers, pageSize]
+  );
+
+  const paginatedUsers = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredUsers.slice(start, start + pageSize);
+  }, [filteredUsers, currentPage, pageSize]);
+
+  // Reset page when search or pageSize changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, pageSize]);
 
   const handleOpenCreate = () => {
     setEditingUser(null);
@@ -217,13 +251,89 @@ export default function UsersPage() {
         <StatCard icon="bolt" label="Grid operators" value={summary.operators} hint="Field accounts" />
       </div>
 
+      {/* Search Bar */}
+      <div className="mb-4">
+        <Input
+          placeholder="Search by username, name, email or role..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full sm:max-w-sm"
+        />
+      </div>
+
       <DataTable
         columns={columns}
-        data={users}
+        data={paginatedUsers}
         loading={isLoading}
-        emptyMessage="No users found."
+        emptyMessage={searchQuery ? "No matching users found." : "No users found."}
         rowKey={(u) => u.id}
       />
+
+      {/* Pagination Controls */}
+      {!isLoading && filteredUsers.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-line/60 mt-4">
+          <div className="flex items-center gap-3 text-xs text-muted">
+            <span>
+              Showing <span className="font-semibold text-ink">{(currentPage - 1) * pageSize + 1}</span> to{' '}
+              <span className="font-semibold text-ink">
+                {Math.min(currentPage * pageSize, filteredUsers.length)}
+              </span>{' '}
+              of <span className="font-semibold text-ink">{filteredUsers.length}</span> users
+            </span>
+            <span className="text-line">|</span>
+            <div className="flex items-center gap-1.5">
+              <span>Per page:</span>
+              <select
+                aria-label="Users per page"
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="rounded-md border border-line bg-surface px-2 py-1 text-xs font-medium text-ink focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value={6}>6</option>
+                <option value={12}>12</option>
+                <option value={24}>24</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-2.5"
+            >
+              ← Prev
+            </Button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <button
+                  key={pageNum}
+                  type="button"
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`min-w-[32px] h-8 rounded-md text-xs font-semibold transition-all ${
+                    currentPage === pageNum
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'border border-line bg-surface text-ink hover:bg-surface-alt'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-2.5"
+            >
+              Next →
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Modal
         open={isModalOpen}

@@ -48,6 +48,9 @@ export default function StationsPage() {
   const [activatingId, setActivatingId] = useState(null);
   const [toast, setToast] = useState({ message: '', tone: 'error' });
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
+
   // Quick-glance summary row, derived from the already-loaded list
   const summary = useMemo(
     () => ({
@@ -70,6 +73,22 @@ export default function StationsPage() {
     if (statusFilter === 'All') return stations;
     return stations.filter((s) => s.status === statusFilter);
   }, [stations, statusFilter]);
+
+  // Total pages and paginated slice of stations
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(filteredStations.length / pageSize)),
+    [filteredStations, pageSize],
+  );
+
+  const paginatedStations = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredStations.slice(start, start + pageSize);
+  }, [filteredStations, currentPage, pageSize]);
+
+  // Reset to page 1 whenever filter, search or pageSize changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter, pageSize]);
 
   // Loads the station list from the real API
   const loadStations = useCallback(async (term) => {
@@ -333,7 +352,7 @@ export default function StationsPage() {
                 </tr>
               )}
               {!loading &&
-                filteredStations.map((station) => {
+                paginatedStations.map((station) => {
                   const percent = Math.min(100, Math.round(((station.capacityKWh ?? 0) / maxCapacity) * 100));
                   return (
                     <tr key={station.id} className="transition-colors hover:bg-surface-alt/50">
@@ -427,7 +446,7 @@ export default function StationsPage() {
             </div>
           )}
           {!loading &&
-            filteredStations.map((station) => {
+            paginatedStations.map((station) => {
               const percent = Math.min(100, Math.round(((station.capacityKWh ?? 0) / maxCapacity) * 100));
               const slotsCount = station.batterySlots?.length ?? station.totalBatterySlots ?? 0;
               return (
@@ -513,6 +532,72 @@ export default function StationsPage() {
                 </div>
               );
             })}
+        </div>
+      )}
+
+      {/* ── Pagination Controls ───────────────────────── */}
+      {!loading && filteredStations.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 border-t border-line/60">
+          <div className="flex items-center gap-3 text-xs text-muted">
+            <span>
+              Showing <span className="font-semibold text-ink">{(currentPage - 1) * pageSize + 1}</span> to{' '}
+              <span className="font-semibold text-ink">
+                {Math.min(currentPage * pageSize, filteredStations.length)}
+              </span>{' '}
+              of <span className="font-semibold text-ink">{filteredStations.length}</span> hubs
+            </span>
+            <span className="text-line">|</span>
+            <div className="flex items-center gap-1.5">
+              <span>Per page:</span>
+              <select
+                aria-label="Stations per page"
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="rounded-md border border-line bg-surface px-2 py-1 text-xs font-medium text-ink focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value={6}>6</option>
+                <option value={12}>12</option>
+                <option value={24}>24</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-2.5"
+            >
+              ← Prev
+            </Button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <button
+                  key={pageNum}
+                  type="button"
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`min-w-[32px] h-8 rounded-md text-xs font-semibold transition-all ${
+                    currentPage === pageNum
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'border border-line bg-surface text-ink hover:bg-surface-alt'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-2.5"
+            >
+              Next →
+            </Button>
+          </div>
         </div>
       )}
 

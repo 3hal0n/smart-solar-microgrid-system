@@ -82,6 +82,10 @@ export default function ReservationsAdminPage() {
   const [cancelReason, setCancelReason] = useState("");
   const [cancelBusy, setCancelBusy] = useState(false);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(8);
+
   // Create modal state (operator-assisted booking).
   const [showCreate, setShowCreate] = useState(false);
   const [createForm, setCreateForm] = useState(emptyCreateForm());
@@ -321,6 +325,21 @@ export default function ReservationsAdminPage() {
     [reservations]
   );
 
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(reservations.length / pageSize)),
+    [reservations, pageSize]
+  );
+
+  const paginatedReservations = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return reservations.slice(start, start + pageSize);
+  }, [reservations, currentPage, pageSize]);
+
+  // Reset to page 1 on filter or page size change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStatus, filterNic, filterStationId, pageSize]);
+
   const canCreate =
     !createBusy &&
     createForm.prosumerNic &&
@@ -440,7 +459,7 @@ export default function ReservationsAdminPage() {
             </tr>
           )}
           {!loading &&
-            reservations.map((r) => (
+            paginatedReservations.map((r) => (
               <tr key={r.id}>
                 <Td>
                   <Link
@@ -482,6 +501,72 @@ export default function ReservationsAdminPage() {
             ))}
         </tbody>
       </Table>
+
+      {/* Pagination Controls */}
+      {!loading && reservations.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-line/60 mt-4">
+          <div className="flex items-center gap-3 text-xs text-muted">
+            <span>
+              Showing <span className="font-semibold text-ink">{(currentPage - 1) * pageSize + 1}</span> to{' '}
+              <span className="font-semibold text-ink">
+                {Math.min(currentPage * pageSize, reservations.length)}
+              </span>{' '}
+              of <span className="font-semibold text-ink">{reservations.length}</span> reservations
+            </span>
+            <span className="text-line">|</span>
+            <div className="flex items-center gap-1.5">
+              <span>Per page:</span>
+              <select
+                aria-label="Reservations per page"
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="rounded-md border border-line bg-surface px-2 py-1 text-xs font-medium text-ink focus:outline-none focus:ring-1 focus:ring-primary"
+              >
+                <option value={8}>8</option>
+                <option value={16}>16</option>
+                <option value={32}>32</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="px-2.5"
+            >
+              ← Prev
+            </Button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <button
+                  key={pageNum}
+                  type="button"
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`min-w-[32px] h-8 rounded-md text-xs font-semibold transition-all ${
+                    currentPage === pageNum
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'border border-line bg-surface text-ink hover:bg-surface-alt'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              ))}
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="px-2.5"
+            >
+              Next →
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Create modal - dropdowns for Prosumer / Station / Slot */}
       <Modal
