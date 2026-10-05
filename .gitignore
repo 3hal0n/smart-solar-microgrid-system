@@ -1,6 +1,4 @@
 
-.env
-.env.*
 !.env.example
 WebService/SmartMicrogrid.Api/appsettings.json
 WebService/SmartMicrogrid.Api/appsettings.*.json
@@ -43,7 +41,7 @@ captures/
 
 .idea/
 *.iml
-.vscode/
 *.swp
 *.DS_Store
 Thumbs.db
+config.bat
