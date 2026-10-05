@@ -448,32 +448,50 @@ export default function DashboardPage() {
       {/* ── Activity Feed & Quick Actions ─────────────── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left 2 Cols: Activity Feed */}
-        <div className="lg:col-span-2 rounded-xl border border-line bg-surface p-5 shadow-card">
-          <SectionHeader
-            title="Recent Reservations"
-            subtitle="Live reservation events across grid nodes"
-            action={
-              <Link to="/reservations" className="text-[12px] font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition-colors">
-                View all bookings →
-              </Link>
-            }
-          />
-          {loading ? (
-            <div className="flex items-center justify-center h-40 text-muted text-xs">Loading activity feed…</div>
-          ) : recentActivity.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-40 text-center py-6">
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-alt text-muted mb-2">
-                <Icon name="calendar" className="h-5 w-5" />
+        <div className="lg:col-span-2 rounded-xl border border-line bg-surface p-5 shadow-card flex flex-col justify-between">
+          <div>
+            <SectionHeader
+              title="Recent Reservations"
+              subtitle="Live reservation events across grid nodes"
+              action={
+                <Link to="/reservations" className="text-[12px] font-semibold text-primary hover:text-primary-hover flex items-center gap-1 transition-colors">
+                  View all →
+                </Link>
+              }
+            />
+            {loading ? (
+              <div className="flex items-center justify-center h-40 text-muted text-xs">Loading activity feed…</div>
+            ) : recentActivity.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-40 text-center py-6">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-alt text-muted mb-2">
+                  <Icon name="calendar" className="h-5 w-5" />
+                </span>
+                <p className="text-[13px] font-medium text-ink">No reservations recorded yet</p>
+                <p className="text-[12px] text-muted mt-0.5">New bookings will appear here in real time.</p>
+              </div>
+            ) : (
+              <ul className="space-y-0.5">
+                {recentActivity.slice(0, 5).map(r => (
+                  <ActivityItem key={r.id} reservation={r} />
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {!loading && (reservations?.length ?? 0) > 0 && (
+            <div className="pt-3 mt-3 border-t border-line/60 flex items-center justify-between text-xs">
+              <span className="text-muted">
+                Showing recent <span className="font-semibold text-ink">{Math.min(5, reservations.length)}</span> of{' '}
+                <span className="font-semibold text-ink">{reservations.length}</span> total reservations
               </span>
-              <p className="text-[13px] font-medium text-ink">No reservations recorded yet</p>
-              <p className="text-[12px] text-muted mt-0.5">New bookings will appear here in real time.</p>
+              <Link
+                to="/reservations"
+                className="inline-flex items-center gap-1 font-semibold text-primary hover:text-primary-hover transition-colors"
+              >
+                <span>View in Reservations Page</span>
+                <span>→</span>
+              </Link>
             </div>
-          ) : (
-            <ul className="space-y-0.5">
-              {recentActivity.map(r => (
-                <ActivityItem key={r.id} reservation={r} />
-              ))}
-            </ul>
           )}
         </div>
 
@@ -538,7 +556,7 @@ export default function DashboardPage() {
               {!loading && (!stations || stations.length === 0) && (
                 <tr><td colSpan={5} className="px-5 py-8 text-center text-muted text-xs">No stations registered yet.</td></tr>
               )}
-              {!loading && stations?.map(s => {
+              {!loading && stations?.slice(0, 5).map(s => {
                 const percent = Math.min(100, Math.round(((s.capacityKWh ?? 0) / maxStationCapacity) * 100));
                 return (
                   <tr key={s.id} className="hover:bg-surface-alt/50 transition-colors">
@@ -583,6 +601,22 @@ export default function DashboardPage() {
             </tbody>
           </table>
         </div>
+
+        {!loading && (stations?.length ?? 0) > 0 && (
+          <div className="px-5 py-3 border-t border-line/60 bg-surface-alt/30 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+            <span className="text-muted">
+              Displaying <span className="font-semibold text-ink">{Math.min(5, stations.length)}</span> of{' '}
+              <span className="font-semibold text-ink">{stations.length}</span> registered microgrid nodes
+            </span>
+            <Link
+              to="/stations"
+              className="inline-flex items-center gap-1.5 font-semibold text-primary hover:text-primary-hover transition-colors"
+            >
+              <span>View in Microgrid Hubs Page</span>
+              <span>→</span>
+            </Link>
+          </div>
+        )}
       </div>
 
     </div>
