@@ -31,13 +31,14 @@ namespace SmartMicrogrid.Api.Services
             var claims = new List<Claim>
             {
                 new Claim(JwtRegisteredClaimNames.Sub, userId),
+                new Claim("role", role),
                 new Claim(ClaimTypes.Role, role),
                 new Claim("fullName", fullName),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
             // Add NIC claim only for Prosumers (used for authorization checks)
-            if (role == "Prosumer" && !string.IsNullOrEmpty(nic))
+            if (!string.IsNullOrEmpty(nic))
             {
                 claims.Add(new Claim("nic", nic));
             }

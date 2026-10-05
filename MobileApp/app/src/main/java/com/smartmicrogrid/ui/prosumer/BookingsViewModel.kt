@@ -59,7 +59,18 @@ class BookingsViewModel @JvmOverloads constructor(
                     _actionResult.value = "Booking confirmed!"
                     currentNic?.let { fetchReservations(it) }
                 } else {
-                    _actionResult.value = "Failed to create booking"
+                    val errorMsg = try {
+                        val raw = response.errorBody()?.string()
+                        if (!raw.isNullOrBlank()) {
+                            val parsed = com.google.gson.JsonParser.parseString(raw).asJsonObject
+                            parsed.get("message")?.asString ?: "Error: ${response.code()}"
+                        } else {
+                            "Failed to create booking (${response.code()})"
+                        }
+                    } catch (ex: Exception) {
+                        "Failed to create booking (${response.code()})"
+                    }
+                    _actionResult.value = errorMsg
                 }
             } catch (e: Exception) {
                 _actionResult.value = e.message ?: "Network error"
@@ -75,7 +86,18 @@ class BookingsViewModel @JvmOverloads constructor(
                     _actionResult.value = "Reservation cancelled."
                     currentNic?.let { fetchReservations(it) }
                 } else {
-                    _actionResult.value = "Failed to cancel"
+                    val errorMsg = try {
+                        val raw = response.errorBody()?.string()
+                        if (!raw.isNullOrBlank()) {
+                            val parsed = com.google.gson.JsonParser.parseString(raw).asJsonObject
+                            parsed.get("message")?.asString ?: "Error: ${response.code()}"
+                        } else {
+                            "Failed to cancel (${response.code()})"
+                        }
+                    } catch (ex: Exception) {
+                        "Failed to cancel (${response.code()})"
+                    }
+                    _actionResult.value = errorMsg
                 }
             } catch (e: Exception) {
                 _actionResult.value = e.message ?: "Network error"
