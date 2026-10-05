@@ -52,7 +52,7 @@
 
         <activity
             android:name=".ui.onboarding.OnboardingActivity"
-            android:exported="false"
+            android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.SmartMicrogrid" />
 
